@@ -1,6 +1,6 @@
 #include "../include/data.h"
 
-
+#define BLOCKS 16
 
 __host__ void return_list(string path, int** arr){
     fstream data;
@@ -41,12 +41,12 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* cluster_out, int* v
     //organize into the data for each block of FrogWild
     int idx= threadIdx.x + blockIdx.x*blockDim.x;
     int tid= threadIdx.x;
-    int cluster_size= size/gridDim.x+1;
-    __shared__ int shared_cluster_in[cluster_size];
-    __shared__ int shared_vertex_in[cluster_size];
-    __shared__ int shared_cluster_out[cluster_size];
-    __shared__ int shared_vertex_out[cluster_size];
-    __shared__ int bits[cluster_size];
+    const int cluster_size= size/gridDim.x+1;
+    extern __shared__ int shared_cluster_in[];
+    extern __shared__ int shared_vertex_in[];
+    extern __shared__ int shared_cluster_out[];
+    extern __shared__ int shared_vertex_out[];
+    extern __shared__ int bits[];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
         shared_cluster_in[tid]=cluster[idx];
