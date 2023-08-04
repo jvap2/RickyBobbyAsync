@@ -36,7 +36,7 @@ __host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size){
 }
 
 
-__global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, int iter){
+__global__ void Sort_Cluster(int* cluster, int* vertex, int* cluster_out, int* vertex_out, int* table, int size, int iter){
     //Need to sort through the cluster data and organize it
     //organize into the data for each block of FrogWild
     int idx= threadIdx.x + blockIdx.x*blockDim.x;
@@ -83,7 +83,9 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, in
         shared_vertex_out[dst]=vert_val;
         shared_cluster_out[dst]=key;
     }
-
+    __syncthreads();
+    vertex_out[idx]=shared_vertex_out[idx];
+    cluster_out[idx]=shared_cluster_in[idx];
 }
 
 
