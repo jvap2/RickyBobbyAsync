@@ -36,29 +36,50 @@ __host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size){
 }
 
 
-__global__ void Sort_Cluster(int* cluster, int* vertex, int* cluster_out, int* vertex_out, int* bits, int size, int iter){
+__global__ void Sort_Cluster(int* cluster, int* vertex, int* cluster_out, int* vertex_out, int size, int iter){
     //Need to sort through the cluster data and organize it
     //organize into the data for each block of FrogWild
     int idx= threadIdx.x + blockIdx.x*blockDim.x;
     int tid= threadIdx.x;
     int cluster_size= size/gridDim.x+1;
-    __shared__ int shared_cluster[cluster_size];
-    __shared__ int shared_vertex[cluster_size];
+    __shared__ int shared_cluster_in[cluster_size];
+    __shared__ int shared_vertex_in[cluster_size];
+    __shared__ int shared_cluster_out[cluster_size];
+    __shared__ int shared_vertex_out[cluster_size];
+    __shared__ int bits[cluster_size];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
-        shared_cluster[tid]=cluster[idx];
-        shared_vertex[tid]=vertex[idx];
+        shared_cluster_in[tid]=cluster[idx];
+        shared_vertex_in[tid]=vertex[idx];
     }
     __syncthreads();
 
     //Perform sorting
-    unsigned int key, bit;
+    unsigned int key, bit, vert_val;
     if(idx<size){
-        key=shared_cluster[tid];
+        key=shared_cluster_in[tid];
+        vert_val=shared_vertex_in[tid];
         bit=(key>>iter) & 1;
-
+        bits[idx]=bit;
     }
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
+	{
+		if (tid < stride)
+		{
+			//tid<stride ensures we do not try to access memory past the vector allocated to the block
+			//tid+stride<size allows for vector sizes less than blockDim
+			bits[tid + stride] += bits[tid];
+		}
+		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
+	}
 
+    if(idx<size){
+        int num_one_bef=bits[idx];
+        int num_one_total=bits[blockDim.x-1];
+        int dst = (bit==0)? (idx - num_one_bef):(size-num_one_total-num_one_bef);
+        shared_vertex_out[dst]=vert_val;
+        shared_cluster_out[dst]=key;
+    }
 
 }
 
