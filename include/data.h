@@ -16,3 +16,5 @@ using namespace std;
 __host__ void return_list(string path, int** arr);
 
 __host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size);
+
+__global__ void Sort_Cluster(int* cluster, int* vertex, int size, int iter);
