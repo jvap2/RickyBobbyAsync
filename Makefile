@@ -13,8 +13,11 @@ BIN := bin
 
 frog: $(BIN)/Frog
 
-$(BIN)/Frog: $(OBJ)/frog.o 
+$(BIN)/Frog: $(OBJ)/frog.o $(OBJ)/frog_func.o
 	$(NVCC) $(LINK_FLAGS) $^ -o $@
 	
-$(OBJ)/frog.o: $(SRC)/main.cpp $(INC)/data.h
+$(OBJ)/frog.o: $(SRC)/main.cpp 
+	$(NVCC) $(NVCC_FLAGS) -c $< -o $@
+
+$(OBJ)/frog_func.o: $(SRC)/parse_data.cu $(INC)/data.h 
 	$(NVCC) $(NVCC_FLAGS) -c $< -o $@

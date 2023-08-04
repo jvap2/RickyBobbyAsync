@@ -13,6 +13,6 @@ int main()
     }
     return_list(EDGE_PATH,edges);
     return_list(CLUSTER_PATH,cluster);
-
+    cout<<edges[0][0]<<endl;
     return 0;
 }
