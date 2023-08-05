@@ -36,29 +36,27 @@ __host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size){
 }
 
 
-__global__ void Sort_Cluster(int* cluster, int* vertex, int* cluster_out, int* vertex_out, int* table, int size, int iter){
+__global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, int iter){
     //Need to sort through the cluster data and organize it
     //organize into the data for each block of FrogWild
     int idx= threadIdx.x + blockIdx.x*blockDim.x;
     int tid= threadIdx.x;
     const int cluster_size= size/gridDim.x+1;
-    extern __shared__ int shared_cluster_in[];
-    extern __shared__ int shared_vertex_in[];
-    extern __shared__ int shared_cluster_out[];
-    extern __shared__ int shared_vertex_out[];
+    extern __shared__ int shared_cluster[];
+    extern __shared__ int shared_vertex[];
     extern __shared__ int bits[];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
-        shared_cluster_in[tid]=cluster[idx];
-        shared_vertex_in[tid]=vertex[idx];
+        shared_cluster[tid]=cluster[idx];
+        shared_vertex[tid]=vertex[idx];
     }
     __syncthreads();
 
     //Perform sorting
     unsigned int key, bit, vert_val;
     if(idx<size){
-        key=shared_cluster_in[tid];
-        vert_val=shared_vertex_in[tid];
+        key=shared_cluster[tid];
+        vert_val=shared_vertex[tid];
         bit=(key>>iter) & 1;
         bits[idx]=bit;
     }
@@ -80,12 +78,12 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* cluster_out, int* v
         int num_one_bef=bits[idx];
         int num_one_total=bits[blockDim.x-1];
         int dst = (bit==0)? (idx - num_one_bef):(size-num_one_total-num_one_bef);
-        shared_vertex_out[dst]=vert_val;
-        shared_cluster_out[dst]=key;
+        shared_vertex[dst]=vert_val;
+        shared_cluster[dst]=key;
     }
     __syncthreads();
-    vertex_out[idx]=shared_vertex_out[idx];
-    cluster_out[idx]=shared_cluster_in[idx];
+    cluster[idx]=shared_cluster[tid];
+    vertex[idx]=shared_vertex[tid];
 }
 
 
