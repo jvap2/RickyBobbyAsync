@@ -84,6 +84,26 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, in
     __syncthreads();
     cluster[idx]=shared_cluster[tid];
     vertex[idx]=shared_vertex[tid];
+    if(idx==0){
+        //Have thread 0 launch the kernel to perform the sum
+        bit_exclusive_scan<<<1,gridDim.x>>>(table);
+        cudaDeviceSynchronize();
+    }
+    __syncthreads();
+}
+
+__global__ void bit_exclusive_scan(int* bits){
+    int tid = threadIdx.x;
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
+	{
+		if (tid < stride)
+		{
+			//tid<stride ensures we do not try to access memory past the vector allocated to the block
+			//tid+stride<size allows for vector sizes less than blockDim
+			bits[tid + stride] += bits[tid];
+		}
+		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
+	}
 }
 
 

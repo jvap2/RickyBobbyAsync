@@ -17,5 +17,6 @@ __host__ void return_list(string path, int** arr);
 
 __host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size);
 
-__global__ void Sort_Cluster(int* cluster, int* vertex, int* cluster_out, int* vertex_out, int* table, int size, int iter);
+__global__ void bit_exclusive_scan(int* bits);
 
+__global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, int iter);
