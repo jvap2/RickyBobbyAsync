@@ -82,11 +82,8 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, in
         shared_cluster[dst]=key;
     }
     __syncthreads();
-<<<<<<< HEAD
-=======
     cluster[idx]=shared_cluster[tid];
     vertex[idx]=shared_vertex[tid];
->>>>>>> 32702b3bfdccd31ddd2f9c74249e6bd45b8a0f3c
 }
 
 
