@@ -63,17 +63,17 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
         bit=(key>>iter) & 1;
         bits[tid]=bit;
     }
-    // __syncthreads();
-    // for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
-	// {
-	// 	if (tid < stride)
-	// 	{
-	// 		//tid<stride ensures we do not try to access memory past the vector allocated to the block
-	// 		//tid+stride<size allows for vector sizes less than blockDim
-	// 		bits[tid + stride] += bits[tid];
-	// 	}
-	// 	__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
-	// }
+    __syncthreads();
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
+	{
+		if (tid < stride)
+		{
+			//tid<stride ensures we do not try to access memory past the vector allocated to the block
+			//tid+stride<size allows for vector sizes less than blockDim
+			bits[tid + stride] += bits[tid];
+		}
+		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
+	}
     // if(idx<size){
     //     int num_one_bef=bits[idx];
     //     int num_one_total=bits[blockDim.x-1];
