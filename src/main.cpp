@@ -25,7 +25,7 @@ int main()
     }
     Org_Vertex_Helper(test_1,test_2,512);
 
-    for(int i = 0; i<32 ; i++){
+    for(int i = 0; i<128 ; i++){
         cout<<test_1[i]<<endl;
     }
     for(int i=0; i<NODES;i++){
