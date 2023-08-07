@@ -18,7 +18,7 @@ $(BIN)/Frog: $(OBJ)/frog.o $(OBJ)/frog_func.o
 	$(NVCC) $(LINK_FLAGS) $^ -o $@ -lcudadevrt
 	
 $(OBJ)/frog.o: $(SRC)/main.cpp $(INC)/GPUErrors.cu $(INC)/GPUErrors.h $(INC)/data.h 
-	$(NVCC) $(NVCC_FLAGS) -c $< -o $@ 
+	$(NVCC) $(NVCC_FLAGS) -c $^ -o $@ 
 
 $(OBJ)/frog_func.o: $(SRC)/parse_data.cu $(INC)/GPUErrors.cu $(INC)/GPUErrors.h $(INC)/data.h 
-	$(NVCC) $(NVCC_FLAGS) -c $< -o $@ $(INC_FLAGS)
+	$(NVCC) $(NVCC_FLAGS) -c $^ -o $@ $(INC_FLAGS)
