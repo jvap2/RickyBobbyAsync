@@ -71,7 +71,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     else{
         ex_bits[tid]=0;
     }
-    for(unsigned int stride = 1; stride<blockDim.x;stride>>=1){
+    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
         int temp;
         if(tid>=stride){
@@ -82,7 +82,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
             ex_bits[tid]=temp;
         }
     }
-    if(tid<size){
+    if(tid<TPB){
         bits[tid]=ex_bits[tid];
     }
     __syncthreads();
@@ -159,7 +159,7 @@ __global__ void bit_exclusive_scan(int* bits, int* bit_2,int size){
     else{
         ex_bits[tid]=0;
     }
-    for(unsigned int stride = 1; stride<blockDim.x;stride>>=1){
+    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
         int temp;
         if(tid>=stride){
@@ -185,7 +185,7 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     int* d_table;
     int* d_table_2;
 
-    int threads_per_block=256;
+    int threads_per_block=TPB;
     int blocks_per_grid= size/threads_per_block+1;
 
     if(!HandleCUDAError(cudaMalloc((void**) &d_vertex, size*sizeof(int)))){
