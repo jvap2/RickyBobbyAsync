@@ -19,7 +19,7 @@ int main()
     split_list(cluster_vert,vert_assign,cluster_assign,NODES);
     Org_Vertex_Helper(cluster_assign,vert_assign,NODES);
 
-    for(int i = 0; i<NODES ; i++){
+    for(int i = 0; i<32 ; i++){
         cout<<cluster_assign[i]<<'\t'<<vert_assign[i]<<endl;
     }
     for(int i=0; i<NODES;i++){
