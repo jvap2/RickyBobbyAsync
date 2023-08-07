@@ -48,6 +48,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     __shared__ int shared_cluster[TPB];
     __shared__ int shared_vertex[TPB];
     __shared__ int bits[TPB];
+    __shared__ int ex_bits[TPB];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
         shared_cluster[tid]=cluster[idx];
@@ -64,7 +65,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
         bits[tid]=bit;
     }
     __syncthreads();
-    __shared__ int ex_bits[TPB];
+    //Perform exclusive scan
     if(tid<size && tid!=0){
         ex_bits[tid]=bits[tid-1];
     }
@@ -76,8 +77,8 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
         int temp;
         if(tid>=stride){
             temp=ex_bits[tid]+ex_bits[tid-stride];
-            __syncthreads();
         }
+        __syncthreads();
         if(tid>=stride){
             ex_bits[tid]=temp;
         }
