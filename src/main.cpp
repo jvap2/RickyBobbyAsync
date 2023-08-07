@@ -17,16 +17,16 @@ int main()
     int* cluster_assign= new int[NODES];
     int* vert_assign=new int[NODES];
     split_list(cluster_vert,vert_assign,cluster_assign,NODES);
-    int *test_1= new int[512];
-    int *test_2= new int[512];
-    for(int i = 0; i<512 ; i++){
-        test_1[i]=rand();
-        test_2[i]=rand();
-    }
-    Org_Vertex_Helper(test_1,test_2,512);
+    // int *test_1= new int[512];
+    // int *test_2= new int[512];
+    // for(int i = 0; i<512 ; i++){
+    //     test_1[i]=rand();
+    //     test_2[i]=rand();
+    // }
+    Org_Vertex_Helper(cluster_assign,vert_assign,NODES);
 
     for(int i = 0; i<128 ; i++){
-        cout<<test_1[i]<<endl;
+        cout<<cluster_assign[i]<<endl;
     }
     for(int i=0; i<NODES;i++){
         delete[] cluster_vert[i];
