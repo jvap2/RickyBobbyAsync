@@ -1,4 +1,5 @@
 #include "../include/data.h"
+#include "../include/GPUErrors.h"
 
 #define BLOCKS 16
 
