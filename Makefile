@@ -3,7 +3,7 @@ CC = $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader|head -n 1)
 NVCC := nvcc
 
 NVCC_FLAGS := -g -G -Xcompiler -Wall -gencode arch=compute_89,code=sm_89
-LINK_FLAGS := -arch=sm_89 -rdc=true -lcudadevrt
+LINK_FLAGS := -arch=sm_89 -rdc=true 
 # C_FLAGS := -std=c++11 
 
 INC := include
@@ -14,7 +14,7 @@ BIN := bin
 frog: $(BIN)/Frog
 
 $(BIN)/Frog: $(OBJ)/frog.o $(OBJ)/frog_func.o
-	$(NVCC) $(LINK_FLAGS) $^ -o $@
+	$(NVCC) $(LINK_FLAGS) $^ -o $@ -lcudadevrt
 	
 $(OBJ)/frog.o: $(SRC)/main.cpp 
 	$(NVCC) $(NVCC_FLAGS) -c $< -o $@
