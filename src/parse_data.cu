@@ -64,16 +64,12 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
         bits[tid]=bit;
     }
     __syncthreads();
-    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
-	{
-		if (tid < stride)
-		{
-			//tid<stride ensures we do not try to access memory past the vector allocated to the block
-			//tid+stride<size allows for vector sizes less than blockDim
-			bits[tid + stride] += bits[tid];
-		}
-		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
-	}
+    if(tid==0){
+        //Have thread 0 launch the kernel to perform the sum
+        //Save the number of 0's
+        bit_exclusive_scan<<<1,blockIdx.x,0,cudaStreamTailLaunch>>>(table,blockIdx.x);
+    }
+    __syncthreads();
     if(idx<size){
         int num_one_bef=bits[tid];
         int num_one_total=bits[blockDim.x-1];
@@ -91,7 +87,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     if(idx==0){
         //Have thread 0 launch the kernel to perform the sum
         //Save the number of 0's
-        bit_exclusive_scan<<<1,2*gridDim.x,0,cudaStreamTailLaunch>>>(table);
+        bit_exclusive_scan<<<1,2*gridDim.x,0,cudaStreamTailLaunch>>>(table,2*gridDim.x);
     }
     __syncthreads();
     // // //We now have the pointer values in global memory to store data
@@ -108,18 +104,26 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     __syncthreads();
 }
 
-__global__ void bit_exclusive_scan(int* bits){
-    int tid = threadIdx.x;
-    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
-	{
-		if (tid < stride)
-		{
-			//tid<stride ensures we do not try to access memory past the vector allocated to the block
-			//tid+stride<size allows for vector sizes less than blockDim
-			bits[tid + stride] += bits[tid];
-		}
-		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
-	}
+__global__ void bit_exclusive_scan(int* bits, int size){
+    int tid=threadIdx.x;
+    __shared__ int ex_bits[TPB];
+    if(tid<size && tid!=0){
+        ex_bits[tid]=bits[tid-1];
+    }
+    else{
+        ex_bits[tid]=0;
+    }
+    for(unsigned int stride = 1; stride<blockDim.x;stride>>=1){
+        __syncthreads();
+        int temp;
+        if(tid>=stride){
+            temp=ex_bits[tid]+ex_bits[tid-stride];
+            __syncthreads();
+        }
+        if(tid>=stride){
+            ex_bits[tid]=temp;
+        }
+    }
 }
 
 
