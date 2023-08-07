@@ -124,20 +124,34 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     int threads_per_block=256;
     int blocks_per_grid= size/threads_per_block+1;
 
-    HandleCUDAError(cudaMalloc((void**) &d_vertex, size*sizeof(int)));
-    HandleCUDAError(cudaMalloc((void**) &d_cluster,size*sizeof(int)));
-    HandleCUDAError(cudaMalloc((void**) &d_table,blocks_per_grid*sizeof(int)));
+    if(!HandleCUDAError(cudaMalloc((void**) &d_vertex, size*sizeof(int)))){
+        cout<<"Unable to allocate memory for vertex data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**) &d_cluster,size*sizeof(int)))){
+        cout<<"Unable to allocate memory for the cluster data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table,blocks_per_grid*sizeof(int)))){
+        cout<<"Unable to allocate memory for the table data"<<endl;
+    }
 
-    HandleCUDAError(cudaMemcpy(d_vertex,h_vertex,size*sizeof(int), cudaMemcpyHostToDevice));
-    HandleCUDAError(cudaMemcpy(d_cluster,h_cluster,size*sizeof(int), cudaMemcpyHostToDevice));
+    if(!HandleCUDAError(cudaMemcpy(d_vertex,h_vertex,size*sizeof(int), cudaMemcpyHostToDevice))){
+        cout<<"Unable to copy vertex data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(d_cluster,h_cluster,size*sizeof(int), cudaMemcpyHostToDevice))){
+        cout<<"Unable to copy cluster data"<<endl;
+    }
 
     for(int i=0; i<32;i++){
         Sort_Cluster<<<blocks_per_grid,threads_per_block,(2*threads_per_block+ blocks_per_grid)*sizeof(int)>>>(d_cluster,d_vertex,d_table,size,i);
         cudaDeviceSynchronize();
     }
 
-    HandleCUDAError(cudaMemcpy(h_vertex,d_vertex,size*sizeof(int),cudaMemcpyDeviceToHost));
-    HandleCUDAError(cudaMemcpy(h_cluster,d_cluster,size*sizeof(int),cudaMemcpyDeviceToHost));
+    if(!HandleCUDAError(cudaMemcpy(h_vertex,d_vertex,size*sizeof(int),cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back vertex data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(h_cluster,d_cluster,size*sizeof(int),cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back cluster data"<<endl;
+    }
     HandleCUDAError(cudaFree(d_cluster));
     HandleCUDAError(cudaFree(d_vertex));
     HandleCUDAError(cudaFree(d_table));
