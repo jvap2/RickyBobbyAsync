@@ -97,6 +97,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, in
         cluster[table[blockIdx.x+gridDim.x]+tid]=shared_cluster[tid];
         vertex[table[blockIdx.x+gridDim.x]+tid]=shared_vertex[tid];
     }
+    __syncthreads();
 }
 
 __global__ void bit_exclusive_scan(int* bits){
