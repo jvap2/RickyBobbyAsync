@@ -65,7 +65,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     }
     __syncthreads();
     //Perform exclusive scan
-    if(tid<size && tid!=0){
+    if(tid<TPB && tid!=0){
         ex_bits[tid]=bits[tid-1];
     }
     else{
