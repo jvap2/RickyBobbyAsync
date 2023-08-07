@@ -13,7 +13,9 @@ int main()
     }
     return_list(EDGE_PATH,edges);
     return_list(CLUSTER_PATH,cluster_vert);
-
+    for(int i = 0; i<32 ; i++){
+        cout<<cluster_vert[i][0]<<'\t'<<cluster_vert[i][1]<<endl;
+    }
     int* cluster_assign= new int[NODES];
     int* vert_assign=new int[NODES];
     split_list(cluster_vert,vert_assign,cluster_assign,NODES);
