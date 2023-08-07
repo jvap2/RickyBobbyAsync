@@ -44,7 +44,6 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     //organize into the data for each block of FrogWild
     int idx= threadIdx.x + (blockIdx.x*blockDim.x);
     int tid= threadIdx.x;
-    // const int cluster_size= size/gridDim.x+1;
     __shared__ int shared_cluster[TPB];
     __shared__ int shared_vertex[TPB];
     __shared__ int bits[TPB];
@@ -165,8 +164,8 @@ __global__ void bit_exclusive_scan(int* bits, int* bit_2,int size){
         int temp;
         if(tid>=stride){
             temp=ex_bits[tid]+ex_bits[tid-stride];
-            __syncthreads();
         }
+        __syncthreads();
         if(tid>=stride){
             ex_bits[tid]=temp;
         }
