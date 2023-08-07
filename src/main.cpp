@@ -17,8 +17,13 @@ int main()
     int* cluster_assign= new int[NODES];
     int* vert_assign=new int[NODES];
     split_list(cluster_vert,vert_assign,cluster_assign,NODES);
-
-    Org_Vertex_Helper(cluster_assign,vert_assign,NODES);
+    int *test_1= new int[32];
+    int *test_2= new int[32];
+    for(int i = 0; i<32 ; i++){
+        test_1[i]=rand();
+        test_2[i]=rand();
+    }
+    Org_Vertex_Helper(test_1,test_2,32);
 
     for(int i = 0; i<32 ; i++){
         cout<<cluster_assign[i]<<endl;
