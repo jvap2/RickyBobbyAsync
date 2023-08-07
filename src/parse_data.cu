@@ -92,17 +92,17 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     }
     __syncthreads();
     // // //We now have the pointer values in global memory to store data
-    if(idx<size){
-        if(tid<=blockDim.x-bits[blockDim.x-1]){
-            cluster[table[blockIdx.x]+tid]=shared_cluster[tid];
-            vertex[table[blockIdx.x]+tid]=shared_vertex[tid];
-        }
-        else{
-            cluster[table[blockIdx.x+gridDim.x]+tid]=shared_cluster[tid];
-            vertex[table[blockIdx.x+gridDim.x]+tid]=shared_vertex[tid];
-        }
-    }
-    __syncthreads();
+    // if(idx<size){
+    //     if(tid<=blockDim.x-bits[blockDim.x-1]){
+    //         cluster[table[blockIdx.x]+tid]=shared_cluster[tid];
+    //         vertex[table[blockIdx.x]+tid]=shared_vertex[tid];
+    //     }
+    //     else{
+    //         cluster[table[blockIdx.x+gridDim.x]+tid]=shared_cluster[tid];
+    //         vertex[table[blockIdx.x+gridDim.x]+tid]=shared_vertex[tid];
+    //     }
+    // }
+    // __syncthreads();
 }
 
 __global__ void bit_exclusive_scan(int* bits){
