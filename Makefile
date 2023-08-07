@@ -19,5 +19,5 @@ $(BIN)/Frog: $(OBJ)/frog.o $(OBJ)/frog_func.o
 $(OBJ)/frog.o: $(SRC)/main.cpp 
 	$(NVCC) $(NVCC_FLAGS) -c $< -o $@
 
-$(OBJ)/frog_func.o: $(SRC)/parse_data.cu $(INC)/data.h 
+$(OBJ)/frog_func.o: $(SRC)/parse_data.cu $(INC)/GPUErrors.cu $(INC)/GPUErrors.h $(INC)/data.h 
 	$(NVCC) $(NVCC_FLAGS) -c $< -o $@ -lcudadevrt
