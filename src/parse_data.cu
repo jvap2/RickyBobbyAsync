@@ -115,3 +115,34 @@ __global__ void bit_exclusive_scan(int* bits){
 
 
 
+__host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
+    //Allocate memory for vertex and cluster info
+    int* d_vertex;
+    int* d_cluster;
+    int* d_table;
+
+    int threads_per_block=256;
+    int blocks_per_grid= size/threads_per_block+1;
+
+    HandleCUDAError(cudaMalloc((void**)d_vertex, size*sizeof(int)));
+    HandleCUDAError(cudaMalloc((void**)d_cluster,size*sizeof(int)));
+    HandleCUDAError(cudaMalloc((void**)d_table,blocks_per_grid*sizeof(int)));
+
+    HandleCUDAError(cudaMemcpy(d_vertex,h_vertex,size*sizeof(int), cudaMemcpyHostToDevice));
+    HandleCUDAError(cudaMemcpy(d_cluster,h_cluster,size*sizeof(int), cudaMemcpyHostToDevice));
+
+    for(int i=0; i<32;i++){
+        Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table,size,i);
+        cudaDeviceSynchronize();
+    }
+
+    HandleCUDAError(cudaMemcpy(h_vertex,d_vertex,size*sizeof(int),cudaMemcpyDeviceToHost));
+    HandleCUDAError(cudaMemcpy(h_cluster,d_cluster,size*sizeof(int),cudaMemcpyDeviceToHost));
+    HandleCUDAError(cudaFree(d_cluster));
+    HandleCUDAError(cudaFree(d_vertex));
+    HandleCUDAError(cudaFree(d_table));
+    HandleCUDAError(cudaDeviceReset());   
+}
+
+
+

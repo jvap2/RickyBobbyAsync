@@ -18,6 +18,8 @@ int main()
     int* vert_assign=new int[NODES];
     split_list(cluster_vert,vert_assign,cluster_assign,NODES);
 
+    Org_Vertex_Helper(cluster_assign,vert_assign,NODES);
+
     for(int i=0; i<NODES;i++){
         delete[] cluster_vert[i];
     }
