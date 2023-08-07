@@ -95,9 +95,9 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     }
     __syncthreads();
     if(tid==0){
-        table[blockIdx.x+1]=blockDim.x-bits[blockDim.x-1];
+        table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
         //Save the number of 1's
-        table[blockIdx.x+1+gridDim.x]=bits[blockDim.x-1];
+        table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
     }
     __syncthreads();
     if(idx==0){
