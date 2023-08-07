@@ -127,6 +127,7 @@ __global__ void bit_exclusive_scan(int* bits, int size){
     if(tid<size){
         bits[tid]=ex_bits[tid];
     }
+    __syncthreads();
 }
 
 
