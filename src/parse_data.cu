@@ -56,13 +56,13 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     __syncthreads();
 
     //Perform sorting
-    // unsigned int key, bit, vert_val;
-    // if(idx<size){
-    //     key=shared_cluster[tid];
-    //     vert_val=shared_vertex[tid];
-    //     bit=(key>>iter) & 1;
-    //     bits[tid]=bit;
-    // }
+    unsigned int key, bit, vert_val;
+    if(idx<size){
+        key=shared_cluster[tid];
+        vert_val=shared_vertex[tid];
+        bit=(key>>iter) & 1;
+        bits[tid]=bit;
+    }
     // __syncthreads();
     // for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
 	// {
