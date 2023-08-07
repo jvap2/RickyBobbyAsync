@@ -83,13 +83,15 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, in
         //Have thread 0 launch the kernel to perform the sum
         //Save the number of 0's
         table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
+        int zeros=blockDim.x-bits[blockDim.x-1];
         //Save the number of 1's
         table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
+        int ones=bits[blockDim.x-1];
         bit_exclusive_scan<<<1,gridDim.x,0,cudaStreamTailLaunch>>>(table);
     }
     __syncthreads();
     //We now have the pointer values in global memory to store data
-    if(tid<=blockDim.x-bits[blockDim.x-1]){
+    if(tid<=zeros){
         cluster[table[blockIdx.x]+tid]=shared_cluster[tid];
         vertex[table[blockIdx.x]+tid]=shared_vertex[tid];
     }
