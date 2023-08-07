@@ -74,14 +74,14 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
 		}
 		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
 	}
-    // if(idx<size){
-    //     int num_one_bef=bits[idx];
-    //     int num_one_total=bits[blockDim.x-1];
-    //     int dst = (bit==0)? (idx - num_one_bef):(size-num_one_total-num_one_bef);
-    //     shared_vertex[dst]=vert_val;
-    //     shared_cluster[dst]=key;
-    // }
-    // __syncthreads();
+    if(idx<size){
+        int num_one_bef=bits[idx];
+        int num_one_total=bits[blockDim.x-1];
+        int dst = (bit==0)? (idx - num_one_bef):(size-num_one_total-num_one_bef);
+        shared_vertex[dst]=vert_val;
+        shared_cluster[dst]=key;
+    }
+    __syncthreads();
     // if(idx==0){
     //     //Have thread 0 launch the kernel to perform the sum
     //     //Save the number of 0's
