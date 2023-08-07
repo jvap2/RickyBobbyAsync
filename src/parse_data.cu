@@ -100,15 +100,45 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
         table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
     }
     __syncthreads();
-    if(idx==0){
-        //Have thread 0 launch the kernel to perform the sum
-        //Save the number of 0's
-        bit_exclusive_scan<<<1,2*gridDim.x,0,cudaStreamTailLaunch>>>(table,2*gridDim.x);
+    if(idx<size){
+        vertex[idx]=shared_vertex[tid];
+        cluster[idx]=shared_cluster[tid];
     }
     __syncthreads();
-    // // //We now have the pointer values in global memory to store data
+    // if(idx==0){
+    //     //Have thread 0 launch the kernel to perform the sum
+    //     //Save the number of 0's
+    //     bit_exclusive_scan<<<1,2*gridDim.x,0,cudaStreamTailLaunch>>>(table,2*gridDim.x);
+    // }
+    // __syncthreads();
+    // // // //We now have the pointer values in global memory to store data
+    // if(idx<size){
+    //     if(tid<=blockDim.x-bits[blockDim.x-1]){
+    //         cluster[table[blockIdx.x]+tid]=shared_cluster[tid];
+    //         vertex[table[blockIdx.x]+tid]=shared_vertex[tid];
+    //     }
+    //     else{
+    //         cluster[table[blockIdx.x+gridDim.x]+tid]=shared_cluster[tid];
+    //         vertex[table[blockIdx.x+gridDim.x]+tid]=shared_vertex[tid];
+    //     }
+    // }
+    // __syncthreads();
+}
+
+__global__ void Swap(int* cluster, int* vertex, int* table, int* table_2,  int size){
+    int idx= threadIdx.x + (blockIdx.x*blockDim.x);
+    int tid= threadIdx.x;
+    // const int cluster_size= size/gridDim.x+1;
+    __shared__ int shared_cluster[TPB];
+    __shared__ int shared_vertex[TPB];
+    //Load vertex and cluster info into the shared memory
     if(idx<size){
-        if(tid<=blockDim.x-bits[blockDim.x-1]){
+        shared_cluster[tid]=cluster[idx];
+        shared_vertex[tid]=vertex[idx];
+    }
+    __syncthreads();   
+    if(idx<size){
+        if(tid<=table_2[blockIdx.x]){
             cluster[table[blockIdx.x]+tid]=shared_cluster[tid];
             vertex[table[blockIdx.x]+tid]=shared_vertex[tid];
         }
@@ -120,7 +150,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     __syncthreads();
 }
 
-__global__ void bit_exclusive_scan(int* bits, int size){
+__global__ void bit_exclusive_scan(int* bits, int* bit_2,int size){
     int tid=threadIdx.x;
     __shared__ int ex_bits[TPB];
     if(tid<size && tid!=0){
@@ -141,7 +171,7 @@ __global__ void bit_exclusive_scan(int* bits, int size){
         }
     }
     if(tid<size){
-        bits[tid]=ex_bits[tid];
+        bit_2[tid]=ex_bits[tid];
     }
     __syncthreads();
 }
@@ -153,6 +183,7 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     int* d_vertex;
     int* d_cluster;
     int* d_table;
+    int* d_table_2;
 
     int threads_per_block=256;
     int blocks_per_grid= size/threads_per_block+1;
@@ -163,10 +194,17 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     if(!HandleCUDAError(cudaMalloc((void**) &d_cluster,size*sizeof(int)))){
         cout<<"Unable to allocate memory for the cluster data"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid+1)*sizeof(int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(int)))){
         cout<<"Unable to allocate memory for the table data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid+1)*sizeof(int)))){
+    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid)*sizeof(int)))){
+        cout<<"Unable to set table to 0"<<endl;
+    }
+
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table_2,(2*blocks_per_grid)*sizeof(int)))){
+        cout<<"Unable to allocate memory for the table data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_table_2,0,(2*blocks_per_grid)*sizeof(int)))){
         cout<<"Unable to set table to 0"<<endl;
     }
 
@@ -180,6 +218,14 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     for(int i=0; i<32;i++){
         cout<<"Iteration "<<i<<endl;
         Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table,size,i);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host"<<endl;
+        }
+        bit_exclusive_scan<<<1,2*blocks_per_grid>>>(d_table,d_table_2,size);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host"<<endl;
+        }
+        Swap<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table_2,d_table,size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host"<<endl;
         }
