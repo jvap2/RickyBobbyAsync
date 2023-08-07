@@ -2,6 +2,8 @@
 #include "../include/GPUErrors.h"
 
 #define BLOCKS 16
+#define TPB 256
+
 
 __host__ void return_list(string path, int** arr){
     fstream data;
@@ -37,14 +39,14 @@ __host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size){
 }
 
 
-__global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, int iter){
+__global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int iter){
     //Need to sort through the cluster data and organize it
     //organize into the data for each block of FrogWild
-    int idx= threadIdx.x + blockIdx.x*blockDim.x;
+    int idx= threadIdx.x + (blockIdx.x*blockDim.x);
     int tid= threadIdx.x;
     // const int cluster_size= size/gridDim.x+1;
-    extern __shared__ int shared_cluster[];
-    extern __shared__ int shared_vertex[];
+    __shared__ int shared_cluster[TPB];
+    __shared__ int shared_vertex[TPB];
     extern __shared__ int bits[];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
@@ -61,6 +63,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, in
         bit=(key>>iter) & 1;
         bits[idx]=bit;
     }
+    __syncthreads();
     for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
 	{
 		if (tid < stride)
@@ -143,8 +146,10 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     }
 
     for(int i=0; i<32;i++){
-        Sort_Cluster<<<blocks_per_grid,threads_per_block,2*(threads_per_block+ blocks_per_grid)*sizeof(int)>>>(d_cluster,d_vertex,d_table,size,i);
-        cudaDeviceSynchronize();
+        Sort_Cluster<<<blocks_per_grid,threads_per_block, 2*blocks_per_grid*sizeof(int)>>>(d_cluster,d_vertex,d_table,size,i);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host"<<endl;
+        }
     }
 
     if(!HandleCUDAError(cudaMemcpy(h_vertex,d_vertex,size*sizeof(int),cudaMemcpyDeviceToHost))){
