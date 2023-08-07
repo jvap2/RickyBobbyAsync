@@ -83,9 +83,9 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     }
     __syncthreads();
     if(tid==0){
-        table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
+        table[blockIdx.x+1]=blockDim.x-bits[blockDim.x-1];
         //Save the number of 1's
-        table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
+        table[blockIdx.x+1+gridDim.x]=bits[blockDim.x-1];
     }
     __syncthreads();
     if(idx==0){
@@ -139,8 +139,11 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     if(!HandleCUDAError(cudaMalloc((void**) &d_cluster,size*sizeof(int)))){
         cout<<"Unable to allocate memory for the cluster data"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table,2*blocks_per_grid*sizeof(int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid+1)*sizeof(int)))){
         cout<<"Unable to allocate memory for the table data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid+1)*sizeof(int)))){
+        cout<<"Unable to set table to 0"<<endl;
     }
 
     if(!HandleCUDAError(cudaMemcpy(d_vertex,h_vertex,size*sizeof(int), cudaMemcpyHostToDevice))){
