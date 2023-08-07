@@ -33,9 +33,8 @@ __host__ void return_list(string path, int** arr){
 
 __host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size){
     for(int i=0; i<size;i++){
-        subarr_1[i]=*(arr[i]);
-        arr[i]++;
-        subarr_2[i]=*(arr[i]);
+        subarr_1[i]=arr[i][0];
+        subarr_2[i]=arr[i][1];
     }
 }
 
