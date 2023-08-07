@@ -64,10 +64,26 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
         bits[tid]=bit;
     }
     __syncthreads();
-    if(tid==0){
-        //Have thread 0 launch the kernel to perform the sum
-        //Save the number of 0's
-        bit_exclusive_scan<<<1,blockIdx.x,0,cudaStreamTailLaunch>>>(bits,blockIdx.x);
+    __shared__ int ex_bits[TPB];
+    if(tid<size && tid!=0){
+        ex_bits[tid]=bits[tid-1];
+    }
+    else{
+        ex_bits[tid]=0;
+    }
+    for(unsigned int stride = 1; stride<blockDim.x;stride>>=1){
+        __syncthreads();
+        int temp;
+        if(tid>=stride){
+            temp=ex_bits[tid]+ex_bits[tid-stride];
+            __syncthreads();
+        }
+        if(tid>=stride){
+            ex_bits[tid]=temp;
+        }
+    }
+    if(tid<size){
+        bits[tid]=ex_bits[tid];
     }
     __syncthreads();
     if(idx<size){
