@@ -21,6 +21,7 @@ __host__ void return_list(string path, int** arr){
                 }
                 else{
                     *(arr[count-1])=stoi(word);
+                    cout<<*(arr[count-1])<<endl;
                     arr[count-1]++;
                 }
                 //Extract data until ',' is found
