@@ -47,7 +47,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     // const int cluster_size= size/gridDim.x+1;
     __shared__ int shared_cluster[TPB];
     __shared__ int shared_vertex[TPB];
-    extern __shared__ int bits[];
+    __shared__ int bits[TPB];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
         shared_cluster[tid]=cluster[idx];
@@ -61,7 +61,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
         key=shared_cluster[tid];
         vert_val=shared_vertex[tid];
         bit=(key>>iter) & 1;
-        bits[idx]=bit;
+        bits[tid]=bit;
     }
     __syncthreads();
     for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
@@ -74,33 +74,33 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
 		}
 		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
 	}
-    // if(idx<size){
-    //     int num_one_bef=bits[idx];
-    //     int num_one_total=bits[blockDim.x-1];
-    //     int dst = (bit==0)? (idx - num_one_bef):(size-num_one_total-num_one_bef);
-    //     shared_vertex[dst]=vert_val;
-    //     shared_cluster[dst]=key;
-    // }
-    // __syncthreads();
-    // if(idx==0){
-    //     //Have thread 0 launch the kernel to perform the sum
-    //     //Save the number of 0's
-    //     table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
-    //     //Save the number of 1's
-    //     table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
-    //     bit_exclusive_scan<<<1,gridDim.x,0,cudaStreamTailLaunch>>>(table);
-    // }
-    // __syncthreads();
-    // //We now have the pointer values in global memory to store data
-    // if(tid<=blockDim.x-bits[blockDim.x-1]){
-    //     cluster[table[blockIdx.x]+tid]=shared_cluster[tid];
-    //     vertex[table[blockIdx.x]+tid]=shared_vertex[tid];
-    // }
-    // else{
-    //     cluster[table[blockIdx.x+gridDim.x]+tid]=shared_cluster[tid];
-    //     vertex[table[blockIdx.x+gridDim.x]+tid]=shared_vertex[tid];
-    // }
-    // __syncthreads();
+    if(idx<size){
+        int num_one_bef=bits[idx];
+        int num_one_total=bits[blockDim.x-1];
+        int dst = (bit==0)? (idx - num_one_bef):(size-num_one_total-num_one_bef);
+        shared_vertex[dst]=vert_val;
+        shared_cluster[dst]=key;
+    }
+    __syncthreads();
+    if(idx==0){
+        //Have thread 0 launch the kernel to perform the sum
+        //Save the number of 0's
+        table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
+        //Save the number of 1's
+        table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
+        bit_exclusive_scan<<<1,gridDim.x,0,cudaStreamTailLaunch>>>(table);
+    }
+    __syncthreads();
+    //We now have the pointer values in global memory to store data
+    if(tid<=blockDim.x-bits[blockDim.x-1]){
+        cluster[table[blockIdx.x]+tid]=shared_cluster[tid];
+        vertex[table[blockIdx.x]+tid]=shared_vertex[tid];
+    }
+    else{
+        cluster[table[blockIdx.x+gridDim.x]+tid]=shared_cluster[tid];
+        vertex[table[blockIdx.x+gridDim.x]+tid]=shared_vertex[tid];
+    }
+    __syncthreads();
 }
 
 __global__ void bit_exclusive_scan(int* bits){
@@ -146,7 +146,7 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     }
 
     for(int i=0; i<32;i++){
-        Sort_Cluster<<<blocks_per_grid,threads_per_block, 2*blocks_per_grid*sizeof(int)>>>(d_cluster,d_vertex,d_table,size,i);
+        Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table,size,i);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host"<<endl;
         }
