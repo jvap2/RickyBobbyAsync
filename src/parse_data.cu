@@ -84,8 +84,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, in
         table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
         //Save the number of 1's
         table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
-        bit_exclusive_scan<<<1,gridDim.x>>>(table);
-        cudaDeviceSynchronize();
+        bit_exclusive_scan<<<1,gridDim.x,0,cudaStreamTailLaunch>>>(table);
     }
     __syncthreads();
     //We now have the pointer values in global memory to store data
