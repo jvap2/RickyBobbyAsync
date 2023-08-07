@@ -124,9 +124,9 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     int threads_per_block=256;
     int blocks_per_grid= size/threads_per_block+1;
 
-    HandleCUDAError(cudaMalloc((void**)d_vertex, size*sizeof(int)));
-    HandleCUDAError(cudaMalloc((void**)d_cluster,size*sizeof(int)));
-    HandleCUDAError(cudaMalloc((void**)d_table,blocks_per_grid*sizeof(int)));
+    HandleCUDAError(cudaMalloc((void**) &d_vertex, size*sizeof(int)));
+    HandleCUDAError(cudaMalloc((void**) &d_cluster,size*sizeof(int)));
+    HandleCUDAError(cudaMalloc((void**) &d_table,blocks_per_grid*sizeof(int)));
 
     HandleCUDAError(cudaMemcpy(d_vertex,h_vertex,size*sizeof(int), cudaMemcpyHostToDevice));
     HandleCUDAError(cudaMemcpy(d_cluster,h_cluster,size*sizeof(int), cudaMemcpyHostToDevice));
