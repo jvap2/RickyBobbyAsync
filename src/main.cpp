@@ -25,8 +25,8 @@ int main()
     // }
     Org_Vertex_Helper(cluster_assign,vert_assign,NODES);
 
-    for(int i = 0; i<128 ; i++){
-        cout<<cluster_assign[i]<<endl;
+    for(int i = 0; i<NODES ; i++){
+        cout<<cluster_assign[i]<<'\t'<<vert_assign[i]<<endl;
     }
     for(int i=0; i<NODES;i++){
         delete[] cluster_vert[i];
