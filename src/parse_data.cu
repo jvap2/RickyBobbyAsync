@@ -132,7 +132,7 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     HandleCUDAError(cudaMemcpy(d_cluster,h_cluster,size*sizeof(int), cudaMemcpyHostToDevice));
 
     for(int i=0; i<32;i++){
-        Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table,size,i);
+        Sort_Cluster<<<blocks_per_grid,threads_per_block,0,>>>(d_cluster,d_vertex,d_table,size,i);
         cudaDeviceSynchronize();
     }
 

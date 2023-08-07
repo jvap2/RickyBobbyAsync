@@ -2,7 +2,7 @@ PLATFORM = $(shell uname -m)
 CC = $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader|head -n 1)
 NVCC := nvcc
 
-NVCC_FLAGS := -g -G -Xcompiler -Wall -gencode arch=compute_89,code=sm_89
+NVCC_FLAGS := -g -G -Xcompiler -Wall -gencode -lcudadevrt -rdc=true arch=compute_89,code=sm_89
 LINK_FLAGS := -arch=sm_89
 # C_FLAGS := -std=c++11 
 
