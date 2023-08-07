@@ -83,15 +83,13 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, in
         //Have thread 0 launch the kernel to perform the sum
         //Save the number of 0's
         table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
-        int zeros=blockDim.x-bits[blockDim.x-1];
         //Save the number of 1's
         table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
-        int ones=bits[blockDim.x-1];
         bit_exclusive_scan<<<1,gridDim.x,0,cudaStreamTailLaunch>>>(table);
     }
     __syncthreads();
     //We now have the pointer values in global memory to store data
-    if(tid<=zeros){
+    if(tid<=blockDim.x-bits[blockDim.x-1]){
         cluster[table[blockIdx.x]+tid]=shared_cluster[tid];
         vertex[table[blockIdx.x]+tid]=shared_vertex[tid];
     }
@@ -133,7 +131,7 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     if(!HandleCUDAError(cudaMalloc((void**) &d_cluster,size*sizeof(int)))){
         cout<<"Unable to allocate memory for the cluster data"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table,blocks_per_grid*sizeof(int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table,2*blocks_per_grid*sizeof(int)))){
         cout<<"Unable to allocate memory for the table data"<<endl;
     }
 
@@ -145,7 +143,7 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     }
 
     for(int i=0; i<32;i++){
-        Sort_Cluster<<<blocks_per_grid,threads_per_block,(2*threads_per_block+ blocks_per_grid)*sizeof(int)>>>(d_cluster,d_vertex,d_table,size,i);
+        Sort_Cluster<<<blocks_per_grid,threads_per_block,2*(threads_per_block+ blocks_per_grid)*sizeof(int)>>>(d_cluster,d_vertex,d_table,size,i);
         cudaDeviceSynchronize();
     }
 
