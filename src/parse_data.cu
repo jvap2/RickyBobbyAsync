@@ -42,7 +42,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, in
     //organize into the data for each block of FrogWild
     int idx= threadIdx.x + blockIdx.x*blockDim.x;
     int tid= threadIdx.x;
-    const int cluster_size= size/gridDim.x+1;
+    // const int cluster_size= size/gridDim.x+1;
     extern __shared__ int shared_cluster[];
     extern __shared__ int shared_vertex[];
     extern __shared__ int bits[];

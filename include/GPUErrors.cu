@@ -1,4 +1,4 @@
-﻿#include "GPUErrors.h"
+﻿#include "../include/GPUErrors.h"
 
 bool HandleCUDAError(cudaError_t t)
 {
