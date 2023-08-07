@@ -75,9 +75,9 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
 		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
 	}
     if(idx<size){
-        int num_one_bef=bits[idx];
+        int num_one_bef=bits[tid];
         int num_one_total=bits[blockDim.x-1];
-        int dst = (bit==0)? (idx - num_one_bef):(size-num_one_total-num_one_bef);
+        int dst = (bit==0)? (tid - num_one_bef):(size-num_one_total-num_one_bef);
         shared_vertex[dst]=vert_val;
         shared_cluster[dst]=key;
     }
