@@ -162,6 +162,7 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     }
 
     for(int i=0; i<32;i++){
+        cout<<"Iteration "<<i<<endl;
         Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table,size,i);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host"<<endl;
