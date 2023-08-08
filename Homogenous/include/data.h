@@ -8,8 +8,9 @@ using namespace std;
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include "../include/GPUErrors.h"
-#define EDGES 5066842
-#define NODES 855802
+//Google
+#define EDGES 5105039
+#define NODES 875713
 #define EDGE_PATH "../Data/webGoogle.csv"
 #define CLUSTER_PATH "../Data/Cluster_Assignment.csv"
 
