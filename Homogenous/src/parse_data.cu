@@ -28,11 +28,11 @@ __host__ void return_list(string path, int** arr){
             }
             count++;
         }
+        data.close();
     }
     else{
         cout<<"Cannot open file"<<endl;
     }
-    data.close();
 }
 
 
