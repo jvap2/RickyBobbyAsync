@@ -95,8 +95,8 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     __syncthreads();
     if(idx<size){
         int num_one_bef=bits[tid];
-        int num_one_total=bits[blockDim.x-1];
-        int dst = (bit==0)? (tid - num_one_bef):(size-num_one_total-num_one_bef);
+        int num_one_total=bits[TPB-1];
+        int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total-num_one_bef);
         shared_vertex[dst]=vert_val;
         shared_cluster[dst]=key;
     }
