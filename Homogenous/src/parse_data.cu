@@ -223,7 +223,7 @@ __host__ void Org_Vertex_Helper(unsigned int* h_cluster, unsigned int* h_vertex,
         cout<<"Unable to copy cluster data"<<endl;
     }
 
-    for(int i=0; i<32;i++){
+    for(unsigned int i=0; i<32;i++){
         Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table,size,i);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
