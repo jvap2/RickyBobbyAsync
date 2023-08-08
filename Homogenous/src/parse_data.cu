@@ -12,6 +12,7 @@ __host__ void return_list(string path, int** arr){
     int count=0;
     if(data.is_open()){
         //Check if data is open
+        cout<<"Data is open"<<endl;
         while(getline(data,line)){
             //Keep extracting data until a delimiter is found
             stringstream stream_data(line); //Stream Class to operate on strings
