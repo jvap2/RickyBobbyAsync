@@ -11,8 +11,8 @@ int main()
     for(int i=0; i<NODES;i++){
         cluster_vert[i]=new int[2];
     }
-    return_list("../Data/webGoogle.csv",edges);
-    return_list("../Data/Cluster_Assigment.csv",cluster_vert);
+    return_list(EDGE_PATH,edges);
+    return_list(CLUSTER_PATH,cluster_vert);
     cout<<"Cluster Vert"<<endl;
     for(int i = 0; i<32 ; i++){
         cout<<cluster_vert[i][0]<<'\t'<<cluster_vert[i][1]<<endl;

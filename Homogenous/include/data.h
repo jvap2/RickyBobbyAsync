@@ -11,8 +11,8 @@ using namespace std;
 //Google
 #define EDGES 5105039
 #define NODES 875713
-#define EDGE_PATH "home/jvap2/Desktop/Code/FrogWild/Homogenous/Data/webGoogle.csv"
-#define CLUSTER_PATH "home/jvap2/Desktop/Code/FrogWild/Homogenous/Data/Cluster_Assignment.csv"
+#define EDGE_PATH 'home/jvap2/Desktop/Code/FrogWild/Homogenous/Data/webGoogle.csv'
+#define CLUSTER_PATH 'home/jvap2/Desktop/Code/FrogWild/Homogenous/Data/Cluster_Assignment.csv'
 
 __host__ void return_list(string path, int** arr);
 
