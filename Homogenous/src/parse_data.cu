@@ -5,12 +5,12 @@
 #define TPB 256
 
 
-__host__ void return_list(string path, int** arr){
+__host__ void return_list(string path, unsigned int** arr){
     ifstream data;
     data.open(path);
     string line,word;
-    int count=0;
-    int column=0;
+    unsigned int count=0;
+    unsigned int column=0;
     cout<<data.is_open()<<endl;
     if(data.is_open()){
         //Check if data is open
@@ -38,23 +38,23 @@ __host__ void return_list(string path, int** arr){
 }
 
 
-__host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size){
-    for(int i=0; i<size;i++){
+__host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size){
+    for(unsigned int i=0; i<size;i++){
         subarr_1[i]=arr[i][0];
         subarr_2[i]=arr[i][1];
     }
 }
 
 
-__global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int iter){
+__global__ void Sort_Cluster(unsigned int* cluster, unsigned int* vertex, unsigned int* table, unsigned int size,unsigned int iter){
     //Need to sort through the cluster data and organize it
     //organize into the data for each block of FrogWild
-    int idx= threadIdx.x + (blockIdx.x*blockDim.x);
-    int tid= threadIdx.x;
-    __shared__ int shared_cluster[TPB];
-    __shared__ int shared_vertex[TPB];
-    __shared__ int bits[TPB];
-    __shared__ int ex_bits[TPB];
+    unsigned int idx= threadIdx.x + (blockIdx.x*blockDim.x);
+    unsigned int tid= threadIdx.x;
+    __shared__ unsigned int shared_cluster[TPB];
+    __shared__ unsigned int shared_vertex[TPB];
+    __shared__ unsigned int bits[TPB];
+    __shared__ unsigned int ex_bits[TPB];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
         shared_cluster[tid]=cluster[idx];
@@ -80,7 +80,7 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     }
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
-        int temp;
+        unsigned int temp;
         if(tid>=stride){
             temp=ex_bits[tid]+ex_bits[tid-stride];
         }
@@ -94,9 +94,9 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     }
     __syncthreads();
     if(idx<size){
-        int num_one_bef=bits[tid];
-        int num_one_total=bits[TPB-1];
-        int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total-num_one_bef);
+        unsigned int num_one_bef=bits[tid];
+        unsigned int num_one_total=bits[TPB-1];
+        unsigned int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total-num_one_bef);
         shared_vertex[dst]=vert_val;
         shared_cluster[dst]=key;
     }
@@ -132,12 +132,12 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     __syncthreads();
 }
 
-__global__ void Swap(int* cluster, int* vertex, int* table, int* table_2,  int size){
-    int idx= threadIdx.x + (blockIdx.x*blockDim.x);
-    int tid= threadIdx.x;
-    // const int cluster_size= size/gridDim.x+1;
-    __shared__ int shared_cluster[TPB];
-    __shared__ int shared_vertex[TPB];
+__global__ void Swap(unsigned int* cluster, unsigned int* vertex, unsigned int* table, unsigned int* table_2, unsigned  int size){
+    unsigned int idx= threadIdx.x + (blockIdx.x*blockDim.x);
+    unsigned int tid= threadIdx.x;
+    // const unsigned int cluster_size= size/gridDim.x+1;
+    __shared__ unsigned int shared_cluster[TPB];
+    __shared__ unsigned int shared_vertex[TPB];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
         shared_cluster[tid]=cluster[idx];
@@ -157,9 +157,9 @@ __global__ void Swap(int* cluster, int* vertex, int* table, int* table_2,  int s
     __syncthreads();
 }
 
-__global__ void bit_exclusive_scan(int* bits,int size){
-    int tid=threadIdx.x;
-    __shared__ int ex_bits[TPB];
+__global__ void bit_exclusive_scan(unsigned int* bits,unsigned int size){
+    unsigned int tid=threadIdx.x;
+    __shared__ unsigned int ex_bits[TPB];
     if(tid<size && tid!=0){
         ex_bits[tid]=bits[tid-1];
     }
@@ -168,7 +168,7 @@ __global__ void bit_exclusive_scan(int* bits,int size){
     }
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
-        int temp;
+        unsigned int temp;
         if(tid>=stride){
             temp=ex_bits[tid]+ex_bits[tid-stride];
         }
@@ -186,40 +186,40 @@ __global__ void bit_exclusive_scan(int* bits,int size){
 
 
 
-__host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
+__host__ void Org_Vertex_Helper(unsigned int* h_cluster, unsigned int* h_vertex, int size){
     //Allocate memory for vertex and cluster info
-    int* d_vertex;
-    int* d_cluster;
-    int* d_table;
-    int* d_table_2;
+    unsigned int* d_vertex;
+    unsigned int* d_cluster;
+    unsigned int* d_table;
+    unsigned int* d_table_2;
 
-    int threads_per_block=TPB;
-    int blocks_per_grid= size/threads_per_block+1;
+    unsigned int threads_per_block=TPB;
+    unsigned int blocks_per_grid= size/threads_per_block+1;
 
-    if(!HandleCUDAError(cudaMalloc((void**) &d_vertex, size*sizeof(int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_vertex, size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_cluster,size*sizeof(int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_cluster,size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for the cluster data"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for the table data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid)*sizeof(int)))){
+    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid)*sizeof(unsigned int)))){
         cout<<"Unable to set table to 0"<<endl;
     }
 
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table_2,(2*blocks_per_grid)*sizeof(int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table_2,(2*blocks_per_grid)*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for the table data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(d_table_2,0,(2*blocks_per_grid)*sizeof(int)))){
+    if(!HandleCUDAError(cudaMemset(d_table_2,0,(2*blocks_per_grid)*sizeof(unsigned int)))){
         cout<<"Unable to set table to 0"<<endl;
     }
 
-    if(!HandleCUDAError(cudaMemcpy(d_vertex,h_vertex,size*sizeof(int), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_vertex,h_vertex,size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Unable to copy vertex data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_cluster,h_cluster,size*sizeof(int), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_cluster,h_cluster,size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Unable to copy cluster data"<<endl;
     }
 
@@ -238,10 +238,10 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
         // }
     }
 
-    if(!HandleCUDAError(cudaMemcpy(h_vertex,d_vertex,size*sizeof(int),cudaMemcpyDeviceToHost))){
+    if(!HandleCUDAError(cudaMemcpy(h_vertex,d_vertex,size*sizeof(unsigned int),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back vertex data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(h_cluster,d_cluster,size*sizeof(int),cudaMemcpyDeviceToHost))){
+    if(!HandleCUDAError(cudaMemcpy(h_cluster,d_cluster,size*sizeof(unsigned int),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back cluster data"<<endl;
     }
     HandleCUDAError(cudaFree(d_cluster));

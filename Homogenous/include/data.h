@@ -14,14 +14,14 @@ using namespace std;
 // #define EDGE_PATH "home/jvap2/Desktop/Code/FrogWild/Homogenous/Data/webGoogle.csv"
 // #define CLUSTER_PATH "home/jvap2/Desktop/Code/FrogWild/Homogenous/Data/Cluster_Assignment.csv"
 
-__host__ void return_list(string path, int** arr);
+__host__ void return_list(string path, unsigned int** arr);
 
-__host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size);
+__host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size);
 
-__global__ void bit_exclusive_scan(int* bits,int size);
+__global__ void bit_exclusive_scan(unsigned int* bits,unsigned int size);
 
-__global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size, int iter);
+__global__ void Sort_Cluster(unsigned int* cluster, unsigned int* vertex, unsigned int* table, unsigned int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size);
+__host__ void Org_Vertex_Helper(unsigned int* h_cluster, unsigned int* h_vertex, int size);
 
-__global__ void Swap(int* cluster, int* vertex, int* table, int* table_2,  int size);
+__global__ void Swap(unsigned int* cluster, unsigned int* vertex, unsigned int* table, unsigned int* table_2, unsigned  int size);

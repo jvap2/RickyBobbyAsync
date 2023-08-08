@@ -5,18 +5,18 @@
 
 int main()
 {  
-    int** edges=new int*[EDGES];
+    unsigned int** edges=new unsigned int*[EDGES];
     for(int i=0; i<EDGES; i++){
-        edges[i]=new int[2];
+        edges[i]=new unsigned int[2];
     }
-    int** cluster_vert=new int*[NODES];
+    unsigned int** cluster_vert=new unsigned int*[NODES];
     for(int i=0; i<NODES;i++){
-        cluster_vert[i]=new int[2];
+        cluster_vert[i]=new unsigned int[2];
     }
     return_list(EDGE_PATH,edges);
     return_list(CLUSTER_PATH,cluster_vert);
-    int* cluster_assign= new int[NODES];
-    int* vert_assign=new int[NODES];
+    unsigned int* cluster_assign= unsigned new int[NODES];
+    unsigned int* vert_assign=new unsigned int[NODES];
     split_list(cluster_vert,vert_assign,cluster_assign,NODES);
     Org_Vertex_Helper(cluster_assign,vert_assign,NODES);
 
