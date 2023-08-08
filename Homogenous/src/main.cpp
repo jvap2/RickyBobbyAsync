@@ -18,7 +18,7 @@ int main()
     unsigned int* cluster_assign= new unsigned int[NODES];
     unsigned int* vert_assign=new unsigned int[NODES];
     split_list(cluster_vert,vert_assign,cluster_assign,NODES);
-    Org_Vertex_Helper(cluster_assign,vert_assign,NODES);
+    // Org_Vertex_Helper(cluster_assign,vert_assign,NODES);
 
     for(int i = 0; i<NODES ; i++){
         cout<<cluster_assign[i]<<'\t'<<vert_assign[i]<<endl;
