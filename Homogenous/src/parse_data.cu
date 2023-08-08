@@ -10,6 +10,7 @@ __host__ void return_list(string path, int** arr){
     data.open(path);
     string line,word;
     int count=0;
+    int column=0;
     cout<<data.is_open()<<endl;
     if(data.is_open()){
         //Check if data is open
@@ -21,18 +22,19 @@ __host__ void return_list(string path, int** arr){
                     continue;
                 }
                 else{
-                    *(arr[count-1])=stoi(word);
-                    arr[count-1]++;
+                    arr[count-1][column]=stoi(word);
+                    column++;
                 }
                 //Extract data until ',' is found
             }
+            column=0;
             count++;
         }
-        data.close();
     }
     else{
         cout<<"Cannot open file"<<endl;
     }
+    data.close();
 }
 
 
