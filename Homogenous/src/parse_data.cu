@@ -16,7 +16,6 @@ __host__ void return_list(string path, int** arr){
         while(getline(data,line)){
             //Keep extracting data until a delimiter is found
             stringstream stream_data(line); //Stream Class to operate on strings
-            cout<<line<<endl;
             while(getline(stream_data,word,',')){
                 if(count==0){
                     continue;
