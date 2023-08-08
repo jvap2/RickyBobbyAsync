@@ -177,7 +177,7 @@ __global__ void bit_exclusive_scan(int* bits, int* bit_2,int size){
             ex_bits[tid]=temp;
         }
     }
-    if(tid<size){
+    if(tid<TPB){
         bit_2[tid]=ex_bits[tid];
     }
     __syncthreads();
@@ -227,14 +227,14 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
         }
-        bit_exclusive_scan<<<1,2*blocks_per_grid>>>(d_table,d_table_2,size);
+        bit_exclusive_scan<<<1,2*blocks_per_grid>>>(d_table,d_table_2,2*blocks_per_grid);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host exclusive scan"<<endl;
         }
-        // Swap<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table_2,d_table,size);
-        // if(!HandleCUDAError(cudaDeviceSynchronize())){
-        //     cout<<"Unable to synchronize with host swap"<<endl;
-        // }
+        Swap<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table_2,d_table,size);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host swap"<<endl;
+        }
     }
 
     if(!HandleCUDAError(cudaMemcpy(h_vertex,d_vertex,size*sizeof(int),cudaMemcpyDeviceToHost))){
