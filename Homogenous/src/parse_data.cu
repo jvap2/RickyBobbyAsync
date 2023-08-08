@@ -15,6 +15,7 @@ __host__ void return_list(string path, int** arr){
         while(getline(data,line)){
             //Keep extracting data until a delimiter is found
             stringstream stream_data(line); //Stream Class to operate on strings
+            cout<<line<<endl;
             while(getline(stream_data,word,',')){
                 if(count==0){
                     cout<<"Count is 0"<<endl;
@@ -218,17 +219,14 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
     }
 
     for(int i=0; i<32;i++){
-        cout<<"Iteration "<<i<<endl;
         Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table,size,i);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host"<<endl;
         }
-        cout<<"Launch exclusive scan"<<endl;
         bit_exclusive_scan<<<1,2*blocks_per_grid>>>(d_table,d_table_2,size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host"<<endl;
         }
-        cout<<"Launch Swap"<<endl;
         Swap<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table_2,d_table,size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host"<<endl;
