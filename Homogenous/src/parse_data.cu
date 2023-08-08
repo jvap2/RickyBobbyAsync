@@ -13,18 +13,15 @@ __host__ void return_list(string path, int** arr){
     cout<<data.is_open()<<endl;
     if(data.is_open()){
         //Check if data is open
-        cout<<"Data is open"<<endl;
         while(getline(data,line)){
             //Keep extracting data until a delimiter is found
             stringstream stream_data(line); //Stream Class to operate on strings
             cout<<line<<endl;
             while(getline(stream_data,word,',')){
                 if(count==0){
-                    cout<<"Count is 0"<<endl;
                     continue;
                 }
                 else{
-                    cout<<"Count is greater than 0"<<endl;
                     *(arr[count-1])=stoi(word);
                     arr[count-1]++;
                 }
