@@ -78,17 +78,17 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     else{
         ex_bits[tid]=0;
     }
-    // for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
-    //     __syncthreads();
-    //     int temp;
-    //     if(tid>=stride){
-    //         temp=ex_bits[tid]+ex_bits[tid-stride];
-    //     }
-    //     __syncthreads();
-    //     if(tid>=stride){
-    //         ex_bits[tid]=temp;
-    //     }
-    // }
+    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
+        __syncthreads();
+        int temp;
+        if(tid>=stride){
+            temp=ex_bits[tid]+ex_bits[tid-stride];
+        }
+        __syncthreads();
+        if(tid>=stride){
+            ex_bits[tid]=temp;
+        }
+    }
     // if(tid<TPB){
     //     bits[tid]=ex_bits[tid];
     // }
