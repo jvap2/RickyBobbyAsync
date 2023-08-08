@@ -1,5 +1,6 @@
 #include "../include/data.h"
 #include "../include/GPUErrors.h"
+#include <windows.h>
 
 #define BLOCKS 16
 #define TPB 256
@@ -34,9 +35,30 @@ __host__ void return_list(string path, int** arr){
         }
     }
     else{
-        cout<<"Cannot open data"<<endl;
+        cout << GetLastErrorAsString() << endl;
+        system("pause");
+        exit(1);
     }
     data.close();
+}
+
+__host__ std::string GetLastErrorAsString()
+{
+    //Get the error message, if any.
+    DWORD errorMessageID = ::GetLastError();
+    if (errorMessageID == 0)
+        return std::string(); //No error message has been recorded
+
+    LPSTR messageBuffer = nullptr;
+    size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+    std::string message(messageBuffer, size);
+
+    //Free the buffer.
+    LocalFree(messageBuffer);
+
+    return message;
 }
 
 __host__ void split_list(int** arr, int* subarr_1, int* subarr_2, int size){
