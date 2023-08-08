@@ -32,6 +32,9 @@ __host__ void return_list(string path, int** arr){
             count++;
         }
     }
+    else{
+        cout<<"Cannot open data"<<endl;
+    }
     data.close();
 }
 
