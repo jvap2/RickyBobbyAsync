@@ -2,7 +2,7 @@ import cugraph
 import cudf
 
 num_clusters=10
-graph= cudf.read_csv("../Data/notredame/webGoogle.csv", dtype=['int32', 'int32'])
+graph= cudf.read_csv("../Data/google/webGoogle.csv", dtype=['int32', 'int32'])
 print(graph.head())
 g=cugraph.Graph()
 g.from_cudf_edgelist(graph, source='FromNodeId', destination='ToNodeId')
@@ -14,5 +14,5 @@ for i in range(1,num_clusters+1):
     df_cluster.append(df)
     score_cluster.append(score)
 idx=score_cluster.index(max(score_cluster))
-df_cluster[idx].to_csv("../Data/notredame/Cluster_Assignment.csv", index=False)
+df_cluster[idx].to_csv("../Data/google/Cluster_Assignment.csv", index=False)
 
