@@ -157,7 +157,7 @@ __global__ void Swap(int* cluster, int* vertex, int* table, int* table_2,  int s
     __syncthreads();
 }
 
-__global__ void bit_exclusive_scan(int* bits, int* bit_2,int size){
+__global__ void bit_exclusive_scan(int* bits,int size){
     int tid=threadIdx.x;
     __shared__ int ex_bits[TPB];
     if(tid<size && tid!=0){
@@ -178,7 +178,8 @@ __global__ void bit_exclusive_scan(int* bits, int* bit_2,int size){
         }
     }
     if(tid<TPB){
-        bit_2[tid]=ex_bits[tid];
+        // bit_2[tid]=ex_bits[tid];
+        bits[tid]=ex_bits[tid];
     }
     __syncthreads();
 }
