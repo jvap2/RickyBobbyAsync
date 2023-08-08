@@ -2,7 +2,7 @@ import cugraph
 import cudf
 
 num_clusters=10
-graph= cudf.read_csv("../Data/webGoogle.csv", delimiter='\t', dtype={"FromNodeId":'int32', "ToNodeId":'int32'})
+graph= cudf.read_csv("../Data/webGoogle.csv", delimiter='\t')
 print(graph.head())
 g=cugraph.Graph()
 g.from_cudf_edgelist(graph, source="FromNodeId", destination="ToNodeId")
