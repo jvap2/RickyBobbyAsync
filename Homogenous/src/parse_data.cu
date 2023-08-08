@@ -78,40 +78,40 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
     else{
         ex_bits[tid]=0;
     }
-    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
-        __syncthreads();
-        int temp;
-        if(tid>=stride){
-            temp=ex_bits[tid]+ex_bits[tid-stride];
-        }
-        __syncthreads();
-        if(tid>=stride){
-            ex_bits[tid]=temp;
-        }
-    }
-    if(tid<TPB){
-        bits[tid]=ex_bits[tid];
-    }
+    // for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
+    //     __syncthreads();
+    //     int temp;
+    //     if(tid>=stride){
+    //         temp=ex_bits[tid]+ex_bits[tid-stride];
+    //     }
+    //     __syncthreads();
+    //     if(tid>=stride){
+    //         ex_bits[tid]=temp;
+    //     }
+    // }
+    // if(tid<TPB){
+    //     bits[tid]=ex_bits[tid];
+    // }
     __syncthreads();
-    if(idx<size){
-        int num_one_bef=bits[tid];
-        int num_one_total=bits[blockDim.x-1];
-        int dst = (bit==0)? (tid - num_one_bef):(size-num_one_total-num_one_bef);
-        shared_vertex[dst]=vert_val;
-        shared_cluster[dst]=key;
-    }
-    __syncthreads();
-    if(tid==0){
-        table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
-        //Save the number of 1's
-        table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
-    }
-    __syncthreads();
-    if(idx<size){
-        vertex[idx]=shared_vertex[tid];
-        cluster[idx]=shared_cluster[tid];
-    }
-    __syncthreads();
+    // if(idx<size){
+    //     int num_one_bef=bits[tid];
+    //     int num_one_total=bits[blockDim.x-1];
+    //     int dst = (bit==0)? (tid - num_one_bef):(size-num_one_total-num_one_bef);
+    //     shared_vertex[dst]=vert_val;
+    //     shared_cluster[dst]=key;
+    // }
+    // __syncthreads();
+    // if(tid==0){
+    //     table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
+    //     //Save the number of 1's
+    //     table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
+    // }
+    // __syncthreads();
+    // if(idx<size){
+    //     vertex[idx]=shared_vertex[tid];
+    //     cluster[idx]=shared_cluster[tid];
+    // }
+    // __syncthreads();
     // if(idx==0){
     //     //Have thread 0 launch the kernel to perform the sum
     //     //Save the number of 0's
@@ -227,14 +227,14 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
         }
-        bit_exclusive_scan<<<1,2*blocks_per_grid>>>(d_table,d_table_2,size);
-        if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host exclusive scan"<<endl;
-        }
-        Swap<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table_2,d_table,size);
-        if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host swap"<<endl;
-        }
+        // bit_exclusive_scan<<<1,2*blocks_per_grid>>>(d_table,d_table_2,size);
+        // if(!HandleCUDAError(cudaDeviceSynchronize())){
+        //     cout<<"Unable to synchronize with host exclusive scan"<<endl;
+        // }
+        // Swap<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table_2,d_table,size);
+        // if(!HandleCUDAError(cudaDeviceSynchronize())){
+        //     cout<<"Unable to synchronize with host swap"<<endl;
+        // }
     }
 
     if(!HandleCUDAError(cudaMemcpy(h_vertex,d_vertex,size*sizeof(int),cudaMemcpyDeviceToHost))){
