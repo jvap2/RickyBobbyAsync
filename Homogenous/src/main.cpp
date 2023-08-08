@@ -1,7 +1,7 @@
 #include "../include/data.h"
 
-#define EDGE_PATH "../Data/google/webGoogle.csv"
-#define CLUSTER_PATH "../Data/google/Cluster_Assignment.csv"
+#define EDGE_PATH "../Homogenous/Data/google/webGoogle.csv"
+#define CLUSTER_PATH "../Homogenous/Data/google/Cluster_Assignment.csv"
 
 int main()
 {  
