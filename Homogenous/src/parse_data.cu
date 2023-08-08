@@ -101,16 +101,16 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
         shared_cluster[dst]=key;
     }
     __syncthreads();
-    // if(tid==0){
-    //     table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
-    //     //Save the number of 1's
-    //     table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
-    // }
-    // __syncthreads();
-    // if(idx<size){
-    //     vertex[idx]=shared_vertex[tid];
-    //     cluster[idx]=shared_cluster[tid];
-    // }
+    if(tid==0){
+        table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
+        //Save the number of 1's
+        table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
+    }
+    __syncthreads();
+    if(idx<size){
+        vertex[idx]=shared_vertex[tid];
+        cluster[idx]=shared_cluster[tid];
+    }
     // __syncthreads();
     // if(idx==0){
     //     //Have thread 0 launch the kernel to perform the sum
