@@ -6,8 +6,7 @@
 
 
 __host__ void return_list(string path, int** arr){
-    fstream data;
-    data.open(path, ios::in);
+    fstream data(path, ios::in);
     string line,word;
     int count=0;
     if(data.is_open()){
