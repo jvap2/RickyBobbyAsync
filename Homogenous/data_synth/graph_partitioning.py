@@ -14,5 +14,5 @@ for i in range(1,num_clusters+1):
     df_cluster.append(df)
     score_cluster.append(score)
 idx=score_cluster.index(max(score_cluster))
-df_cluster[idx].to_csv("../Data/Cluster_Assignment.csv")
+df_cluster[idx].to_csv("../Data/Cluster_Assignment.csv", index=False)
 
