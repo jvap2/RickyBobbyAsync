@@ -10,6 +10,7 @@ __host__ void return_list(string path, int** arr){
     data.open(path);
     string line,word;
     int count=0;
+    cout<<data.is_open()<<endl;
     if(data.is_open()){
         //Check if data is open
         cout<<"Data is open"<<endl;
