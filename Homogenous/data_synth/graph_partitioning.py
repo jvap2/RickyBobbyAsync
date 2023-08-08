@@ -5,7 +5,7 @@ num_clusters=10
 graph= cudf.read_csv("../Data/webGoogle.csv", delimiter='\t')
 print(graph.head())
 g=cugraph.Graph()
-g.from_cudf_edgelist(graph, source="FromNodeId", destination="ToNodeId")
+g.from_cudf_edgelist(graph, source='FromNodeId', destination='ToNodeId')
 df_cluster=[]
 score_cluster=[]
 for i in range(1,num_clusters+1):
