@@ -89,18 +89,18 @@ __global__ void Sort_Cluster(int* cluster, int* vertex, int* table, int size,int
             ex_bits[tid]=temp;
         }
     }
-    // if(tid<TPB){
-    //     bits[tid]=ex_bits[tid];
-    // }
+    if(tid<TPB){
+        bits[tid]=ex_bits[tid];
+    }
     __syncthreads();
-    // if(idx<size){
-    //     int num_one_bef=bits[tid];
-    //     int num_one_total=bits[blockDim.x-1];
-    //     int dst = (bit==0)? (tid - num_one_bef):(size-num_one_total-num_one_bef);
-    //     shared_vertex[dst]=vert_val;
-    //     shared_cluster[dst]=key;
-    // }
-    // __syncthreads();
+    if(idx<size){
+        int num_one_bef=bits[tid];
+        int num_one_total=bits[blockDim.x-1];
+        int dst = (bit==0)? (tid - num_one_bef):(size-num_one_total-num_one_bef);
+        shared_vertex[dst]=vert_val;
+        shared_cluster[dst]=key;
+    }
+    __syncthreads();
     // if(tid==0){
     //     table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
     //     //Save the number of 1's
