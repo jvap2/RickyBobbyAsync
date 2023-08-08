@@ -17,9 +17,11 @@ __host__ void return_list(string path, int** arr){
             stringstream stream_data(line); //Stream Class to operate on strings
             while(getline(stream_data,word,',')){
                 if(count==0){
+                    cout<<"Count is 0"<<endl;
                     continue;
                 }
                 else{
+                    cout<<"Count is greater than 0"<<endl;
                     *(arr[count-1])=stoi(word);
                     arr[count-1]++;
                 }
