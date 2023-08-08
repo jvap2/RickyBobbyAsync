@@ -227,10 +227,10 @@ __host__ void Org_Vertex_Helper(int* h_cluster, int* h_vertex, int size){
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
         }
-        // bit_exclusive_scan<<<1,2*blocks_per_grid>>>(d_table,d_table_2,size);
-        // if(!HandleCUDAError(cudaDeviceSynchronize())){
-        //     cout<<"Unable to synchronize with host exclusive scan"<<endl;
-        // }
+        bit_exclusive_scan<<<1,2*blocks_per_grid>>>(d_table,d_table_2,size);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host exclusive scan"<<endl;
+        }
         // Swap<<<blocks_per_grid,threads_per_block>>>(d_cluster,d_vertex,d_table_2,d_table,size);
         // if(!HandleCUDAError(cudaDeviceSynchronize())){
         //     cout<<"Unable to synchronize with host swap"<<endl;
