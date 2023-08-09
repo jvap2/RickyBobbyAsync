@@ -14,7 +14,7 @@ for l in line:
 num_p_system = int(sys.argv[2])
 num_houses = int(sys.argv[1])
 
-np.random.see(int(sys.argv[3]))
+np.random.seed(int(sys.argv[3]))
 
 for house in range(num_houses):
     num_used = int( np.random.exponential(20.0) )
