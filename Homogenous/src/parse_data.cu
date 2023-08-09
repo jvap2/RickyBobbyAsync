@@ -99,41 +99,41 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
             ex_bits[tid]=temp;
         }
     }
-    if(tid<TPB){
-        bits[tid]=ex_bits[tid];
-    }
-    __syncthreads();
-    if(idx<size){
-        unsigned int num_one_bef=bits[tid];
-        unsigned int num_one_total=bits[TPB-1];
-        unsigned int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total-num_one_bef);
-        shared_edge[dst].cluster=key;
-        shared_edge[dst].start=from;
-        shared_edge[dst].end=to;
-    }
-    __syncthreads();
-    if(tid==0){
-        table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
-        //Save the number of 1's
-        table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
-    }
-    __syncthreads();
-    if(idx==0){
-        //Have thread 0 launch the kernel to perform the sum
-        //Save the number of 0's
-        bit_exclusive_scan<<<1,2*gridDim.x,0,cudaStreamTailLaunch>>>(table,2*gridDim.x);
-    }
-    __syncthreads();
-    // // //We now have the pointer values in global memory to store data
-    if(idx<size){
-        if(tid<=blockDim.x-bits[blockDim.x-1]){
-            edgelist[table[blockIdx.x]+tid]=shared_edge[tid];
-        }
-        else{
-            edgelist[table[blockIdx.x+gridDim.x]+tid]=shared_edge[tid];
-        }
-    }
-    __syncthreads();
+    // if(tid<TPB){
+    //     bits[tid]=ex_bits[tid];
+    // }
+    // __syncthreads();
+    // if(idx<size){
+    //     unsigned int num_one_bef=bits[tid];
+    //     unsigned int num_one_total=bits[TPB-1];
+    //     unsigned int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total-num_one_bef);
+    //     shared_edge[dst].cluster=key;
+    //     shared_edge[dst].start=from;
+    //     shared_edge[dst].end=to;
+    // }
+    // __syncthreads();
+    // if(tid==0){
+    //     table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
+    //     //Save the number of 1's
+    //     table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
+    // }
+    // __syncthreads();
+    // if(idx==0){
+    //     //Have thread 0 launch the kernel to perform the sum
+    //     //Save the number of 0's
+    //     bit_exclusive_scan<<<1,2*gridDim.x,0,cudaStreamTailLaunch>>>(table,2*gridDim.x);
+    // }
+    // __syncthreads();
+    // // // //We now have the pointer values in global memory to store data
+    // if(idx<size){
+    //     if(tid<=blockDim.x-bits[blockDim.x-1]){
+    //         edgelist[table[blockIdx.x]+tid]=shared_edge[tid];
+    //     }
+    //     else{
+    //         edgelist[table[blockIdx.x+gridDim.x]+tid]=shared_edge[tid];
+    //     }
+    // }
+    // __syncthreads();
 }
 
 __global__ void Swap(unsigned int* cluster, unsigned int* vertex, unsigned int* table, unsigned int* table_2, unsigned  int size){
@@ -233,7 +233,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     }
 
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(unsigned int),cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy back vertex data"<<endl;
+        cout<<"Unable to copy back edge data"<<endl;
     }
     HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaFree(d_table));
