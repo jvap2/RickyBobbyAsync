@@ -32,6 +32,7 @@ __host__ void return_edge_list(string path, edge* arr){
                     }
                     else{
                         arr[count-1].end=stoi(word);
+                        arr[count-1].cluster=0;
                     }
                 }
                 //Extract data until ',' is found
