@@ -3,7 +3,7 @@ import sys
 import random
 import numpy as np
 
-Network=open("../Heterogenous/Data/net.csv","w")
+Network=open("../Data/net.csv","w")
 
 
 line = ["#delimieter: ,\n","#columns: house,station\n","#types: UINT,UINT\n", "house,station\n"]
