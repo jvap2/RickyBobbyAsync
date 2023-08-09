@@ -1,7 +1,7 @@
 #include "../include/data.h"
 
-#define EDGE_PATH "../Homogenous/Data/google/webGoogle.csv"
-#define CLUSTER_PATH "../Homogenous/Data/google/Cluster_Assignment.csv"
+// #define EDGE_PATH "../Homogenous/Data/google/webGoogle.csv"
+// #define CLUSTER_PATH "../Homogenous/Data/google/Cluster_Assignment.csv"
 
 int main()
 {  
@@ -14,9 +14,7 @@ int main()
     cout<<"Starting Helper Function"<<endl;
     Org_Vertex_Helper(edge_list,EDGES);
     cout<<"Ending Helper Function"<<endl;
-    for(int i=0; i<EDGES; i++){
-        cout<<edge_list->cluster<<endl;
-    }
+    Check_Out_csv_edge(edge_list);
     free(edge_list);
     return 0;
 }
