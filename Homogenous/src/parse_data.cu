@@ -7,7 +7,19 @@
 
 
 
-
+__host__ void Check_Out_csv_edge(edge* edge_list){
+    ofstream myfile;
+    myfile.open(CLUSTER_PATH);
+    myfile <<"from,to,cluster\n";
+    for(int i=0; i<EDGES;i++){
+        myfile<< to_string(edge_list[i].start);
+        myfile<< ",";
+        myfile<< to_string(edge_list[i].end);
+        myfile<< ",";
+        myfile<< to_string(edge_list[i].cluster);
+        myfile<< "\n";
+    }
+}
 
 __host__ void return_edge_list(string path, edge* arr){
     ifstream data;
