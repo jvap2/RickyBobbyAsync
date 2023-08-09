@@ -15,5 +15,7 @@ for i in range(1,num_clusters+1):
     score_cluster.append(score)
 idx=score_cluster.index(max(score_cluster))
 fin_cluster=df_cluster[idx].sort_values('cluster')
+print(fin_cluster.describe())
+print(fin_cluster.summary())
 fin_cluster.to_csv("../Data/google/Cluster_Assignment.csv", index=False)
 
