@@ -8,7 +8,8 @@ Network=open("net.csv","w")
 
 line = ["#delimieter: ,\n","#columns: house,station\n","#types: UINT,UINT\n"]
 
-Network.write(line)
+for l in line:
+    Network.write(l)
 
 num_p_system = int(sys.argv[2])
 num_houses = int(sys.argv[1])
