@@ -133,3 +133,11 @@
  08-08-2023 12:50:30:792 [pid=6280 tid=6280] ERROR  cufio-fs:199 NVMe Driver not registered with nvidia-fs!!!
  08-08-2023 12:50:30:792 [pid=6280 tid=6280] NOTICE  cufio-fs:441 dumping volume attributes: DEVNAME:/dev/nvme0n1p5,ID_FS_TYPE:ext4,ID_FS_USAGE:filesystem,UDEV_PCI_BRIDGE:0000:00:1d.0,device/transport:pcie,fsid:8318041f953d35c30x,numa_node:0,queue/logical_block_size:4096,wwid:eui.002538bc21b94d8f,
  08-08-2023 12:50:30:792 [pid=6280 tid=6280] NOTICE  cufio:292 cuFileHandleRegister GDS not supported or disabled by config, using cuFile posix read/write with compat mode enabled
+ 09-08-2023 07:02:57:12 [pid=15813 tid=15813] ERROR  cufio-topo-nvfs:78 pci device not present in topology device attribute table: 0000:00:14.3
+ 09-08-2023 07:02:57:12 [pid=15813 tid=15813] ERROR  cufio-topo-nvfs:78 pci device not present in topology device attribute table: 0000:00:14.3
+ 09-08-2023 07:02:57:12 [pid=15813 tid=15813] ERROR  cufio-topo-nvfs:78 pci device not present in topology device attribute table: 0000:00:14.3
+ 09-08-2023 07:02:57:120 [pid=15813 tid=15813] ERROR  cufio-fs:199 NVMe Driver not registered with nvidia-fs!!!
+ 09-08-2023 07:02:57:121 [pid=15813 tid=15813] ERROR  cufio-fs:79 mount option not found in mount table data device: /dev/nvme0n1p5
+ 09-08-2023 07:02:57:121 [pid=15813 tid=15813] ERROR  cufio-fs:199 NVMe Driver not registered with nvidia-fs!!!
+ 09-08-2023 07:02:57:121 [pid=15813 tid=15813] NOTICE  cufio-fs:441 dumping volume attributes: DEVNAME:/dev/nvme0n1p5,ID_FS_TYPE:ext4,ID_FS_USAGE:filesystem,UDEV_PCI_BRIDGE:0000:00:1d.0,device/transport:pcie,fsid:8318041f953d35c30x,numa_node:0,queue/logical_block_size:4096,wwid:eui.002538bc21b94d8f,
+ 09-08-2023 07:02:57:121 [pid=15813 tid=15813] NOTICE  cufio:292 cuFileHandleRegister GDS not supported or disabled by config, using cuFile posix read/write with compat mode enabled
