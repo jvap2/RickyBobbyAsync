@@ -108,10 +108,10 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
         unsigned int num_one_total=bits[TPB-1];
         unsigned int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total-num_one_bef);
         shared_edge[dst].cluster=key;
-        shared_edge[dst].start=from;
-        shared_edge[dst].end=to;
+        // shared_edge[dst].start=from;
+        // shared_edge[dst].end=to;
     }
-    // __syncthreads();
+    __syncthreads();
     // if(tid==0){
     //     table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
     //     //Save the number of 1's
