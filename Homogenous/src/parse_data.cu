@@ -260,8 +260,6 @@ __host__ graph *create_graph (edge *edges){
 
 __global__ void Random_Edge_Placement(edge *edges, double rand_num){
     unsigned int idx= threadIdx.x+blockDim.x*blockIdx.x;
-    unsigned int tid = threadIdx.x;
-    __shared__ edge local_edge[TPB];
     __syncthreads();
     //Use multiplication hashing
     double intpart;
