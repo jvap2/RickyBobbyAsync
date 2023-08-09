@@ -3,10 +3,10 @@ import sys
 import random
 import numpy as np
 
-Network=open("net.csv","w")
+Network=open("../Heterogenous/Data/net.csv","w")
 
 
-line = ["#delimieter: ,\n","#columns: house,station\n","#types: UINT,UINT\n"]
+line = ["#delimieter: ,\n","#columns: house,station\n","#types: UINT,UINT\n", "house,station\n"]
 
 for l in line:
     Network.write(l)
