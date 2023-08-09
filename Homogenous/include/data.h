@@ -14,7 +14,7 @@ using namespace std;
 // #define EDGE_PATH "home/jvap2/Desktop/Code/FrogWild/Homogenous/Data/webGoogle.csv"
 // #define CLUSTER_PATH "home/jvap2/Desktop/Code/FrogWild/Homogenous/Data/Cluster_Assignment.csv"
 
-__host__ void return_list(string path, unsigned int** arr);
+__host__ void return_edge_list(string path, edge* arr);
 
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size);
 
