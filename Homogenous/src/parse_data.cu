@@ -17,10 +17,10 @@ struct edge{
     int end, start;
 };
 
-struct
 
 
-__host__ void return_list(string path, unsigned int** arr){
+
+__host__ void return_edge_list(string path, edge* arr){
     ifstream data;
     data.open(path);
     string line,word;
@@ -37,8 +37,13 @@ __host__ void return_list(string path, unsigned int** arr){
                     continue;
                 }
                 else{
-                    arr[count-1][column]=stoi(word);
-                    column++;
+                    if(column==0){
+                        arr[count-1].start=stoi(word);
+                        column++;
+                    }
+                    else{
+                        arr[count-1].end=stoi(word);
+                    }
                 }
                 //Extract data until ',' is found
             }
