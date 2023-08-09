@@ -38,3 +38,5 @@ __global__ void Sort_Cluster(unsigned int* cluster, unsigned int* vertex, unsign
 __host__ void Org_Vertex_Helper(unsigned int* h_cluster, unsigned int* h_vertex, int size);
 
 __global__ void Swap(unsigned int* cluster, unsigned int* vertex, unsigned int* table, unsigned int* table_2, unsigned  int size);
+
+__host__ graph *create_graph (edge *edges);

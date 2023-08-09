@@ -261,3 +261,19 @@ __host__ void Org_Vertex_Helper(unsigned int* h_cluster, unsigned int* h_vertex,
 
 
 
+__host__ graph *create_graph (edge *edges){
+   int i;
+   struct graph *graph = (struct graph *) malloc (sizeof (struct graph));
+   for (i = 0; i < NODES; i++) {
+      graph->point[i] = NULL;
+   }
+   for (i = 0; i < EDGES; i++) {
+      int start = edges[i].start;
+      int end = edges[i].end;
+      struct vertex *v = (struct vertex *) malloc (sizeof (struct vertex));
+      v->end = end;
+      v->next = graph->point[start];
+      graph->point[start] = v;
+   }
+   return graph;
+}
