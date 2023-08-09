@@ -7,7 +7,7 @@ int main()
 {  
     edge* edge_list;
     edge_list=malloc(sizeof(edge)*EDGES);
-    return_list(EDGE_PATH,edge_list);
+    return_edge_list(EDGE_PATH,edge_list);
     free(edge_list);
     return 0;
 }
