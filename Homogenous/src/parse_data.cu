@@ -112,6 +112,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
             printf("%d \n",tid);
             printf("%d \n",num_one_bef);
             printf("%d \n",num_one_total);
+            printf("%d \n",bit);
         }
         shared_edge[dst].cluster=key;
         shared_edge[dst].start=from;
