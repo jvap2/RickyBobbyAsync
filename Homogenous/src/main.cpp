@@ -14,6 +14,9 @@ int main()
     cout<<"Starting Helper Function"<<endl;
     Org_Vertex_Helper(edge_list,EDGES);
     cout<<"Ending Helper Function"<<endl;
+    for(int i=0; i<128; i++){
+        cout<<edge_list->cluster<<endl;
+    }
     free(edge_list);
     return 0;
 }
