@@ -8,13 +8,6 @@ int main()
     edge* edge_list;
     edge_list=malloc(sizeof(edge)*EDGES);
     return_list(EDGE_PATH,edge_list);
-
-
-    for(int i=0; i<EDGES;i++){
-        delete[] edges[i];
-    }
-
-
-    delete[] edges;
+    free(edge_list);
     return 0;
 }
