@@ -19,6 +19,7 @@ __host__ void Check_Out_csv_edge(edge* edge_list){
         myfile<< to_string(edge_list[i].cluster);
         myfile<< "\n";
     }
+    myfile.close();
 }
 
 __host__ void return_edge_list(string path, edge* arr){
