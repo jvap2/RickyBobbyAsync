@@ -107,7 +107,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
         unsigned int num_one_bef=bits[tid];
         unsigned int num_one_total=bits[TPB-1];
         unsigned int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total+num_one_bef);
-        // printf("%d \n",dst);
+        printf("%d \n",dst);
         shared_edge[dst].cluster=key;
         shared_edge[dst].start=from;
         shared_edge[dst].end=to;
