@@ -107,40 +107,33 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
         unsigned int num_one_bef=bits[tid];
         unsigned int num_one_total=bits[TPB-1];
         unsigned int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total+num_one_bef-1);
-        // if(dst<0 || dst>=TPB){
-        //     printf("%d \n",dst);
-        //     printf("%d \n",idx);
-        //     printf("%d \n",num_one_bef);
-        //     printf("%d \n",num_one_total);
-        //     printf("%d \n",bit);
-        // }
         shared_edge[dst].cluster=key;
         shared_edge[dst].start=from;
         shared_edge[dst].end=to;
     }
     __syncthreads();
-    // if(tid==0){
-    //     table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
-    //     //Save the number of 1's
-    //     table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
-    // }
-    // __syncthreads();
-    // if(idx==0){
-    //     //Have thread 0 launch the kernel to perform the sum
-    //     //Save the number of 0's
-    //     bit_exclusive_scan<<<1,2*gridDim.x,0,cudaStreamTailLaunch>>>(table,2*gridDim.x);
-    // }
-    // __syncthreads();
-    // // // //We now have the pointer values in global memory to store data
-    // if(idx<size){
-    //     if(tid<=blockDim.x-bits[blockDim.x-1]){
-    //         edgelist[table[blockIdx.x]+tid]=shared_edge[tid];
-    //     }
-    //     else{
-    //         edgelist[table[blockIdx.x+gridDim.x]+tid]=shared_edge[tid];
-    //     }
-    // }
-    // __syncthreads();
+    if(tid==0){
+        table[blockIdx.x]=blockDim.x-bits[blockDim.x-1];
+        //Save the number of 1's
+        table[blockIdx.x+gridDim.x]=bits[blockDim.x-1];
+    }
+    __syncthreads();
+    if(idx==0){
+        //Have thread 0 launch the kernel to perform the sum
+        //Save the number of 0's
+        bit_exclusive_scan<<<1,2*gridDim.x,0,cudaStreamTailLaunch>>>(table,2*gridDim.x);
+    }
+    __syncthreads();
+    // // //We now have the pointer values in global memory to store data
+    if(idx<size){
+        if(tid<=blockDim.x-bits[blockDim.x-1]){
+            edgelist[table[blockIdx.x]+tid]=shared_edge[tid];
+        }
+        else{
+            edgelist[table[blockIdx.x+gridDim.x]+tid]=shared_edge[tid];
+        }
+    }
+    __syncthreads();
 }
 
 __global__ void Swap(unsigned int* cluster, unsigned int* vertex, unsigned int* table, unsigned int* table_2, unsigned  int size){
