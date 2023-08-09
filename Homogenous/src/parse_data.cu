@@ -82,7 +82,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     }
     __syncthreads();
     //Perform exclusive scan
-    if(tid<TPB && tid!=0){
+    if(idx<size && tid!=0){
         ex_bits[tid]=bits[tid-1];
     }
     else{
@@ -99,7 +99,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
             ex_bits[tid]=temp;
         }
     }
-    if(tid<TPB){
+    if(idx<size){
         bits[tid]=ex_bits[tid];
     }
     __syncthreads();
@@ -109,7 +109,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
         unsigned int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total+num_one_bef-1);
         if(dst<0 || dst>=TPB){
             printf("%d \n",dst);
-            printf("%d \n",tid);
+            printf("%d \n",idx);
             printf("%d \n",num_one_bef);
             printf("%d \n",num_one_total);
             printf("%d \n",bit);
