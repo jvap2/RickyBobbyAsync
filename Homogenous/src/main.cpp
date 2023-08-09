@@ -11,7 +11,7 @@ int main()
     }
     return_list(EDGE_PATH,edges);
 
-    struct edge e[]=edges;
+    struct edge e[EDGES]=edges;
 
     for(int i=0; i<EDGES;i++){
         delete[] edges[i];
