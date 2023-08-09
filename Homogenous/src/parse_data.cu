@@ -4,6 +4,21 @@
 #define BLOCKS 16
 #define TPB 256
 
+struct graph{
+    struct vertex *point[NODES];
+};
+
+struct vertex{
+    int end;
+    struct vertex *next;
+};
+
+struct edge{
+    int end, start;
+};
+
+struct
+
 
 __host__ void return_list(string path, unsigned int** arr){
     ifstream data;
