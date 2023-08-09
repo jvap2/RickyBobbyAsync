@@ -4,18 +4,7 @@
 #define BLOCKS 16
 #define TPB 256
 
-struct graph{
-    struct vertex *point[NODES];
-};
 
-struct vertex{
-    int end;
-    struct vertex *next;
-};
-
-struct edge{
-    int end, start;
-};
 
 
 
