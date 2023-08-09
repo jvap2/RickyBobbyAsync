@@ -74,7 +74,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     unsigned int key, bit, vert_val;
     int from, to;
     if(idx<size){
-        key=shared_edge[tid].cluster;
+        key = shared_edge[tid].cluster;
         from = shared_edge[tid].start;
         to = shared_edge[tid].end;
         bit=(key>>iter) & 1;
@@ -106,10 +106,10 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     if(idx<size){
         unsigned int num_one_bef=bits[tid];
         unsigned int num_one_total=bits[TPB-1];
-        unsigned int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total-num_one_bef);
+        unsigned int dst = (bit==0)? (tid - num_one_bef):(TPB-num_one_total-num_one_bef-1);
         shared_edge[dst].cluster=key;
-        // shared_edge[dst].start=from;
-        // shared_edge[dst].end=to;
+        shared_edge[dst].start=from;
+        shared_edge[dst].end=to;
     }
     __syncthreads();
     // if(tid==0){
