@@ -27,7 +27,7 @@ for house in range(num_node):
         p_system = int( np.random.random() * num_node )
         Network.write(str(house) + "," + str(p_system) + "\n")
 
-df=p.read_csv(os.path.join(folder,"Data/rand/rand_net.csv"))
+df=p.read_csv(os.path.join(os.path.dirname(folder)[:-14],"Data/rand/rand_net.csv"))
 edges=df.height
 print(edges)
 Network_Info = open(os.path.join(os.path.dirname(folder)[:-14],"Data/rand/rand_net_info.csv"), 'w')
