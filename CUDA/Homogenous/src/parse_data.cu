@@ -303,7 +303,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     if(!HandleCUDAError(cudaMemset(d_table_3,0,(ex_block_pg)*sizeof(unsigned int)))){
         cout<<"Unable to set table to 0"<<endl;
     }
-
+    cout<<"Memcpy"<<endl;
     if(!HandleCUDAError(cudaMemcpy(d_edge,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
         cout<<"Unable to copy cluster data"<<endl;
     }
@@ -371,6 +371,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaFree(d_table));
     HandleCUDAError(cudaFree(d_table_2));
+    HandleCUDAError(cudaFree(d_table_3));
     HandleCUDAError(cudaDeviceReset());   
 }
 
