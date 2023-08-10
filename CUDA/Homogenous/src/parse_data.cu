@@ -155,7 +155,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     if(idx<size){
         unsigned int num_one_bef=ex_bits[tid];
         unsigned int num_one_total=ex_bits[blockDim.x-1];
-        unsigned int dst = (bit==0)? (tid - num_one_bef):(blockDim.x-num_one_total+num_one_bef-1);
+        unsigned int dst = (bit==0)? (tid - num_one_bef):(blockDim.x-num_one_total+num_one_bef);
         shared_edge[dst].cluster=key;
         shared_edge[dst].start=from;
         shared_edge[dst].end=to;
