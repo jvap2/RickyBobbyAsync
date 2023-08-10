@@ -357,14 +357,14 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(h_table,d_table_2,2*blocks_per_grid*sizeof(int),cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy back edge data"<<endl;
-    }
-    cout<<"exclusive sum table"<<endl;
-    for(int i = 0 ; i< 100; i++ ){
-        cout<<h_table[i]<<endl;
-    }
-    cout<<"Done with exclusive sum table"<<endl;
+    // if(!HandleCUDAError(cudaMemcpy(h_table,d_table_2,2*blocks_per_grid*sizeof(int),cudaMemcpyDeviceToHost))){
+    //     cout<<"Unable to copy back edge data"<<endl;
+    // }
+    // cout<<"exclusive sum table"<<endl;
+    // for(int i = 0 ; i< 100; i++ ){
+    //     cout<<h_table[i]<<endl;
+    // }
+    // cout<<"Done with exclusive sum table"<<endl;
 
     // delete[] h_table;
 
