@@ -150,22 +150,12 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
             ex_bits[tid]=temp;
         }
     }
-    // if(idx<size){
-    //     bits[tid]=ex_bits[tid];
-    // }
     __syncthreads();
     unsigned num_one_total;
     if(idx<size){
         unsigned int num_one_bef=ex_bits[tid];
         unsigned int num_one_total=ex_bits[blockDim.x-1];
         unsigned int dst = (bit==0)? (tid - num_one_bef):(blockDim.x-num_one_total+num_one_bef-1);
-        // if(dst<0 || dst>TPB){
-        //     printf("%d \n", dst);
-        //     printf("%d \n", bit);
-        //     printf("%d \n", num_one_bef);
-        //     printf("%d \n", num_one_total);
-        //     printf("%d \n", blockIdx.x);
-        // }
         shared_edge[dst].cluster=key;
         shared_edge[dst].start=from;
         shared_edge[dst].end=to;
