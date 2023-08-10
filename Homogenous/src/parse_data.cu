@@ -161,7 +161,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     // __syncthreads();
 }
 
-__global__ void Swap(edge* edge_list, unsigned int* table, unsigned int* table_2, unsigned  int size, unsigned int iter){
+__global__ void Swap(edge* edge_list, unsigned int* table, unsigned  int size, unsigned int iter){
     unsigned int idx= threadIdx.x + (blockIdx.x*blockDim.x);
     unsigned int tid= threadIdx.x;
     // const unsigned int cluster_size= size/gridDim.x+1;
@@ -178,20 +178,20 @@ __global__ void Swap(edge* edge_list, unsigned int* table, unsigned int* table_2
     __syncthreads();   
     if(idx<size){
         if(bit==0){
-            edge_list[table_2[blockIdx.x]+tid].cluster=shared_edge[tid].cluster;
-            edge_list[table_2[blockIdx.x]+tid].end=shared_edge[tid].end;
-            edge_list[table_2[blockIdx.x]+tid].start=shared_edge[tid].start;
+            edge_list[table[blockIdx.x]+tid].cluster=shared_edge[tid].cluster;
+            edge_list[table[blockIdx.x]+tid].end=shared_edge[tid].end;
+            edge_list[table[blockIdx.x]+tid].start=shared_edge[tid].start;
         }
         else{
-            edge_list[table_2[blockIdx.x+gridDim.x]+tid].cluster=shared_edge[tid].cluster;
-            edge_list[table_2[blockIdx.x+gridDim.x]+tid].end=shared_edge[tid].end;
-            edge_list[table_2[blockIdx.x+gridDim.x]+tid].start=shared_edge[tid].start;
+            edge_list[table[blockIdx.x+gridDim.x]+tid].cluster=shared_edge[tid].cluster;
+            edge_list[table[blockIdx.x+gridDim.x]+tid].end=shared_edge[tid].end;
+            edge_list[table[blockIdx.x+gridDim.x]+tid].start=shared_edge[tid].start;
         }
     }
     __syncthreads();
 }
 
-__global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int size){
+__global__ void bit_exclusive_scan(unsigned int* bits, unsigned int size){
     unsigned int tid=threadIdx.x;
     __shared__ unsigned int ex_bits[TPB];
     if(tid<size && tid!=0){
@@ -213,7 +213,7 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, uns
     }
     if(tid<TPB){
         // bit_2[tid]=ex_bits[tid];
-        bits_2[tid]=ex_bits[tid];
+        bits[tid]=ex_bits[tid];
     }
     __syncthreads();
 }
@@ -264,7 +264,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host exclusive scan"<<endl;
         }
-        Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,d_table_2,size, i);
+        Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size, i);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host swap"<<endl;
         }

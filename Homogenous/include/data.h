@@ -36,13 +36,13 @@ __host__ void return_edge_list(string path, edge* arr);
 
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size);
 
-__global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int size);
+__global__ void bit_exclusive_scan(unsigned int* bits, unsigned int size);
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
 
 __host__ void Org_Vertex_Helper(edge* h_edge, int size);
 
-__global__ void Swap(edge* edge_list, unsigned int* table, unsigned int* table_2, unsigned  int size, unsigned int iter);
+__global__ void Swap(edge* edge_list, unsigned int* table, unsigned  int size, unsigned int iter);
 
 __host__ graph *create_graph (edge *edges);
 
