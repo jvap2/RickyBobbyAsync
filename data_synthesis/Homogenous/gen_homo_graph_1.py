@@ -9,10 +9,8 @@ folder=os.getcwd()
 Network = open(os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/rand_net.csv"),"w") 
 
 
-line = ["#delimieter: ,\n","#types: UINT,UINT\n", "from,to\n"]
-
-for l in line:
-    Network.write(l)
+line = ["from,to\n"]
+Network.write(line)
 
 num_node = int(sys.argv[1])
 
