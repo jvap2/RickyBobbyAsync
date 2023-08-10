@@ -3,6 +3,8 @@ import sys
 import random
 import numpy as np
 
+
+print(os.getcwd()-"data_synth")
 Network=open("../Data/net.csv","w")
 
 
