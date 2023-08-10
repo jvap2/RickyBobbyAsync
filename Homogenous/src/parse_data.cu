@@ -116,6 +116,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
         bits[tid]=ex_bits[tid];
     }
     __syncthreads();
+    unsigned num_one_total;
     if(idx<size){
         unsigned int num_one_bef=bits[tid];
         unsigned int num_one_total=bits[TPB-1];
@@ -139,11 +140,15 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     __syncthreads();
     // // //We now have the pointer values in global memory to store data
     if(idx<size){
-        if(tid<=blockDim.x-bits[blockDim.x-1]){
-            edgelist[table[blockIdx.x]+tid]=shared_edge[tid];
+        if(tid<TPB-num_one_total){
+            edgelist[table[blockIdx.x]+tid].cluster=shared_edge[tid].cluster;
+            edgelist[table[blockIdx.x]+tid].start=shared_edge[tid].start;
+            edgelist[table[blockIdx.x]+tid].end=shared_edge[tid].end;
         }
         else{
-            edgelist[table[blockIdx.x+gridDim.x]+tid]=shared_edge[tid];
+            edgelist[table[blockIdx.x+gridDim.x]+tid].cluster=shared_edge[tid].cluster;
+            edgelist[table[blockIdx.x+gridDim.x]+tid].start=shared_edge[tid].start;
+            edgelist[table[blockIdx.x+gridDim.x]+tid].end=shared_edge[tid].end;
         }
     }
     __syncthreads();
