@@ -80,6 +80,7 @@ __host__ void get_graph_info(string path, int* nodes, int* edges){
                 }
                 else{
                     if(column==0){
+                        cout<<word<<endl;
                         *nodes=stoi(word);
                         column++;
                     }
