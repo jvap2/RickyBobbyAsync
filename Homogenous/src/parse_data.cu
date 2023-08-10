@@ -256,6 +256,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     for(int i = 0 ; i< 2*blocks_per_grid; i++ ){
         cout<<h_table[i]<<endl;
     }
+
+    delete[] h_table;
+
     HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaFree(d_table));
     HandleCUDAError(cudaFree(d_table_2));
