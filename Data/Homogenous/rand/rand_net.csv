@@ -1,5 +1,3 @@
-#delimieter: ,
-#types: UINT,UINT
 from,to
 0,875
 0,1556
