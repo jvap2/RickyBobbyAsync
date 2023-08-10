@@ -22,6 +22,8 @@ __host__ void Check_Out_csv_edge(edge* edge_list){
     myfile.close();
 }
 
+
+
 __host__ void return_edge_list(string path, edge* arr){
     ifstream data;
     data.open(path);
@@ -177,16 +179,9 @@ __global__ void Swap(edge* edge_list, unsigned int* table, unsigned  int size, u
     }
     __syncthreads();   
     if(idx<size){
-        if(bit==0){
-            edge_list[table[blockIdx.x]+tid].cluster=shared_edge[tid].cluster;
-            edge_list[table[blockIdx.x]+tid].end=shared_edge[tid].end;
-            edge_list[table[blockIdx.x]+tid].start=shared_edge[tid].start;
-        }
-        else{
-            edge_list[table[blockIdx.x+gridDim.x]+tid].cluster=shared_edge[tid].cluster;
-            edge_list[table[blockIdx.x+gridDim.x]+tid].end=shared_edge[tid].end;
-            edge_list[table[blockIdx.x+gridDim.x]+tid].start=shared_edge[tid].start;
-        }
+        edge_list[table[blockIdx.x+(gridDim.x*bit)]+tid].cluster=shared_edge[tid].cluster;
+        edge_list[table[blockIdx.x+(gridDim.x*bit)]+tid].end=shared_edge[tid].end;
+        edge_list[table[blockIdx.x+(gridDim.x*bit)]+tid].start=shared_edge[tid].start;
     }
     __syncthreads();
 }
