@@ -243,6 +243,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     unsigned int blocks_per_grid= size/threads_per_block+1;
     cout<<"Num of blocks "<<blocks_per_grid<<endl;
     unsigned int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
+    cout<<"Second amount of blocks "<< ex_block_pg <<endl;
     
     unsigned int* h_table=new unsigned int[2*blocks_per_grid];
 
@@ -308,9 +309,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
         cout<<"Unable to copy back edge data"<<endl;
     }
     cout<<"exclusive sum table"<<endl;
-    for(int i = 0 ; i< 2*blocks_per_grid; i++ ){
-        cout<<h_table[i]<<endl;
-    }
+    // for(int i = 0 ; i< 2*blocks_per_grid; i++ ){
+    //     cout<<h_table[i]<<endl;
+    // }
     cout<<"Done with exclusive sum table"<<endl;
 
     delete[] h_table;
