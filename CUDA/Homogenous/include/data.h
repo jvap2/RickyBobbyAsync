@@ -25,7 +25,6 @@ struct graph{
 };
 
 
-
 struct vertex{
     int end;
     struct vertex *next;

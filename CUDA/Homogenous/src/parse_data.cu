@@ -59,6 +59,7 @@ __host__ void return_edge_list(string path, edge* arr){
     else{
         cout<<"Cannot open file"<<endl;
     }
+    cout<<count<<endl;
     data.close();
 }
 
