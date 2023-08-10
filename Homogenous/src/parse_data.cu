@@ -204,6 +204,8 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
 
     unsigned int threads_per_block=TPB;
     unsigned int blocks_per_grid= size/threads_per_block+1;
+    
+    unsigned int* h_table=new unsigned int[2*blocks_per_grid];
 
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
@@ -230,7 +232,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     } 
-    for(unsigned int i=0; i<32;i++){
+    for(unsigned int i=0; i<1;i++){
         Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
@@ -247,6 +249,12 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
 
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(h_table,d_table_2,size*sizeof(edge),cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back edge data"<<endl;
+    }
+    for(int i = 0 ; i< 2*blocks_per_grid; i++ ){
+        cout<<h_table[i]<<endl;
     }
     HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaFree(d_table));
