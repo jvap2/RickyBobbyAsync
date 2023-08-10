@@ -16,7 +16,7 @@ int main()
     cout<<"Starting Helper Function"<<endl;
     Org_Vertex_Helper(edge_list,edges);
     cout<<"Ending Helper Function"<<endl;
-    Check_Out_csv_edge(edge_list);
+    Check_Out_csv_edge(edge_list, edges);
 
     // for (int i = 0; i < 512 ; i++){
     //     cout<<edge_list[i].cluster<<endl;
