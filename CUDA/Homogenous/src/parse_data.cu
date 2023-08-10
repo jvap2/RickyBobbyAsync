@@ -112,7 +112,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     unsigned int tid= threadIdx.x;
     __shared__ edge shared_edge[TPB];
     __shared__ unsigned int bits[TPB];
-    __shared__ unsigned int ex_bits[TPB];
+    __shared__ unsigned int ex_bits[TPB+1];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
         shared_edge[tid].cluster=edgelist[idx].cluster;
@@ -151,11 +151,14 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
         }
     }
     __syncthreads();
-    unsigned num_one_total;
+    unsigned int num_one_total;
+    if(idx==size-1 || tid == blockIdx.x-1){
+        ex_bits[blockDim.x]+=bits[tid];
+    }
     if(idx<size){
         unsigned int num_one_bef=ex_bits[tid];
-        unsigned int num_one_total=ex_bits[blockDim.x-1]+bits[blockDim.x-1];
-        unsigned int dst = (bit==0)? (tid - num_one_bef):(blockDim.x-num_one_total+num_one_bef-1);
+        unsigned int num_one_total=ex_bits[blockDim.x];
+        unsigned int dst = (bit==0)? (tid - num_one_bef):(blockDim.x-num_one_total+num_one_bef);
         if(dst<0 || dst>blockDim.x){
             printf("%d \n",dst);
         }
