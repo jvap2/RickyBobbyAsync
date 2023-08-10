@@ -279,7 +279,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     cout<<"Second amount of blocks "<< ex_block_pg <<endl;
     
     // unsigned int* h_table=new unsigned int[2*blocks_per_grid];
-
+    cout<<"CUDA Malloc Calls"<<endl;
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
