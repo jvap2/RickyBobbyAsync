@@ -161,20 +161,23 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     // __syncthreads();
 }
 
-__global__ void Swap(edge* edge_list, unsigned int* table, unsigned int* table_2, unsigned  int size){
+__global__ void Swap(edge* edge_list, unsigned int* table, unsigned int* table_2, unsigned  int size, unsigned int iter){
     unsigned int idx= threadIdx.x + (blockIdx.x*blockDim.x);
     unsigned int tid= threadIdx.x;
     // const unsigned int cluster_size= size/gridDim.x+1;
     __shared__ edge shared_edge[TPB];
     //Load vertex and cluster info into the shared memory
+    unsigned int bit, key;
     if(idx<size){
         shared_edge[tid].cluster=edge_list[idx].cluster;
         shared_edge[tid].end=edge_list[idx].end;
         shared_edge[tid].start=edge_list[idx].start;
+        key = shared_edge[tid].cluster;
+        bit =  (key>>iter) & 1;
     }
     __syncthreads();   
     if(idx<size){
-        if(tid<table[blockIdx.x]){
+        if(bit==0){
             edge_list[table_2[blockIdx.x]+tid].cluster=shared_edge[tid].cluster;
             edge_list[table_2[blockIdx.x]+tid].end=shared_edge[tid].end;
             edge_list[table_2[blockIdx.x]+tid].start=shared_edge[tid].start;
@@ -261,7 +264,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host exclusive scan"<<endl;
         }
-        Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,d_table_2,size);
+        Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,d_table_2,size, i);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host swap"<<endl;
         }
