@@ -28,5 +28,5 @@ for house in range(num_node):
         Network.write(str(house) + "," + str(p_system) + "\n")
 
 df=p.read_csv(os.path.join(folder,"Data/rand/rand_net.csv"))
-edges=df.height()
+edges=df.height
 print(edges)
