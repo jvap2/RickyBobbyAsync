@@ -5,7 +5,7 @@ import numpy as np
 
 
 file=os.getcwd()[:-10]
-Network=open(file+"/Data/net.csv","w")
+Network=open(file+"Data/net.csv","w")
 
 
 line = ["#delimieter: ,\n","#columns: house,station\n","#types: UINT,UINT\n", "house,station\n"]
