@@ -75,7 +75,6 @@ __host__ void get_graph_info(string path, int* nodes, int* edges){
             stringstream stream_data(line); 
             while(getline(stream_data,word,',')){
                 if(count==0){
-                    count++;
                     continue;
                 }
                 else{
@@ -90,7 +89,7 @@ __host__ void get_graph_info(string path, int* nodes, int* edges){
                 }
                 //Extract data until ',' is found
             }
-
+            count++;
         }
     }
 
