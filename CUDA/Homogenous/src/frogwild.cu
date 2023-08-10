@@ -1,7 +1,7 @@
 #include "../include/data.h"
 #include "../include/GPUErrors.h"
 
-#define TPB 128
+#define TPB 256
 
 __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned int* table, unsigned int k){
     unsigned int idx=threadIdx.x + (blockIdx.x*blockDim.x);

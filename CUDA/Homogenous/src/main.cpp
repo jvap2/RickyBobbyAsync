@@ -15,9 +15,9 @@ int main()
     cout<<"Ending edge list function"<<endl;
     // graph* G = create_graph(edge_list);
     cout<<"Starting Helper Function"<<endl;
-    Org_Vertex_Helper(edge_list,edges);
-    cout<<"Ending Helper Function"<<endl;
-    Check_Out_csv_edge(edge_list, edges);
+    // Org_Vertex_Helper(edge_list,edges);
+    // cout<<"Ending Helper Function"<<endl;
+    // Check_Out_csv_edge(edge_list, edges);
 
     // for (int i = 0; i < 512 ; i++){
     //     cout<<edge_list[i].cluster<<endl;
