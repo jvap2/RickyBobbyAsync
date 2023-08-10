@@ -6,7 +6,7 @@ import polars as p
 
 
 folder=os.getcwd()
-Network = open(os.path.join(os.path.dirname(folder),"Data/rand/rand_net.csv"),"w") 
+Network = open(os.path.join(os.path.dirname(folder)[:-14],"Data/rand/rand_net.csv"),"w") 
 
 
 line = ["#delimieter: ,\n","#types: UINT,UINT\n", "from,to\n"]
