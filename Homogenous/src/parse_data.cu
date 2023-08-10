@@ -211,7 +211,7 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int size){
             ex_bits[tid]=temp;
         }
     }
-    if(tid<TPB){
+    if(tid<size){
         // bit_2[tid]=ex_bits[tid];
         bits[tid]=ex_bits[tid];
     }
