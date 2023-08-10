@@ -2,6 +2,7 @@ import os
 import sys
 import random
 import numpy as np
+import polars as p
 
 
 folder=os.getcwd()[:-10]
@@ -25,3 +26,7 @@ for house in range(num_node):
     for i in range(0, num_used):
         p_system = int( np.random.random() * num_node )
         Network.write(str(house) + "," + str(p_system) + "\n")
+
+df=p.read_csv(os.path.join(folder,"Data/rand/rand_net.csv"))
+edges=df.height()
+print(edges)
