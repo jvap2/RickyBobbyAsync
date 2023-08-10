@@ -17,7 +17,7 @@ using namespace std;
 // #define CLUSTER_PATH "../../Data/Homogenous/google/Cluster_Assignment.csv"
 
 #define EDGE_PATH "../../Data/Homogenous/rand/rand_net.csv"
-#define GRAPH_DATA_PATH "../../Data/Homogenous/rand/rand_net.csv"
+#define GRAPH_DATA_PATH "../../Data/Homogenous/rand/rand_net_info.csv"
 #define CLUSTER_PATH "../../Data/Homogenous/google/Cluster_Assignment.csv"
 
 struct graph{
