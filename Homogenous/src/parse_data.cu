@@ -250,7 +250,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
         // }
     }
 
-    if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(unsigned int),cudaMemcpyDeviceToHost))){
+    if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
     HandleCUDAError(cudaFree(d_edge));
