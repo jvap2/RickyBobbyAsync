@@ -33,5 +33,5 @@ edges=df.height
 
 Network_Info = open(os.path.join(folder,"Data/rand/rand_net_info.txt"), 'w')
 Network_Info.write("No. Nodes, No. Edges \n")
-Network_Info.write(sys.argv[1], edges)
+Network_Info.write(str(sys.argv[1]) + "," + str(edges))
 Network_Info.close()
