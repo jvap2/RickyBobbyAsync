@@ -19,6 +19,7 @@ np.random.seed(int(sys.argv[2]))
 
 for house in range(num_node):
     num_used = int( np.random.exponential(20.0) )
+    if num_used==0: num_used=int( np.random.exponential(20.0) )
     if num_used > 20: num_used = int( num_used / 10 )     # let's not generate too many edges
 
     for i in range(0, num_used):
