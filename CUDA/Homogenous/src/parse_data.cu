@@ -153,7 +153,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     __syncthreads();
     unsigned int num_one_total;
     if(idx==size-1 || tid == blockIdx.x-1){
-        ex_bits[blockDim.x]+=bits[tid];
+        ex_bits[blockDim.x]=bits[tid]+ex_bits[blockDim.x-1];
     }
     __syncthreads();
     if(idx<size){
