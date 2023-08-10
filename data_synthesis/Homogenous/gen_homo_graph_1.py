@@ -6,7 +6,7 @@ import polars as p
 
 
 folder=os.getcwd()
-Network = open(os.path.join(os.path.dirname(folder)[:-14],"Data/rand/rand_net.csv"),"w") 
+Network = open(os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/rand_net.csv"),"w") 
 
 
 line = ["#delimieter: ,\n","#types: UINT,UINT\n", "from,to\n"]
@@ -30,7 +30,7 @@ for house in range(num_node):
 df=p.read_csv(os.path.join(folder,"Data/rand/rand_net.csv"))
 edges=df.height
 print(edges)
-Network_Info = open(os.path.join(folder,"Data/rand/rand_net_info.csv"), 'w')
+Network_Info = open(os.path.join(os.path.dirname(folder)[:-14],"Data/rand/rand_net_info.csv"), 'w')
 Network_Info.write("No. Nodes, No. Edges \n")
 Network_Info.write(str(sys.argv[1]) + "," + str(edges))
 
