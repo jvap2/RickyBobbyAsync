@@ -278,7 +278,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     unsigned int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
     cout<<"Second amount of blocks "<< ex_block_pg <<endl;
     
-    unsigned int* h_table=new unsigned int[2*blocks_per_grid];
+    // unsigned int* h_table=new unsigned int[2*blocks_per_grid];
 
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
@@ -312,28 +312,47 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     } 
-    for(unsigned int i=0; i<32;i++){
-        Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
-        if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
-        }
-        bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
-        if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host exclusive scan"<<endl;
-        }
-        fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_2,d_table_3,ex_block_pg);
-        if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
-        }
-        final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table_2,d_table_3,2*blocks_per_grid);
-        if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
-        }
-        Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table_2,size, i);
-        if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host swap"<<endl;
+    if(ex_block_pg>1){
+        for(unsigned int i=0; i<32;i++){
+            Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
+            }
+            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host exclusive scan"<<endl;
+            }
+            fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_2,d_table_3,ex_block_pg);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
+            }
+            final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table_2,d_table_3,2*blocks_per_grid);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
+            }
+            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table_2,size, i);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host swap"<<endl;
+            }
         }
     }
+    else{
+        for(unsigned int i=0; i<32;i++){
+            Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
+            }
+            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host exclusive scan"<<endl;
+            }
+            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table_2,size, i);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host swap"<<endl;
+            }
+        }
+    }
+
 
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
@@ -347,7 +366,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     }
     cout<<"Done with exclusive sum table"<<endl;
 
-    delete[] h_table;
+    // delete[] h_table;
 
     HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaFree(d_table));
