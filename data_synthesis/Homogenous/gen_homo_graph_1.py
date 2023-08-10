@@ -5,7 +5,7 @@ import numpy as np
 import polars as p
 
 
-folder=os.getcwd()[:-10]
+folder=os.getcwd()[:-14]
 Network = open(os.path.join(folder,"Data/rand/rand_net.csv"),"w") 
 
 

@@ -13,8 +13,8 @@ using namespace std;
 //Google
 #define EDGES 5105039
 #define NODES 875713
-#define EDGE_PATH "../Homogenous/Data/google/webGoogle.csv"
-#define CLUSTER_PATH "../Homogenous/Data/google/Cluster_Assignment.csv"
+#define EDGE_PATH "/../Data/Homogenous/google/webGoogle.csv"
+#define CLUSTER_PATH "../Data/Homogenous/google/Cluster_Assignment.csv"
 
 struct graph{
     struct vertex *point[NODES];

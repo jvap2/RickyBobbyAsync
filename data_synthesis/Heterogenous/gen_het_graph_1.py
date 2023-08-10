@@ -4,7 +4,7 @@ import random
 import numpy as np
 
 
-folder=os.getcwd()[:-10]
+folder=os.getcwd()[:-14]
 Network = open(os.path.join(folder,"Data/net.csv"),"w") 
 
 
