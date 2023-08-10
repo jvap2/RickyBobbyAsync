@@ -24,6 +24,8 @@ struct graph{
     struct vertex *point[NODES];
 };
 
+
+
 struct vertex{
     int end;
     struct vertex *next;
@@ -34,7 +36,7 @@ struct edge{
     int cluster;
 };
 
-__host__ void Check_Out_csv_edge(edge* edge_list);
+__host__ void Check_Out_csv_edge(edge* edge_list, int size);
 
 __host__ void return_edge_list(string path, edge* arr);
 
@@ -53,3 +55,5 @@ __host__ graph *create_graph (edge *edges);
 __global__ void Random_Edge_Placement(edge *edges, double rand_num);
 
 __global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
+
+__host__ void get_graph_info(string path, int& nodes, int& edges);

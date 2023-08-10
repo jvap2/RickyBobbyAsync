@@ -7,11 +7,11 @@
 
 
 
-__host__ void Check_Out_csv_edge(edge* edge_list){
+__host__ void Check_Out_csv_edge(edge* edge_list, int size){
     ofstream myfile;
     myfile.open(CLUSTER_PATH);
     myfile <<"from,to,cluster\n";
-    for(int i=0; i<EDGES;i++){
+    for(int i=0; i<size;i++){
         myfile<< to_string(edge_list[i].start);
         myfile<< ",";
         myfile<< to_string(edge_list[i].end);
@@ -60,6 +60,38 @@ __host__ void return_edge_list(string path, edge* arr){
         cout<<"Cannot open file"<<endl;
     }
     data.close();
+}
+
+__host__ void get_graph_info(string path, int& nodes, int& edges){
+    ifstream data;
+    data.open(path);
+    string line,word;
+    int count =0;
+    int column = 0;
+    if(data.is_open()){
+        //Check if data is open
+        while(getline(data,line)){
+            //Keep extracting data until a delimiter is found
+            stringstream stream_data(line); 
+            while(getline(stream_data,word,',')){
+                if(count==0){
+                    continue;
+                }
+                else{
+                    if(column==0){
+                        nodes=stoi(word);
+                        column++;
+                    }
+                    else{
+                        edges=stoi(word);
+                    }
+                }
+                //Extract data until ',' is found
+            }
+
+        }
+    }
+
 }
 
 
