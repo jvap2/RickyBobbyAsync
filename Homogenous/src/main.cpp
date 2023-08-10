@@ -16,9 +16,9 @@ int main()
     cout<<"Ending Helper Function"<<endl;
     Check_Out_csv_edge(edge_list);
 
-    for (int i = 0; i < 512 ; i++){
-        cout<<edge_list[i].cluster<<endl;
-    }
+    // for (int i = 0; i < 512 ; i++){
+    //     cout<<edge_list[i].cluster<<endl;
+    // }
     free(edge_list);
     return 0;
 }
