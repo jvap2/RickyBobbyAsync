@@ -6,7 +6,7 @@
 int main()
 {  
     int nodes, edges;
-    get_graph_info(GRAPH_DATA_PATH,nodes,edges);
+    get_graph_info(GRAPH_DATA_PATH,&nodes,&edges);
     edge* edge_list;
     edge_list=(edge*)malloc(sizeof(edge)*edges);
     cout<<"Starting the edge list function"<<endl;

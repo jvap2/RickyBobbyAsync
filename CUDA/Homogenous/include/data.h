@@ -56,4 +56,4 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num);
 
 __global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
-__host__ void get_graph_info(string path, int& nodes, int& edges);
+__host__ void get_graph_info(string path, int* nodes, int* edges);

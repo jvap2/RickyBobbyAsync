@@ -62,7 +62,7 @@ __host__ void return_edge_list(string path, edge* arr){
     data.close();
 }
 
-__host__ void get_graph_info(string path, int& nodes, int& edges){
+__host__ void get_graph_info(string path, int* nodes, int* edges){
     ifstream data;
     data.open(path);
     string line,word;
@@ -79,11 +79,11 @@ __host__ void get_graph_info(string path, int& nodes, int& edges){
                 }
                 else{
                     if(column==0){
-                        nodes=stoi(word);
+                        *nodes=stoi(word);
                         column++;
                     }
                     else{
-                        edges=stoi(word);
+                        *edges=stoi(word);
                     }
                 }
                 //Extract data until ',' is found
