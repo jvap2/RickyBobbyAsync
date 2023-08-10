@@ -168,9 +168,10 @@ __global__ void Swap(edge* edge_list, unsigned int* table, unsigned  int size, u
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int size){
     unsigned int tid=threadIdx.x;
-    extern __shared__ unsigned int ex_bits[];
-    if(tid<size && tid!=0){
-        ex_bits[tid]=bits[tid-1];
+    unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
+    __shared__ unsigned int ex_bits[TPB];
+    if(idx<size && tid!=0){
+        ex_bits[tid]=bits[idx-1];
     }
     else{
         ex_bits[tid]=0;
@@ -186,11 +187,47 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, uns
             ex_bits[tid]=temp;
         }
     }
-    if(tid<size){
-        bits_2[tid]=ex_bits[tid];
+    if(idx<size){
+        bits_2[idx]=ex_bits[tid];
     }
     __syncthreads();
 }
+
+__global__ void fin_exclusive_scan(unsigned int* bits_2, unsigned int* bits_3, unsigned int size){
+    unsigned int tid = threadIdx.x;
+    unsigned int idx = threadIdx.x + (blockIdx.x*blockDim.x);
+    extern __shared__ unsigned int s_bit[];
+    if(idx<size && tid!=0){
+        s_bit[tid]=bits_2[(idx)*TPB-1];
+    }
+    else{
+        s_bit[tid]=0;
+    }
+    __syncthreads();
+    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
+        __syncthreads();
+        unsigned int temp;
+        if(tid>=stride){
+            temp=s_bit[tid]+s_bit[tid-stride];
+        }
+        __syncthreads();
+        if(tid>=stride){
+            s_bit[tid]=temp;
+        }
+    }
+    if(idx<size){
+        bits_3[idx]=s_bit[tid];
+    }
+}
+
+__global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size){
+    unsigned int bid = blockIdx.x;
+    unsigned int idx = threadIdx.x + (blockIdx.x*blockDim.x);
+    if(idx<size){
+        bits_2[idx]+=bits_3[bid];
+    }
+}
+
 
 //d_table_2 contains the prefix sum
 //d_table contains the counts
@@ -200,10 +237,12 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     edge* d_edge;
     unsigned int* d_table;
     unsigned int* d_table_2;
+    unsigned int* d_table_3;
 
     unsigned int threads_per_block=TPB;
     unsigned int blocks_per_grid= size/threads_per_block+1;
     cout<<"Num of blocks "<<blocks_per_grid<<endl;
+    unsigned int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
     
     unsigned int* h_table=new unsigned int[2*blocks_per_grid];
 
@@ -224,6 +263,13 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
         cout<<"Unable to set table to 0"<<endl;
     }
 
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table_3,(ex_block_pg)*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for the table data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_table_3,0,(ex_block_pg)*sizeof(unsigned int)))){
+        cout<<"Unable to set table to 0"<<endl;
+    }
+
     if(!HandleCUDAError(cudaMemcpy(d_edge,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
         cout<<"Unable to copy cluster data"<<endl;
     }
@@ -237,9 +283,17 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
         }
-        bit_exclusive_scan<<<1,2*blocks_per_grid, sizeof(unsigned int)*2*blocks_per_grid>>>(d_table,d_table_2,2*blocks_per_grid);
+        bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host exclusive scan"<<endl;
+        }
+        fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_2,d_table_3,ex_block_pg);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
+        }
+        final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
         }
         Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table_2,size, i);
         if(!HandleCUDAError(cudaDeviceSynchronize())){

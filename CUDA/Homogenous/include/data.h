@@ -14,7 +14,7 @@ using namespace std;
 #define EDGES 5105039
 #define NODES 875713
 #define EDGE_PATH "../../Data/Homogenous/google/webGoogle.csv"
-#define CLUSTER_PATH "../Data/Homogenous/google/Cluster_Assignment.csv"
+#define CLUSTER_PATH "../../Data/Homogenous/google/Cluster_Assignment.csv"
 
 struct graph{
     struct vertex *point[NODES];
@@ -47,3 +47,5 @@ __global__ void Swap(edge* edge_list, unsigned int* table, unsigned  int size, u
 __host__ graph *create_graph (edge *edges);
 
 __global__ void Random_Edge_Placement(edge *edges, double rand_num);
+
+__global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
