@@ -4,7 +4,7 @@ import random
 import numpy as np
 
 
-print(os.getcwd()-"data_synth")
+print(os.getcwd()[:-10])
 Network=open("../Data/net.csv","w")
 
 
