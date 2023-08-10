@@ -203,6 +203,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
 
     unsigned int threads_per_block=TPB;
     unsigned int blocks_per_grid= size/threads_per_block+1;
+    cout<<"Num of blocks "<<blocks_per_grid<<endl;
     
     unsigned int* h_table=new unsigned int[2*blocks_per_grid];
 
@@ -249,14 +250,14 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(h_table,d_table_2,size*sizeof(edge),cudaMemcpyDeviceToHost))){
+    if(!HandleCUDAError(cudaMemcpy(h_table,d_table_2,2*blocks_per_grid*sizeof(int),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
-    cout<<"exclusive sum table"<<endl;
-    for(int i = 0 ; i< 2*blocks_per_grid; i++ ){
-        cout<<h_table[i]<<endl;
-    }
-    cout<<"Done with exclusive sum table"<<endl;
+    // cout<<"exclusive sum table"<<endl;
+    // for(int i = 0 ; i< 2*blocks_per_grid; i++ ){
+    //     cout<<h_table[i]<<endl;
+    // }
+    // cout<<"Done with exclusive sum table"<<endl;
 
     delete[] h_table;
 
