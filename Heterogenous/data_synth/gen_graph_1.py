@@ -4,8 +4,8 @@ import random
 import numpy as np
 
 
-print(os.getcwd()[:-10])
-Network=open("../Data/net.csv","w")
+file=os.getcwd()[:-10]
+Network=open(file+"/Data/net.csv","w")
 
 
 line = ["#delimieter: ,\n","#columns: house,station\n","#types: UINT,UINT\n", "house,station\n"]
