@@ -22,6 +22,6 @@ int main()
     // for (int i = 0; i < 512 ; i++){
     //     cout<<edge_list[i].cluster<<endl;
     // }
-    free(edge_list);
+    // free(edge_list);
     return 0;
 }
