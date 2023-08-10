@@ -162,6 +162,8 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
         unsigned int dst = (bit==0)? (tid - num_one_bef):(blockDim.x-num_one_total+num_one_bef);
         if(dst<0 || dst>blockDim.x){
             printf("%d \n",dst);
+            printf("%d \n",num_one_total);
+            printf("%d \n",num_one_bef)
         }
         shared_edge[dst].cluster=key;
         shared_edge[dst].start=from;
