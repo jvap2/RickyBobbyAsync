@@ -292,7 +292,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
         }
-        final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
+        final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table_2,d_table_3,2*blocks_per_grid);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
         }
