@@ -141,26 +141,6 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
         edgelist[idx].start=shared_edge[tid].start;
         edgelist[idx].end=shared_edge[tid].end;
     }
-    // if(idx==0){
-    //     //Have thread 0 launch the kernel to perform the sum
-    //     //Save the number of 0's
-    //     bit_exclusive_scan<<<1,2*gridDim.x,0,cudaStreamTailLaunch>>>(table,2*gridDim.x);
-    // }
-    // __syncthreads();
-    // // // //We now have the pointer values in global memory to store data
-    // if(idx<size){
-    //     if(tid<TPB-num_one_total){
-    //         edgelist[table[blockIdx.x]+tid].cluster=shared_edge[tid].cluster;
-    //         edgelist[table[blockIdx.x]+tid].start=shared_edge[tid].start;
-    //         edgelist[table[blockIdx.x]+tid].end=shared_edge[tid].end;
-    //     }
-    //     else{
-    //         edgelist[table[blockIdx.x+gridDim.x]+tid].cluster=shared_edge[tid].cluster;
-    //         edgelist[table[blockIdx.x+gridDim.x]+tid].start=shared_edge[tid].start;
-    //         edgelist[table[blockIdx.x+gridDim.x]+tid].end=shared_edge[tid].end;
-    //     }
-    // }
-    // __syncthreads();
 }
 
 __global__ void Swap(edge* edge_list, unsigned int* table, unsigned  int size, unsigned int iter){
