@@ -155,6 +155,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int s
     if(idx==size-1 || tid == blockIdx.x-1){
         ex_bits[blockDim.x]+=bits[tid];
     }
+    __syncthreads();
     if(idx<size){
         unsigned int num_one_bef=ex_bits[tid];
         unsigned int num_one_total=ex_bits[blockDim.x];
