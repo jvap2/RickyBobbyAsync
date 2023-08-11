@@ -322,22 +322,22 @@ __host__ void Org_Vertex_Helper(edge* h_edge, int size){
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
             }
-            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host exclusive scan"<<endl;
-            }
-            fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_2,d_table_3,ex_block_pg);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
-            }
-            final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table_2,d_table_3,2*blocks_per_grid);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
-            }
-            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table_2,size, i);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host swap"<<endl;
-            }
+            // bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
+            // if(!HandleCUDAError(cudaDeviceSynchronize())){
+            //     cout<<"Unable to synchronize with host exclusive scan"<<endl;
+            // }
+            // fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_2,d_table_3,ex_block_pg);
+            // if(!HandleCUDAError(cudaDeviceSynchronize())){
+            //     cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
+            // }
+            // final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table_2,d_table_3,2*blocks_per_grid);
+            // if(!HandleCUDAError(cudaDeviceSynchronize())){
+            //     cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
+            // }
+            // Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table_2,size, i);
+            // if(!HandleCUDAError(cudaDeviceSynchronize())){
+            //     cout<<"Unable to synchronize with host swap"<<endl;
+            // }
         }
     }
     else{
