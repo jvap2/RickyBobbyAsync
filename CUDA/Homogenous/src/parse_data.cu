@@ -234,25 +234,28 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, uns
 __global__ void fin_exclusive_scan(unsigned int* bits_2, unsigned int* bits_3, unsigned int size){
     unsigned int tid = threadIdx.x;
     unsigned int idx = threadIdx.x + (blockIdx.x*blockDim.x);
+    extern __shared__ unsigned int s_bit[];
     if(idx<size && tid!=0){
-        bits_3[tid]=bits_2[(tid)*TPB-1];
+        s_bit[tid]=bits_2[(idx)*TPB-1];
+        printf("%u \n",bits_2[(idx)*TPB-1]);
     }
     else{
-        bits_3[tid]=0;
+        s_bit[tid]=0;
     }
     __syncthreads();
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
         unsigned int temp;
         if(tid>=stride){
-            temp=bits_3[tid]+bits_3[tid-stride];
+            temp=s_bit[tid]+s_bit[tid-stride];
         }
         __syncthreads();
         if(tid>=stride){
-            bits_3[tid]=temp;
+            s_bit[tid]=temp;
         }
     }
     if(idx<size){
+        bits_3[idx]=s_bit[tid];
         printf("%u \n", bits_3[idx]);
     }
 }
