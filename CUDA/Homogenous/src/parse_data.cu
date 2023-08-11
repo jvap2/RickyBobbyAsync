@@ -9,7 +9,7 @@
 
 __host__ void Check_Out_csv_edge(edge* edge_list, int size){
     ofstream myfile;
-    myfile.open(LIST_PATH);
+    myfile.open(CLUSTER_PATH);
     myfile <<"from,to,cluster\n";
     for(int i=0; i<size;i++){
         myfile<< to_string(edge_list[i].start);
@@ -25,14 +25,13 @@ __host__ void Check_Out_csv_edge(edge* edge_list, int size){
 
 __host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* list_2, int size){
     ofstream myfile;
-    myfile.open(CLUSTER_PATH);
+    myfile.open(LIST_PATH);
     myfile <<"List1,List2,List2Check\n";
     unsigned long int* check = new unsigned long int[size];
     check[0]=0;
     for(int i=0; i<size;i++){
-        int check_val=list_1[i];
         if(i>0){
-            check[i]=check[i-1]+check_val;
+            check[i]=list_1[i-1]+check[i-1];
         }
         myfile<< to_string(list_1[i]);
         myfile<< ",";
@@ -40,6 +39,9 @@ __host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* l
         myfile<< ",";
         myfile<< to_string(check[i]);
         myfile<< "\n";
+        if(check[i]!=list_2[i]){
+            cout<<"Rugh rogh raggy, reheheheheh"<<endl;
+        }
     }
     myfile.close();
     delete[] check;
