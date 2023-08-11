@@ -176,10 +176,12 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
             ex_bits[tid]=temp;
         }
     }
-    __syncthreads();
     unsigned long int num_one_total;
     if(idx==size-1 || tid == blockDim.x-1){
         ex_bits[blockDim.x]=bits[tid]+ex_bits[tid];
+        table[blockIdx.x]=(idx==size-1)?(size-(blockIdx.x*blockDim.x+ex_bits[blockDim.x])):(TPB-ex_bits[blockDim.x]);
+        //Save the number of 1's
+        table[blockIdx.x+gridDim.x]=ex_bits[blockDim.x];
     }
     __syncthreads();
     if(idx<size){
@@ -189,12 +191,6 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
         shared_edge[dst].cluster=key;
         shared_edge[dst].start=from;
         shared_edge[dst].end=to;
-    }
-    __syncthreads();
-    if(tid==0){
-        table[blockIdx.x]=TPB-ex_bits[blockDim.x];
-        //Save the number of 1's
-        table[blockIdx.x+gridDim.x]=ex_bits[blockDim.x];
     }
     __syncthreads();
     if(idx<size){
@@ -333,7 +329,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     } 
-    if(ex_block_pg>1){
+    if(ex_block_pg>0){
         for(unsigned int i=0; i<1;i++){
             Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
