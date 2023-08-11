@@ -41,18 +41,18 @@ __host__ void return_edge_list(string path, edge* arr);
 
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size);
 
-__global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int size);
+__global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* bits_2, unsigned long int size);
 
-__global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
+__global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned long int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(edge* h_edge, int size);
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size);
 
-__global__ void Swap(edge* edge_list, unsigned int* table, unsigned  int size, unsigned int iter);
+__global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long int size, unsigned int iter);
 
 __host__ graph *create_graph (edge *edges);
 
 __global__ void Random_Edge_Placement(edge *edges, double rand_num);
 
-__global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
+__global__ void fin_exclusive_scan(unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size);
 
-__host__ void get_graph_info(string path, int* nodes, int* edges);
+__host__ void get_graph_info(string path, unsigned long int* nodes, unsigned long int* edges);
