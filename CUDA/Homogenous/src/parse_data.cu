@@ -317,7 +317,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     } 
     if(ex_block_pg>1){
-        for(unsigned int i=0; i<5;i++){
+        for(unsigned int i=0; i<32;i++){
             Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
