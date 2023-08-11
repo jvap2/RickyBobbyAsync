@@ -154,7 +154,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
         key = shared_edge[tid].cluster;
         from = shared_edge[tid].start;
         to = shared_edge[tid].end;
-        bit=(key>>iter) & 1;
+        bit=(key>>iter) & 0x0001;
         bits[tid]=bit;
     }
     __syncthreads();
@@ -216,7 +216,8 @@ __global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long in
     }
     __syncthreads();   
     if(idx<size){
-        dst=(bit==0)?(table_2[blockIdx.x]+tid):(table_2[blockIdx.x+(gridDim.x)]+tid-(table[blockIdx.x]));
+        // dst=(bit==0)?(table_2[blockIdx.x]+tid):(table_2[blockIdx.x+(gridDim.x)]+tid-(table[blockIdx.x]));
+        dst = (bit==0)? (tid+table_2[blockIdx.x]):(tid-table[blockIdx.x]+table_2[blockIdx.x+gridDim.x]);
         edge_list[dst].cluster=shared_edge[tid].cluster;
         edge_list[dst].end=shared_edge[tid].end;
         edge_list[dst].start=shared_edge[tid].start;
