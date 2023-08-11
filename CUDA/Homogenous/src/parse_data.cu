@@ -181,7 +181,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     }
 }
 
-__global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long int size, unsigned int iter){
+__global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long int* table_2, long int size, unsigned int iter){
     unsigned int idx= threadIdx.x + (blockIdx.x*blockDim.x);
     unsigned int tid= threadIdx.x;
     // const unsigned int cluster_size= size/gridDim.x+1;
@@ -197,9 +197,9 @@ __global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long in
     }
     __syncthreads();   
     if(idx<size){
-        edge_list[table[blockIdx.x+(gridDim.x*bit)]+tid].cluster=shared_edge[tid].cluster;
-        edge_list[table[blockIdx.x+(gridDim.x*bit)]+tid].end=shared_edge[tid].end;
-        edge_list[table[blockIdx.x+(gridDim.x*bit)]+tid].start=shared_edge[tid].start;
+        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x+(gridDim.x*bit)])].cluster=shared_edge[tid].cluster;
+        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x+(gridDim.x*bit)])].end=shared_edge[tid].end;
+        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x+(gridDim.x*bit)])].start=shared_edge[tid].start;
     }
     __syncthreads();
 }
@@ -278,13 +278,13 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     unsigned long int* d_table_2;
     unsigned long int* d_table_3;
 
-    unsigned int threads_per_block=TPB;
-    unsigned int blocks_per_grid= size/threads_per_block+1;
+    unsigned long int threads_per_block=TPB;
+    unsigned long int blocks_per_grid= size/threads_per_block+1;
     cout<<"Num of blocks "<<blocks_per_grid<<endl;
-    unsigned int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
+    unsigned long int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
     cout<<"Second amount of blocks "<< ex_block_pg <<endl;
     
-    unsigned int* h_table=new unsigned int[2*blocks_per_grid];
+    unsigned long int* h_table=new unsigned long int[2*blocks_per_grid];
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
@@ -317,7 +317,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     } 
     if(ex_block_pg>1){
-        for(unsigned int i=0; i<32;i++){
+        for(unsigned int i=0; i<5;i++){
             Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
@@ -334,7 +334,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
             }
-            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table_2,size, i);
+            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,d_table_2,size, i);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host swap"<<endl;
             }
