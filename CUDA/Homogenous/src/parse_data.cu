@@ -172,6 +172,8 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
         table[blockIdx.x]=blockDim.x-num_one_total;
         //Save the number of 1's
         table[blockIdx.x+gridDim.x]=num_one_total;
+        printf("%lu \n", table[blockIdx.x]);
+        printf("%lu \n", table[blockIdx.x+blockDim.x]);
     }
     __syncthreads();
     if(idx<size){
@@ -237,7 +239,7 @@ __global__ void fin_exclusive_scan(unsigned long int* bits_2, unsigned long int*
     extern __shared__ unsigned long int s_bit[];
     if(idx<size && tid!=0){
         s_bit[tid]=bits_2[(idx)*TPB-1];
-        printf("%lu \n", bits_2[idx*TPB-1]);
+        // printf("%lu \n", bits_2[idx*TPB-1]);
     }
     else{
         s_bit[tid]=0;
