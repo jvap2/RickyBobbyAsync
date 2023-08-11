@@ -48,7 +48,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
 
 __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size);
 
-__global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long int* table_2, long int size, unsigned int iter);
+__global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned long int* table, unsigned long int* table_2, long int size, unsigned int iter);
 
 __host__ graph *create_graph (edge *edges);
 
@@ -65,3 +65,5 @@ __host__ int getMax_cluster(edge* edge_list, int n);
 __host__ void cpu_countSort(edge* arr, int n, int exp);
 
 __host__ void cpu_radixsort(edge* arr, int n);
+
+__global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned long int size);
