@@ -182,7 +182,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
         table[blockIdx.x]=(idx==size-1)?(size-(blockIdx.x*blockDim.x+ex_bits[blockDim.x])):(TPB-ex_bits[blockDim.x]);
         //Save the number of 1's
         table[blockIdx.x+gridDim.x]=ex_bits[blockDim.x];
-        printf("%u \n", blockDim.x);
+        printf("%u \n", gridDim.x);
     }
     __syncthreads();
     if(idx<size){
