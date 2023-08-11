@@ -182,8 +182,6 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
         table[blockIdx.x]=(idx==size-1)?(size-(blockIdx.x*blockDim.x+ex_bits[blockDim.x])):(TPB-ex_bits[blockDim.x]);
         //Save the number of 1's
         table[blockIdx.x+gridDim.x]=ex_bits[blockDim.x];
-        // printf("%lu \n", ex_bits[blockDim.x]);
-        // printf("%lu \n", table[blockIdx.x+gridDim.x]);
     }
     __syncthreads();
     if(idx<size){
@@ -218,7 +216,7 @@ __global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long in
     }
     __syncthreads();   
     if(idx<size){
-        dst=table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x]);
+        dst=(bit==0)?(table_2[blockIdx.x]+tid):(table_2[blockIdx.x+(gridDim.x)]+tid-(table[blockIdx.x]));
         edge_list[dst].cluster=shared_edge[tid].cluster;
         edge_list[dst].end=shared_edge[tid].end;
         edge_list[dst].start=shared_edge[tid].start;
