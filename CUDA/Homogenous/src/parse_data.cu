@@ -192,9 +192,9 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     }
     __syncthreads();
     if(tid==0){
-        table[blockIdx.x]=TPB-ex_bits[TPB];
+        table[blockIdx.x]=TPB-num_one_total;
         //Save the number of 1's
-        table[blockIdx.x+gridDim.x]=ex_bits[TPB];
+        table[blockIdx.x+gridDim.x]=num_one_total;
     }
     __syncthreads();
     if(idx<size){
