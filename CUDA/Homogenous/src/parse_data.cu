@@ -159,7 +159,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     if(idx<size){
         unsigned long int num_one_bef=ex_bits[tid];
         unsigned long int num_one_total=ex_bits[TPB];
-        unsigned long int dst = (bit==0)? (tid - num_one_bef):(blockDim.x-num_one_total+num_one_bef);
+        unsigned long int dst = (1-bit)*(tid - num_one_bef)+ bit*(blockDim.x-num_one_total+num_one_bef);
         // if(dst<0 || dst>blockDim.x){
         //     printf("%d \n",dst);
         // }
@@ -187,7 +187,7 @@ __global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long in
     // const unsigned int cluster_size= size/gridDim.x+1;
     __shared__ edge shared_edge[TPB];
     //Load vertex and cluster info into the shared memory
-    unsigned int bit, key;
+    unsigned int bit, key, dst;
     if(idx<size){
         shared_edge[tid].cluster=edge_list[idx].cluster;
         shared_edge[tid].end=edge_list[idx].end;
@@ -197,9 +197,10 @@ __global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long in
     }
     __syncthreads();   
     if(idx<size){
-        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x+(gridDim.x*bit)])].cluster=shared_edge[tid].cluster;
-        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x+(gridDim.x*bit)])].end=shared_edge[tid].end;
-        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x+(gridDim.x*bit)])].start=shared_edge[tid].start;
+
+        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x])].cluster=shared_edge[tid].cluster;
+        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x])].end=shared_edge[tid].end;
+        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x])].start=shared_edge[tid].start;
     }
     __syncthreads();
 }
