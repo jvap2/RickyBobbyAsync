@@ -41,9 +41,9 @@ __host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* l
         myfile<< ",";
         myfile<< to_string(check[i]);
         myfile<< "\n";
-        if(check[i]!=list_2[i]){
-            cout<<"Rugh rogh raggy, reheheheheh"<<endl;
-        }
+        // if(check[i]!=list_2[i]){
+        //     cout<<"Rugh rogh raggy, reheheheheh"<<endl;
+        // }
     }
     myfile.close();
     delete[] check;
