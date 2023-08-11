@@ -476,6 +476,8 @@ __host__ void cpu_countSort(edge* arr, int n, int exp)
     // numbers according to current digit
     for (i = 0; i < n; i++)
         arr[i] = out[i];
+
+    free(out);
 }
 
 // The main function to that sorts arr[]
