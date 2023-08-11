@@ -1,7 +1,7 @@
 #include "../include/data.h"
 #include "../include/GPUErrors.h"
 
-#define BLOCKS 8
+#define BLOCKS 16
 #define TPB 256
 
 
