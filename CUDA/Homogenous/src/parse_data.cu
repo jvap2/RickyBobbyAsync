@@ -419,7 +419,7 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num){
     //Use multiplication hashing
     double intpart;
     double mod_part = modf(idx*rand_num, &intpart);
-    unsigned int hash = (unsigned int)(BLOCKS*mod_part);
+    unsigned long int hash = (unsigned int)(BLOCKS*mod_part);
     //We now have the key, we need to sort
     if(idx<EDGES){
         edges[idx].cluster=hash;
