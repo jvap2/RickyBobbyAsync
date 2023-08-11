@@ -41,9 +41,9 @@ __host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* l
         myfile<< ",";
         myfile<< to_string(check[i]);
         myfile<< "\n";
-        // if(check[i]!=list_2[i]){
-        //     cout<<"Rugh rogh raggy, reheheheheh"<<endl;
-        // }
+        if(check[i]!=list_2[i]){
+            cout<<"Rugh rogh raggy, reheheheheh"<<endl;
+        }
     }
     myfile.close();
     delete[] check;
@@ -182,8 +182,8 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
         table[blockIdx.x]=(idx==size-1)?(size-(blockIdx.x*blockDim.x+ex_bits[blockDim.x])):(TPB-ex_bits[blockDim.x]);
         //Save the number of 1's
         table[blockIdx.x+gridDim.x]=ex_bits[blockDim.x];
-        printf("%lu \n", ex_bits[blockDim.x]);
-        printf("%lu \n", table[blockIdx.x+gridDim.x]);
+        // printf("%lu \n", ex_bits[blockDim.x]);
+        // printf("%lu \n", table[blockIdx.x+gridDim.x]);
     }
     __syncthreads();
     if(idx<size){
@@ -376,10 +376,10 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(h_table,d_table,2*blocks_per_grid*sizeof(int),cudaMemcpyDeviceToHost))){
+    if(!HandleCUDAError(cudaMemcpy(h_table,d_table,2*blocks_per_grid*sizeof(unsigned long int),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(h_table_2,d_table_2,2*blocks_per_grid*sizeof(int),cudaMemcpyDeviceToHost))){
+    if(!HandleCUDAError(cudaMemcpy(h_table_2,d_table_2,2*blocks_per_grid*sizeof(unsigned long int),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
 
