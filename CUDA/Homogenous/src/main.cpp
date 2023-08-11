@@ -10,7 +10,6 @@ int main()
     cout<<edges<<endl;
     edge* edge_list;
     edge_list=(edge*)malloc(sizeof(edge)*edges);
-    edge_list_2=(edge*)malloc(sizeof(edge)*edges);
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
     cout<<"Ending edge list function"<<endl;
