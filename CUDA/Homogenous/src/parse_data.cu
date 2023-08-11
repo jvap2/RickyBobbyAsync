@@ -330,46 +330,46 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     } 
-    if(ex_block_pg>0){
-        for(unsigned int i=0; i<=(unsigned int)log2(double(BLOCKS));i++){
-            Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
-            }
-            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host exclusive scan"<<endl;
-            }
-            fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_3,ex_block_pg);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
-            }
-            final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table_2,d_table_3,2*blocks_per_grid);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
-            }
-            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,d_table_2,size, i);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host swap"<<endl;
-            }
-        }
-    }
-    else{
-        for(unsigned int i=0; i<32;i++){
-            Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
-            }
-            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host exclusive scan"<<endl;
-            }
-            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,d_table_2,size, i);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host swap"<<endl;
-            }
-        }
-    }
+    // if(ex_block_pg>0){
+    //     for(unsigned int i=0; i<=(unsigned int)log2(double(BLOCKS));i++){
+    //         Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
+    //         if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //             cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
+    //         }
+    //         bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
+    //         if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //             cout<<"Unable to synchronize with host exclusive scan"<<endl;
+    //         }
+    //         fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_3,ex_block_pg);
+    //         if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //             cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
+    //         }
+    //         final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table_2,d_table_3,2*blocks_per_grid);
+    //         if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //             cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
+    //         }
+    //         Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,d_table_2,size, i);
+    //         if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //             cout<<"Unable to synchronize with host swap"<<endl;
+    //         }
+    //     }
+    // }
+    // else{
+    //     for(unsigned int i=0; i<32;i++){
+    //         Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
+    //         if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //             cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
+    //         }
+    //         bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
+    //         if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //             cout<<"Unable to synchronize with host exclusive scan"<<endl;
+    //         }
+    //         Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,d_table_2,size, i);
+    //         if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //             cout<<"Unable to synchronize with host swap"<<endl;
+    //         }
+    //     }
+    // }
 
 
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
