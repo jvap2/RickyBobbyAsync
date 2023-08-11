@@ -59,3 +59,9 @@ __global__ void fin_exclusive_scan(unsigned long int* bits_3, unsigned long int 
 __host__ void get_graph_info(string path, unsigned long int* nodes, unsigned long int* edges);
 
 __host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* list_2, int size);
+
+__host__ int getMax_cluster(edge* edge_list, int n);
+
+__host__ void cpu_countSort(edge* arr, int n, int exp);
+
+__host__ void cpu_radixsort(edge* arr, int n);

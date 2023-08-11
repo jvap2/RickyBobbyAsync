@@ -154,7 +154,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
         key = shared_edge[tid].cluster;
         from = shared_edge[tid].start;
         to = shared_edge[tid].end;
-        bit=(key>>iter) & 0x0001;
+        bit=(key>>iter) & 1;
         bits[tid]=bit;
     }
     __syncthreads();
@@ -426,4 +426,71 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num){
     }
     __syncthreads();
 
+}
+
+
+// C++ implementation of Radix Sort
+
+
+// A utility function to get maximum
+// value in arr[]
+__host__ int getMax_cluster(edge* edge_list, int n)
+{
+    int mx = edge_list[0].cluster;
+    for (int i = 1; i < n; i++)
+        if (edge_list[i].cluster > mx)
+            mx = edge_list[i].cluster;
+    return mx;
+}
+
+// A function to do counting sort of arr[]
+// according to the digit
+// represented by exp.
+__host__ void cpu_countSort(edge* arr, int n, int exp)
+{
+
+    // Output array
+    edge* out;
+    out=(edge*)malloc(sizeof(edge)*n);
+    int i, count[10] = { 0 };
+
+    // Store count of occurrences
+    // in count[]
+    for (i = 0; i < n; i++)
+        count[(arr[i].cluster / exp) % 10]++;
+
+    // Change count[i] so that count[i]
+    // now contains actual position
+    // of this digit in output[]
+    for (i = 1; i < 10; i++)
+        count[i] += count[i - 1];
+
+    // Build the output array
+    for (i = n - 1; i >= 0; i--) {
+        out[count[(arr[i].cluster / exp) % 10] - 1] = arr[i];
+        count[(arr[i].cluster / exp) % 10]--;
+    }
+
+    // Copy the output array to arr[],
+    // so that arr[] now contains sorted
+    // numbers according to current digit
+    for (i = 0; i < n; i++)
+        arr[i] = out[i];
+}
+
+// The main function to that sorts arr[]
+// of size n using Radix Sort
+__host__ void cpu_radixsort(edge* arr, int n)
+{
+
+    // Find the maximum number to
+    // know number of digits
+    int m = getMax_cluster(arr, n);
+
+    // Do counting sort for every digit.
+    // Note that instead of passing digit
+    // number, exp is passed. exp is 10^i
+    // where i is current digit number
+    for (int exp = 1; m / exp > 0; exp *= 10)
+        cpu_countSort(arr, n, exp);
 }
