@@ -397,6 +397,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     delete[] h_table_2;
 
     HandleCUDAError(cudaFree(d_edge));
+    HandleCUDAError(cudaFree(d_edge_2));
     HandleCUDAError(cudaFree(d_table));
     HandleCUDAError(cudaFree(d_table_2));
     HandleCUDAError(cudaFree(d_table_3));
