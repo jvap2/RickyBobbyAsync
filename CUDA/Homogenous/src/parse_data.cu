@@ -205,7 +205,7 @@ __global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long in
     __syncthreads();
 }
 
-__global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* bits_2, unsigned long int size){
+__global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size){
     unsigned int tid=threadIdx.x;
     unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
     __shared__ unsigned int ex_bits[TPB];
@@ -229,31 +229,26 @@ __global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* b
     if(idx<size){
         bits_2[idx]=ex_bits[tid];
     }
+    if(tid==TPB-1){
+        bits_3[blockIdx.x]=ex_bits[tid];
+    }
     __syncthreads();
 }
 
-__global__ void fin_exclusive_scan(unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size){
+__global__ void fin_exclusive_scan(unsigned long int* bits_3, unsigned long int size){
     unsigned long int tid = threadIdx.x;
     unsigned long int idx = threadIdx.x + (blockIdx.x*blockDim.x);
-    extern __shared__ unsigned long int s_bit[];
-    if(idx<size){
-        s_bit[tid]=bits_2[(idx+1)*TPB-1];
-        // printf("%lu \n", bits_2[idx*TPB-1]);
-    }
     __syncthreads();
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
         unsigned long int temp;
         if(tid>=stride){
-            temp=s_bit[tid]+s_bit[tid-stride];
+            temp=bits_3[tid]+bits_3[tid-stride];
         }
         __syncthreads();
         if(tid>=stride){
-            s_bit[tid]=temp;
+            bits_3[tid]=temp;
         }
-    }
-    if(idx<size){
-        bits_3[idx]=s_bit[tid];
     }
 }
 
@@ -320,11 +315,11 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
             }
-            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
+            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host exclusive scan"<<endl;
             }
-            fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_2,d_table_3,ex_block_pg);
+            fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_3,ex_block_pg);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
             }
@@ -344,7 +339,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
             }
-            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,2*blocks_per_grid);
+            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host exclusive scan"<<endl;
             }
