@@ -255,7 +255,7 @@ __global__ void fin_exclusive_scan(unsigned int* bits_2, unsigned int* bits_3, u
     }
     if(idx<size){
         bits_3[idx]=s_bit[tid];
-        printf("%d \n", bits_3[idx]);
+        printf("%u \n", bits_3[idx]);
     }
 }
 
