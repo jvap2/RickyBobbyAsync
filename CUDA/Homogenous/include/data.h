@@ -27,13 +27,13 @@ struct graph{
 
 
 struct vertex{
-    int end;
+    unsigned long int end;
     struct vertex *next;
 };
 
 struct edge{
-    int end, start;
-    int cluster;
+    unsigned long int end, start;
+    unsigned long int cluster;
 };
 
 __host__ void Check_Out_csv_edge(edge* edge_list, int size);

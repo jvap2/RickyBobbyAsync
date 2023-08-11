@@ -68,12 +68,12 @@ __host__ void return_edge_list(string path, edge* arr){
                 }
                 else{
                     if(column==0){
-                        arr[count-1].start=stoi(word);
+                        arr[count-1].start=stoul(word);
                         column++;
                     }
                     else{
-                        arr[count-1].end=stoi(word);
-                        arr[count-1].cluster=0;
+                        arr[count-1].end=stoul(word);
+                        arr[count-1].cluster=0u;
                     }
                 }
                 //Extract data until ',' is found
