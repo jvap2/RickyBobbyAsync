@@ -365,7 +365,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
         cout<<"Unable to copy back edge data"<<endl;
     }
     cout<<"exclusive sum table"<<endl;
-    for(int i = 0 ; i< 100; i++ ){
+    for(int i = 0 ; i< 2*blocks_per_grid; i++ ){
         cout<<h_table[i]<<endl;
     }
     cout<<"Done with exclusive sum table"<<endl;
