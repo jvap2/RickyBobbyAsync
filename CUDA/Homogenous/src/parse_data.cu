@@ -208,7 +208,7 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, uns
     unsigned int tid=threadIdx.x;
     unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
     __shared__ unsigned int ex_bits[TPB];
-    if(idx<size && tid!=0){
+    if(idx<size && idx!=0){
         ex_bits[tid]=bits[idx-1];
     }
     else{
