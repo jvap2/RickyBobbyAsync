@@ -42,6 +42,7 @@ __host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* l
         myfile<< "\n";
     }
     myfile.close();
+    delete[] check;
 }
 
 
