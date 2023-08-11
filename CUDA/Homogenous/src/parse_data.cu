@@ -210,6 +210,7 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, uns
     __shared__ unsigned int ex_bits[TPB];
     if(idx<size && idx!=0){
         ex_bits[tid]=bits[idx-1];
+        printf("%u \n", bits[idx-1]);
     }
     else{
         ex_bits[tid]=0;
@@ -237,7 +238,6 @@ __global__ void fin_exclusive_scan(unsigned int* bits_2, unsigned int* bits_3, u
     extern __shared__ unsigned int s_bit[];
     if(idx<size && tid!=0){
         s_bit[tid]=bits_2[(idx)*TPB-1];
-        printf("%u \n",bits_2[(idx)*TPB-1]);
     }
     else{
         s_bit[tid]=0;
@@ -256,7 +256,6 @@ __global__ void fin_exclusive_scan(unsigned int* bits_2, unsigned int* bits_3, u
     }
     if(idx<size){
         bits_3[idx]=s_bit[tid];
-        printf("%u \n", bits_3[idx]);
     }
 }
 
