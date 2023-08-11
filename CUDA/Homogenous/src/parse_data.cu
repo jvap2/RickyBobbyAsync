@@ -26,10 +26,12 @@ __host__ void Check_Out_csv_edge(edge* edge_list, int size){
 __host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* list_2, int size){
     ofstream myfile;
     myfile.open(LIST_PATH);
-    myfile <<"List1,List2,List2Check\n";
+    myfile <<"i,List1,List2,List2Check\n";
     unsigned long int* check = new unsigned long int[size];
     check[0]=0;
     for(int i=0; i<size;i++){
+        myfile<< to_string(i);
+        myfile<< ",";
         if(i>0){
             check[i]=list_1[i-1]+check[i-1];
         }
