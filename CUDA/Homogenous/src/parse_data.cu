@@ -300,7 +300,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_edge_2, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(unsigned long int)))){
