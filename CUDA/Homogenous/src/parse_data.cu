@@ -158,7 +158,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     __syncthreads();
     if(idx<size){
         unsigned long int num_one_bef=ex_bits[tid];
-        unsigned long int num_one_total=ex_bits[blockDim.x];
+        unsigned long int num_one_total=ex_bits[TPB];
         unsigned long int dst = (bit==0)? (tid - num_one_bef):(blockDim.x-num_one_total+num_one_bef);
         // if(dst<0 || dst>blockDim.x){
         //     printf("%d \n",dst);
@@ -169,9 +169,9 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     }
     __syncthreads();
     if(tid==0){
-        table[blockIdx.x]=blockDim.x-num_one_total;
+        table[blockIdx.x]=TPB-ex_bits[TPB];
         //Save the number of 1's
-        table[blockIdx.x+gridDim.x]=num_one_total;
+        table[blockIdx.x+gridDim.x]=ex_bits[TPB];
     }
     __syncthreads();
     if(idx<size){
