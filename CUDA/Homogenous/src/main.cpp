@@ -9,7 +9,9 @@ int main()
     get_graph_info(GRAPH_DATA_PATH,&nodes,&edges);
     cout<<edges<<endl;
     edge* edge_list;
+    edge* edge_list_2;
     edge_list=(edge*)malloc(sizeof(edge)*edges);
+    edge_list_2=(edge*)malloc(sizeof(edge)*edges);
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
     cout<<"Ending edge list function"<<endl;
@@ -23,5 +25,6 @@ int main()
     //     cout<<edge_list[i].cluster<<endl;
     // }
     free(edge_list);
+    free(ed)
     return 0;
 }

@@ -159,10 +159,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     if(idx<size){
         unsigned long int num_one_bef=ex_bits[tid];
         unsigned long int num_one_total=ex_bits[TPB];
-        unsigned long int dst = (1-bit)*(tid - num_one_bef)+ bit*(blockDim.x-num_one_total+num_one_bef);
-        // if(dst<0 || dst>blockDim.x){
-        //     printf("%d \n",dst);
-        // }
+        unsigned long int dst = (1-bit)*(tid - num_one_bef)+ bit*(TPB-num_one_total+num_one_bef);
         shared_edge[dst].cluster=key;
         shared_edge[dst].start=from;
         shared_edge[dst].end=to;
@@ -197,10 +194,10 @@ __global__ void Swap(edge* edge_list, unsigned long int* table, unsigned long in
     }
     __syncthreads();   
     if(idx<size){
-
-        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x])].cluster=shared_edge[tid].cluster;
-        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x])].end=shared_edge[tid].end;
-        edge_list[table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x])].start=shared_edge[tid].start;
+        dst=table_2[blockIdx.x+(gridDim.x*bit)]+tid-(bit*table[blockIdx.x]);
+        edge_list[dst].cluster=shared_edge[tid].cluster;
+        edge_list[dst].end=shared_edge[tid].end;
+        edge_list[dst].start=shared_edge[tid].start;
     }
     __syncthreads();
 }
@@ -310,7 +307,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     } 
     if(ex_block_pg>1){
-        for(unsigned int i=0; i<5;i++){
+        for(unsigned int i=0; i<1;i++){
             Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
@@ -358,7 +355,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
         cout<<"Unable to copy back edge data"<<endl;
     }
     cout<<"exclusive sum table"<<endl;
-    for(int i = 0 ; i< 2*blocks_per_grid; i++ ){
+    for(int i = 0 ; i< blocks_per_grid; i++ ){
         cout<<h_table[i]<<endl;
     }
     cout<<"Done with exclusive sum table"<<endl;
