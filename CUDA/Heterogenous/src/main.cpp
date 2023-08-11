@@ -1,46 +1,28 @@
 #include "../include/data.h"
 
+// #define EDGE_PATH "../Homogenous/Data/google/webGoogle.csv"
+// #define CLUSTER_PATH "../Homogenous/Data/google/Cluster_Assignment.csv"
 
 int main()
 {  
-    int** edges=new int*[EDGES];
-    for(int i=0; i<EDGES; i++){
-        edges[i]=new int[2];
-    }
-    int** cluster_vert=new int*[NODES];
-    for(int i=0; i<NODES;i++){
-        cluster_vert[i]=new int[2];
-    }
-    return_list(EDGE_PATH,edges);
-    return_list(CLUSTER_PATH,cluster_vert);
-    cout<<"Cluster Vert"<<endl;
-    for(int i = 0; i<32 ; i++){
-        cout<<cluster_vert[i][0]<<'\t'<<cluster_vert[i][1]<<endl;
-    }
-    int* cluster_assign= new int[NODES];
-    int* vert_assign=new int[NODES];
-    split_list(cluster_vert,vert_assign,cluster_assign,NODES);
-    cout<<"Split Output"<<endl;
-    for(int i = 0; i<32 ; i++){
-        cout<<cluster_assign[i]<<'\t'<<vert_assign[i]<<endl;
-    }
-    Org_Vertex_Helper(cluster_assign,vert_assign,NODES);
+    unsigned long int nodes, edges;
+    get_graph_info(GRAPH_DATA_PATH,&nodes,&edges);
+    cout<<edges<<endl;
+    edge* edge_list;
+    edge_list=(edge*)malloc(sizeof(edge)*edges);
+    cout<<"Starting the edge list function"<<endl;
+    return_edge_list(EDGE_PATH,edge_list);
+    cout<<"Ending edge list function"<<endl;
+    // graph* G = create_graph(edge_list);
+    cout<<"Starting Helper Function"<<endl;
+    Org_Vertex_Helper(edge_list,edges);
+    // cpu_radixsort(edge_list,edges);
+    cout<<"Ending Helper Function"<<endl;
+    Check_Out_csv_edge(edge_list, edges);
 
-    for(int i = 0; i<32 ; i++){
-        cout<<cluster_assign[i]<<'\t'<<vert_assign[i]<<endl;
-    }
-    for(int i=0; i<NODES;i++){
-        delete[] cluster_vert[i];
-    }
-
-    for(int i=0; i<EDGES;i++){
-        delete[] edges[i];
-    }
-
-
-    delete[] cluster_vert;
-    delete[] vert_assign;
-    delete[] cluster_assign;
-    delete[] edges;
+    // for (int i = 0; i < 512 ; i++){
+    //     cout<<edge_list[i].cluster<<endl;
+    // }
+    free(edge_list);
     return 0;
 }
