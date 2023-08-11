@@ -19,6 +19,7 @@ using namespace std;
 #define EDGE_PATH "../../Data/Homogenous/rand/rand_net.csv"
 #define GRAPH_DATA_PATH "../../Data/Homogenous/rand/rand_net_info.csv"
 #define CLUSTER_PATH "../../Data/Homogenous/google/Cluster_Assignment.csv"
+#define LIST_PATH "../../Data/Homogenous/google/list_check.csv"
 
 struct graph{
     struct vertex *point[NODES];
@@ -56,3 +57,5 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num);
 __global__ void fin_exclusive_scan(unsigned long int* bits_3, unsigned long int size);
 
 __host__ void get_graph_info(string path, unsigned long int* nodes, unsigned long int* edges);
+
+__host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* list_2, int size);

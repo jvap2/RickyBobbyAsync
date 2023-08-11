@@ -9,7 +9,7 @@
 
 __host__ void Check_Out_csv_edge(edge* edge_list, int size){
     ofstream myfile;
-    myfile.open(CLUSTER_PATH);
+    myfile.open(LIST_PATH);
     myfile <<"from,to,cluster\n";
     for(int i=0; i<size;i++){
         myfile<< to_string(edge_list[i].start);
@@ -22,6 +22,27 @@ __host__ void Check_Out_csv_edge(edge* edge_list, int size){
     myfile.close();
 }
 
+
+__host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* list_2, int size){
+    ofstream myfile;
+    myfile.open(CLUSTER_PATH);
+    myfile <<"List1,List2,List2Check\n";
+    unsigned long int* check = new unsigned long int[size];
+    check[0]=0;
+    for(int i=0; i<size;i++){
+        int check_val=list_1[i];
+        if(i>0){
+            check[i]=check[i-1]+check_val;
+        }
+        myfile<< to_string(list_1[i]);
+        myfile<< ",";
+        myfile<< to_string(list_2[i]);
+        myfile<< ",";
+        myfile<< to_string(check[i]);
+        myfile<< "\n";
+    }
+    myfile.close();
+}
 
 
 __host__ void return_edge_list(string path, edge* arr){
@@ -275,6 +296,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     cout<<"Second amount of blocks "<< ex_block_pg <<endl;
     
     unsigned long int* h_table=new unsigned long int[2*blocks_per_grid];
+    unsigned long int* h_table_2=new unsigned long int[2*blocks_per_grid];
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
@@ -354,13 +376,14 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     if(!HandleCUDAError(cudaMemcpy(h_table,d_table,2*blocks_per_grid*sizeof(int),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
-    cout<<"exclusive sum table"<<endl;
-    for(int i = 0 ; i< blocks_per_grid; i++ ){
-        cout<<h_table[i]<<endl;
+    if(!HandleCUDAError(cudaMemcpy(h_table_2,d_table_2,2*blocks_per_grid*sizeof(int),cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back edge data"<<endl;
     }
-    cout<<"Done with exclusive sum table"<<endl;
+
+    Check_Out_pref_sum(h_table,h_table_2,2*blocks_per_grid);
 
     delete[] h_table;
+    delete[] h_table_2;
 
     HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaFree(d_table));
