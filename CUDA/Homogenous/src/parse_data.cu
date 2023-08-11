@@ -236,12 +236,9 @@ __global__ void fin_exclusive_scan(unsigned long int* bits_2, unsigned long int*
     unsigned long int tid = threadIdx.x;
     unsigned long int idx = threadIdx.x + (blockIdx.x*blockDim.x);
     extern __shared__ unsigned long int s_bit[];
-    if(idx<size && tid!=0){
-        s_bit[tid]=bits_2[(idx)*TPB-1];
+    if(idx<size){
+        s_bit[tid]=bits_2[(idx+1)*TPB-1];
         // printf("%lu \n", bits_2[idx*TPB-1]);
-    }
-    else{
-        s_bit[tid]=0;
     }
     __syncthreads();
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
@@ -263,8 +260,8 @@ __global__ void fin_exclusive_scan(unsigned long int* bits_2, unsigned long int*
 __global__ void final_scan_commit(unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size){
     unsigned int bid = blockIdx.x;
     unsigned int idx = threadIdx.x + (blockIdx.x*blockDim.x);
-    if(idx<size){
-        bits_2[idx]+=bits_3[bid];
+    if(idx<size && bid>0){
+        bits_2[idx]+=bits_3[bid-1];
     }
 }
 
