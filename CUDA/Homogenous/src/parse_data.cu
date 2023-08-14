@@ -325,11 +325,15 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
         cout<<"Unable to copy cluster data"<<endl;
     }
 
-    unsigned int* d_hist;
+    unsigned long int* d_hist;
+    unsigned long int* dev_fin_hist;
     // unsigned int* h_hist= new unsigned int [BLOCKS*blocks_per_grid];
 
 
     if(!HandleCUDAError(cudaMalloc((void**)&d_hist, BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for histogram"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&dev_fin_hist, BLOCKS*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for histogram"<<endl;
     }
     double r = ((double) rand() / (RAND_MAX));
@@ -338,6 +342,13 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     }
     Histogram_1<<<blocks_per_grid,threads_per_block>>>(d_edge,d_hist,size); 
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host with Hist_1"<<endl;
+    }
+    Kogge_Stone_Hist_Reduct<<<blocks_per_grid,blocks_per_grid>>>(d_hist,dev_fin_hist,BLOCKS*blocks_per_grid);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host for reduce"<<endl;
+    }
     if(ex_block_pg>0){
         for(unsigned int i=0; i<=(unsigned int)log2(double(BLOCKS));i++){
             Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
@@ -525,12 +536,26 @@ __global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigne
     //Now, all the data is stored locally on a blocks/grid by BLOCKS array which we need to reduce
 }
 
-__global__ void Brett_Kung_Hist_Reduct(unsigned long int* hist_bin, unsigned long int* fin_bin, int size){
+__global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned long int* fin_bin, int size){
     unsigned int idx = threadIdx.x + blockIdx.x*blockDim.x;
     unsigned int tid = threadIdx.x;
     __shared__ unsigned int clust_val[BLOCKS];
     if(idx<size){
         clust_val[tid]=hist_bin[tid*BLOCKS+blockIdx.x];
+    }
+    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
+        __syncthreads();
+        unsigned long int temp;
+        if(tid>=stride){
+            temp=clust_val[tid]+clust_val[tid-stride];
+        }
+        __syncthreads();
+        if(tid>=stride){
+            clust_val[tid]=temp;
+        }
+    }
+    if(tid==blockDim.x){
+        fin_bin[blockIdx.x]=clust_val[tid];
     }
 
 }
