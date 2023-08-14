@@ -67,3 +67,7 @@ __host__ void cpu_countSort(edge* arr, int n, int exp);
 __host__ void cpu_radixsort(edge* arr, int n);
 
 __global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned long int size);
+
+__global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigned long int size);
+
+__global__ void Brett_Kung_Hist_Reduct(unsigned long int* hist_bin, unsigned long int* fin_bin, int size);

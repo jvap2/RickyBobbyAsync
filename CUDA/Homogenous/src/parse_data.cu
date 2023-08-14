@@ -295,8 +295,6 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     unsigned long int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
     cout<<"Second amount of blocks "<< ex_block_pg <<endl;
     
-    unsigned long int* h_table=new unsigned long int[2*blocks_per_grid];
-    unsigned long int* h_table_2=new unsigned long int[2*blocks_per_grid];
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
@@ -326,11 +324,20 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     if(!HandleCUDAError(cudaMemcpy(d_edge,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
         cout<<"Unable to copy cluster data"<<endl;
     }
+
+    unsigned int* d_hist;
+    // unsigned int* h_hist= new unsigned int [BLOCKS*blocks_per_grid];
+
+
+    if(!HandleCUDAError(cudaMalloc((void**)&d_hist, BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for histogram"<<endl;
+    }
     double r = ((double) rand() / (RAND_MAX));
     Random_Edge_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge, r);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
-    } 
+    }
+    Histogram_1<<<blocks_per_grid,threads_per_block>>>(d_edge,d_hist,size); 
     if(ex_block_pg>0){
         for(unsigned int i=0; i<=(unsigned int)log2(double(BLOCKS));i++){
             Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
@@ -380,27 +387,17 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
         }
     }
 
-
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(h_table,d_table,2*blocks_per_grid*sizeof(unsigned long int),cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy back edge data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemcpy(h_table_2,d_table_2,2*blocks_per_grid*sizeof(unsigned long int),cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy back edge data"<<endl;
-    }
 
-    Check_Out_pref_sum(h_table,h_table_2,2*blocks_per_grid);
-
-    delete[] h_table;
-    delete[] h_table_2;
-
-    HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaFree(d_edge_2));
     HandleCUDAError(cudaFree(d_table));
     HandleCUDAError(cudaFree(d_table_2));
     HandleCUDAError(cudaFree(d_table_3));
+
+
+    HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaDeviceReset());   
 }
 
@@ -505,4 +502,35 @@ __host__ void cpu_radixsort(edge* arr, int n)
     // where i is current digit number
     for (int exp = 1; m / exp > 0; exp *= 10)
         cpu_countSort(arr, n, exp);
+}
+
+
+__global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigned long int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    __shared__ unsigned int s_edge_list[TPB];
+    __shared__ unsigned int s_hist[BLOCKS];
+    if(idx<size){
+        s_edge_list[tid]=edgelist[idx].cluster;
+        //Copy TPB cluster values over
+    }
+    __syncthreads();
+    if(idx<size){
+        atomicAdd(&s_hist[s_edge_list[tid]],1);
+    }
+    __syncthreads();
+    if(tid<BLOCKS){
+        hist_bin[BLOCKS*blockIdx.x+tid]=s_hist[tid];
+    }
+    //Now, all the data is stored locally on a blocks/grid by BLOCKS array which we need to reduce
+}
+
+__global__ void Brett_Kung_Hist_Reduct(unsigned long int* hist_bin, unsigned long int* fin_bin, int size){
+    unsigned int idx = threadIdx.x + blockIdx.x*blockDim.x;
+    unsigned int tid = threadIdx.x;
+    __shared__ unsigned int clust_val[BLOCKS];
+    if(idx<size){
+        clust_val[tid]=hist_bin[tid*BLOCKS+blockIdx.x];
+    }
+
 }
