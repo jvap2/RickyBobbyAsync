@@ -298,29 +298,6 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_edge_2, size*sizeof(edge)))){
-        cout<<"Unable to allocate memory for vertex data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(unsigned long int)))){
-        cout<<"Unable to allocate memory for the table data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
-        cout<<"Unable to set table to 0"<<endl;
-    }
-
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table_2,(2*blocks_per_grid)*sizeof(unsigned long int)))){
-        cout<<"Unable to allocate memory for the table data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemset(d_table_2,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
-        cout<<"Unable to set table to 0"<<endl;
-    }
-
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table_3,(ex_block_pg)*sizeof(unsigned long int)))){
-        cout<<"Unable to allocate memory for the table data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemset(d_table_3,0,(ex_block_pg)*sizeof(unsigned long int)))){
-        cout<<"Unable to set table to 0"<<endl;
-    }
     if(!HandleCUDAError(cudaMemcpy(d_edge,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
         cout<<"Unable to copy cluster data"<<endl;
     }
@@ -345,9 +322,37 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Hist_1"<<endl;
     }
-    Kogge_Stone_Hist_Reduct<<<blocks_per_grid,blocks_per_grid>>>(d_hist,dev_fin_hist,BLOCKS*blocks_per_grid);
+    Kogge_Stone_Hist_Reduct<<<BLOCKS,blocks_per_grid, blocks_per_grid*sizeof(unsigned long int)>>>(d_hist,dev_fin_hist,BLOCKS*blocks_per_grid);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host for reduce"<<endl;
+    }
+    Hist_Prefix_Sum<<<1,BLOCKS>>>(dev_fin_hist);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host for reduce"<<endl;
+    }
+    HandleCUDAError(cudaFree(d_hist));
+    if(!HandleCUDAError(cudaMalloc((void**) &d_edge_2, size*sizeof(edge)))){
+        cout<<"Unable to allocate memory for vertex data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+        cout<<"Unable to allocate memory for the table data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+        cout<<"Unable to set table to 0"<<endl;
+    }
+
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table_2,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+        cout<<"Unable to allocate memory for the table data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_table_2,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+        cout<<"Unable to set table to 0"<<endl;
+    }
+
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table_3,(ex_block_pg)*sizeof(unsigned long int)))){
+        cout<<"Unable to allocate memory for the table data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_table_3,0,(ex_block_pg)*sizeof(unsigned long int)))){
+        cout<<"Unable to set table to 0"<<endl;
     }
     if(ex_block_pg>0){
         for(unsigned int i=0; i<=(unsigned int)log2(double(BLOCKS));i++){
@@ -406,7 +411,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
     HandleCUDAError(cudaFree(d_table));
     HandleCUDAError(cudaFree(d_table_2));
     HandleCUDAError(cudaFree(d_table_3));
-
+    HandleCUDAError(cudaFree(dev_fin_hist));
 
     HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaDeviceReset());   
@@ -539,9 +544,12 @@ __global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigne
 __global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned long int* fin_bin, int size){
     unsigned int idx = threadIdx.x + blockIdx.x*blockDim.x;
     unsigned int tid = threadIdx.x;
-    __shared__ unsigned int clust_val[BLOCKS];
+    extern __shared__ unsigned long int clust_val[];
     if(idx<size){
         clust_val[tid]=hist_bin[tid*BLOCKS+blockIdx.x];
+    }
+    else{
+        clust_val[tid]=0;
     }
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
@@ -557,5 +565,30 @@ __global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned lo
     if(tid==blockDim.x){
         fin_bin[blockIdx.x]=clust_val[tid];
     }
+    __syncthreads();
+}
 
+__global__ void Hist_Prefix_Sum(unsigned long int* fin_bin){
+    unsigned int tid = threadIdx.x+blockDim.x*blockIdx.x;
+    __shared__ unsigned long int local[BLOCKS];
+    if(tid<BLOCKS && tid!=0){
+        local[tid]=fin_bin[tid-1];
+    }
+    else{
+        local[tid]=0;
+    }
+    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
+        __syncthreads();
+        unsigned long int temp;
+        if(tid>=stride){
+            temp=local[tid]+local[tid-stride];
+        }
+        __syncthreads();
+        if(tid>=stride){
+            local[tid]=temp;
+        }
+    }
+    if(tid<BLOCKS){
+        fin_bin[tid]=local[tid];
+    }
 }

@@ -71,3 +71,5 @@ __global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned long int siz
 __global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigned long int size);
 
 __global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned long int* fin_bin, int size);
+
+__global__ void Hist_Prefix_Sum(unsigned long int* fin_bin);
