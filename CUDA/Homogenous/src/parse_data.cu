@@ -608,12 +608,20 @@ __global__ void Build_Partition_Vertices(edge* edgelist, vertex* vert_list, unsi
     unsigned int tid = threadIdx.x;
     edge* local_edge=edgelist+ptr_list[blockIdx.x];
     extern __shared__ edge shared_edge[];
-    extern __shared__ unsigned long int src[];
+    extern __shared__ unsigned int src[];
+
     if(idx<size){
         for(int i=tid; i<ctr_list[blockIdx.x+1];i+=blockDim.x){
             shared_edge[i]=local_edge[i];
         }
     }
     __syncthreads();
+    //Lines below assume that the list has been sorted already
+    if(idx<size){
+        for(int i=tid; i<ctr_list[blockIdx.x+1];i+=blockDim.x){
+            src[i]=(int)(shared_edge[i].start<shared_edge[i+1].end);//1 if different, 0 if the same
+        }
+    }
+
 
 }
