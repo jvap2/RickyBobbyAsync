@@ -5,7 +5,22 @@
 #define TPB 256
 
 
-
+// __host__ graph *create_graph (edge *edges){
+//    int i;
+//    struct graph *graph = (struct graph *) malloc (sizeof (struct graph));
+//    for (i = 0; i < NODES; i++) {
+//       graph->point[i] = NULL;
+//    }
+//    for (i = 0; i < EDGES; i++) {
+//       int start = edges[i].start;
+//       int end = edges[i].end;
+//       struct vertex *v = (struct vertex *) malloc (sizeof (struct vertex));
+//       v->end = end;
+//       v->next = graph->point[start];
+//       graph->point[start] = v;
+//    }
+//    return graph;
+// }
 
 __host__ void Check_Out_csv_edge(edge* edge_list, int size){
     ofstream myfile;
@@ -130,6 +145,221 @@ __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned in
     }
 }
 
+
+// C++ implementation of Radix Sort
+
+
+// A utility function to get maximum
+// value in arr[]
+__host__ int getMax_cluster(edge* edge_list, int n)
+{
+    int mx = edge_list[0].cluster;
+    for (int i = 1; i < n; i++)
+        if (edge_list[i].cluster > mx)
+            mx = edge_list[i].cluster;
+    return mx;
+}
+
+// A function to do counting sort of arr[]
+// according to the digit
+// represented by exp.
+__host__ void cpu_countSort(edge* arr, int n, int exp)
+{
+
+    // Output array
+    edge* out;
+    out=(edge*)malloc(sizeof(edge)*n);
+    int i, count[10] = { 0 };
+
+    // Store count of occurrences
+    // in count[]
+    for (i = 0; i < n; i++)
+        count[(arr[i].cluster / exp) % 10]++;
+
+    // Change count[i] so that count[i]
+    // now contains actual position
+    // of this digit in output[]
+    for (i = 1; i < 10; i++)
+        count[i] += count[i - 1];
+
+    // Build the output array
+    for (i = n - 1; i >= 0; i--) {
+        out[count[(arr[i].cluster / exp) % 10] - 1] = arr[i];
+        count[(arr[i].cluster / exp) % 10]--;
+    }
+
+    // Copy the output array to arr[],
+    // so that arr[] now contains sorted
+    // numbers according to current digit
+    for (i = 0; i < n; i++)
+        arr[i] = out[i];
+
+    free(out);
+}
+
+// The main function to that sorts arr[]
+// of size n using Radix Sort
+__host__ void cpu_radixsort(edge* arr, int n)
+{
+
+    // Find the maximum number to
+    // know number of digits
+    int m = getMax_cluster(arr, n);
+
+    // Do counting sort for every digit.
+    // Note that instead of passing digit
+    // number, exp is passed. exp is 10^i
+    // where i is current digit number
+    for (int exp = 1; m / exp > 0; exp *= 10)
+        cpu_countSort(arr, n, exp);
+}
+
+
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
+    //Allocate memory for vertex and cluster info
+    edge* d_edge;
+    edge* d_edge_2;
+    unsigned long int* d_table;
+    unsigned long int* d_table_2;
+    unsigned long int* d_table_3;
+
+    unsigned long int threads_per_block=TPB;
+    unsigned long int blocks_per_grid= size/threads_per_block+1;
+    cout<<"Num of blocks "<<blocks_per_grid<<endl;
+    unsigned long int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
+    cout<<"Second amount of blocks "<< ex_block_pg <<endl;
+    
+    if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
+        cout<<"Unable to allocate memory for vertex data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(d_edge,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
+        cout<<"Unable to copy cluster data"<<endl;
+    }
+
+    unsigned long int* d_hist;
+    unsigned long int* dev_fin_hist;
+    unsigned long int* dev_fin_count;
+    // unsigned int* h_hist= new unsigned int [BLOCKS*blocks_per_grid];
+
+
+    if(!HandleCUDAError(cudaMalloc((void**)&d_hist, BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for histogram"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&dev_fin_hist, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for histogram"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&dev_fin_count, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for histogram"<<endl;
+    }
+    double r = ((double) rand() / (RAND_MAX));
+    Random_Edge_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge, r);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
+    }
+    Histogram_1<<<blocks_per_grid,threads_per_block>>>(d_edge,d_hist,size); 
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host with Hist_1"<<endl;
+    }
+    Kogge_Stone_Hist_Reduct<<<BLOCKS,blocks_per_grid, blocks_per_grid*sizeof(unsigned long int)>>>(d_hist,dev_fin_hist,BLOCKS*blocks_per_grid);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host for reduce"<<endl;
+    }
+    Hist_Prefix_Sum<<<1,BLOCKS>>>(dev_fin_hist, dev_fin_count);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host for reduce"<<endl;
+    }
+    HandleCUDAError(cudaFree(d_hist));
+    if(!HandleCUDAError(cudaMalloc((void**) &d_edge_2, size*sizeof(edge)))){
+        cout<<"Unable to allocate memory for vertex data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+        cout<<"Unable to allocate memory for the table data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+        cout<<"Unable to set table to 0"<<endl;
+    }
+
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table_2,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+        cout<<"Unable to allocate memory for the table data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_table_2,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+        cout<<"Unable to set table to 0"<<endl;
+    }
+
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table_3,(ex_block_pg)*sizeof(unsigned long int)))){
+        cout<<"Unable to allocate memory for the table data"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_table_3,0,(ex_block_pg)*sizeof(unsigned long int)))){
+        cout<<"Unable to set table to 0"<<endl;
+    }
+    if(ex_block_pg>0){
+        for(unsigned int i=0; i<=(unsigned int)log2(double(BLOCKS));i++){
+            Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
+            }
+            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host exclusive scan"<<endl;
+            }
+            fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_3,ex_block_pg);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
+            }
+            final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table_2,d_table_3,2*blocks_per_grid);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
+            }
+            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_edge_2,d_table, d_table_2,size, i);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host swap"<<endl;
+            }
+            copy_edge_list<<<blocks_per_grid,threads_per_block>>>(d_edge,d_edge_2,size);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host swap"<<endl;
+            }
+        }
+    }
+    else{
+        for(unsigned int i=0; i<32;i++){
+            Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
+            }
+            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host exclusive scan"<<endl;
+            }
+            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_edge_2, d_table,d_table_2,size, i);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host swap"<<endl;
+            }
+            copy_edge_list<<<blocks_per_grid,threads_per_block>>>(d_edge,d_edge_2,size);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                cout<<"Unable to synchronize with host swap"<<endl;
+            }
+        }
+    }
+    HandleCUDAError(cudaFree(d_edge_2));
+    HandleCUDAError(cudaFree(d_table));
+    HandleCUDAError(cudaFree(d_table_2));
+    HandleCUDAError(cudaFree(d_table_3));
+    HandleCUDAError(cudaFree(dev_fin_hist));
+
+    if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back edge data"<<endl;
+    }
+    unsigned long int *d_K, *d_c;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_K, size*sizeof(unsigned long int)))){
+        cout<<"Unable to allocate memory for K"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_c, size*sizeof(unsigned long int)))){
+        cout<<"Unable to allocate memory for c"<<endl;
+    }
+
+    HandleCUDAError(cudaFree(d_edge));
+    HandleCUDAError(cudaDeviceReset());   
+}
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned long int size,unsigned int iter){
     //Need to sort through the cluster data and organize it
@@ -281,160 +511,6 @@ __global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned long int siz
     }
 }
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
-    //Allocate memory for vertex and cluster info
-    edge* d_edge;
-    edge* d_edge_2;
-    unsigned long int* d_table;
-    unsigned long int* d_table_2;
-    unsigned long int* d_table_3;
-
-    unsigned long int threads_per_block=TPB;
-    unsigned long int blocks_per_grid= size/threads_per_block+1;
-    cout<<"Num of blocks "<<blocks_per_grid<<endl;
-    unsigned long int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
-    cout<<"Second amount of blocks "<< ex_block_pg <<endl;
-    
-    if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
-        cout<<"Unable to allocate memory for vertex data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemcpy(d_edge,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
-        cout<<"Unable to copy cluster data"<<endl;
-    }
-
-    unsigned long int* d_hist;
-    unsigned long int* dev_fin_hist;
-    // unsigned int* h_hist= new unsigned int [BLOCKS*blocks_per_grid];
-
-
-    if(!HandleCUDAError(cudaMalloc((void**)&d_hist, BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for histogram"<<endl;
-    }
-    if(!HandleCUDAError(cudaMalloc((void**)&dev_fin_hist, BLOCKS*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for histogram"<<endl;
-    }
-    double r = ((double) rand() / (RAND_MAX));
-    Random_Edge_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge, r);
-    if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
-    }
-    Histogram_1<<<blocks_per_grid,threads_per_block>>>(d_edge,d_hist,size); 
-    if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host with Hist_1"<<endl;
-    }
-    Kogge_Stone_Hist_Reduct<<<BLOCKS,blocks_per_grid, blocks_per_grid*sizeof(unsigned long int)>>>(d_hist,dev_fin_hist,BLOCKS*blocks_per_grid);
-    if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host for reduce"<<endl;
-    }
-    Hist_Prefix_Sum<<<1,BLOCKS>>>(dev_fin_hist);
-    if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host for reduce"<<endl;
-    }
-    HandleCUDAError(cudaFree(d_hist));
-    if(!HandleCUDAError(cudaMalloc((void**) &d_edge_2, size*sizeof(edge)))){
-        cout<<"Unable to allocate memory for vertex data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(unsigned long int)))){
-        cout<<"Unable to allocate memory for the table data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
-        cout<<"Unable to set table to 0"<<endl;
-    }
-
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table_2,(2*blocks_per_grid)*sizeof(unsigned long int)))){
-        cout<<"Unable to allocate memory for the table data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemset(d_table_2,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
-        cout<<"Unable to set table to 0"<<endl;
-    }
-
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table_3,(ex_block_pg)*sizeof(unsigned long int)))){
-        cout<<"Unable to allocate memory for the table data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemset(d_table_3,0,(ex_block_pg)*sizeof(unsigned long int)))){
-        cout<<"Unable to set table to 0"<<endl;
-    }
-    if(ex_block_pg>0){
-        for(unsigned int i=0; i<=(unsigned int)log2(double(BLOCKS));i++){
-            Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
-            }
-            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host exclusive scan"<<endl;
-            }
-            fin_exclusive_scan<<<1,ex_block_pg,sizeof(int)*ex_block_pg>>>(d_table_3,ex_block_pg);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host for final exclusive scan"<<endl;
-            }
-            final_scan_commit<<<ex_block_pg,threads_per_block>>>(d_table_2,d_table_3,2*blocks_per_grid);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host for final exclusive scan commit"<<endl;
-            }
-            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_edge_2,d_table, d_table_2,size, i);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host swap"<<endl;
-            }
-            copy_edge_list<<<blocks_per_grid,threads_per_block>>>(d_edge,d_edge_2,size);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host swap"<<endl;
-            }
-        }
-    }
-    else{
-        for(unsigned int i=0; i<32;i++){
-            Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
-            }
-            bit_exclusive_scan<<<ex_block_pg,threads_per_block>>>(d_table,d_table_2,d_table_3,2*blocks_per_grid);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host exclusive scan"<<endl;
-            }
-            Swap<<<blocks_per_grid,threads_per_block>>>(d_edge,d_edge_2, d_table,d_table_2,size, i);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host swap"<<endl;
-            }
-            copy_edge_list<<<blocks_per_grid,threads_per_block>>>(d_edge,d_edge_2,size);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Unable to synchronize with host swap"<<endl;
-            }
-        }
-    }
-
-    if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy back edge data"<<endl;
-    }
-
-    HandleCUDAError(cudaFree(d_edge_2));
-    HandleCUDAError(cudaFree(d_table));
-    HandleCUDAError(cudaFree(d_table_2));
-    HandleCUDAError(cudaFree(d_table_3));
-    HandleCUDAError(cudaFree(dev_fin_hist));
-
-    HandleCUDAError(cudaFree(d_edge));
-    HandleCUDAError(cudaDeviceReset());   
-}
-
-
-
-__host__ graph *create_graph (edge *edges){
-   int i;
-   struct graph *graph = (struct graph *) malloc (sizeof (struct graph));
-   for (i = 0; i < NODES; i++) {
-      graph->point[i] = NULL;
-   }
-   for (i = 0; i < EDGES; i++) {
-      int start = edges[i].start;
-      int end = edges[i].end;
-      struct vertex *v = (struct vertex *) malloc (sizeof (struct vertex));
-      v->end = end;
-      v->next = graph->point[start];
-      graph->point[start] = v;
-   }
-   return graph;
-}
 
 __global__ void Random_Edge_Placement(edge *edges, double rand_num){
     unsigned int idx= threadIdx.x+blockDim.x*blockIdx.x;
@@ -452,73 +528,7 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num){
 }
 
 
-// C++ implementation of Radix Sort
 
-
-// A utility function to get maximum
-// value in arr[]
-__host__ int getMax_cluster(edge* edge_list, int n)
-{
-    int mx = edge_list[0].cluster;
-    for (int i = 1; i < n; i++)
-        if (edge_list[i].cluster > mx)
-            mx = edge_list[i].cluster;
-    return mx;
-}
-
-// A function to do counting sort of arr[]
-// according to the digit
-// represented by exp.
-__host__ void cpu_countSort(edge* arr, int n, int exp)
-{
-
-    // Output array
-    edge* out;
-    out=(edge*)malloc(sizeof(edge)*n);
-    int i, count[10] = { 0 };
-
-    // Store count of occurrences
-    // in count[]
-    for (i = 0; i < n; i++)
-        count[(arr[i].cluster / exp) % 10]++;
-
-    // Change count[i] so that count[i]
-    // now contains actual position
-    // of this digit in output[]
-    for (i = 1; i < 10; i++)
-        count[i] += count[i - 1];
-
-    // Build the output array
-    for (i = n - 1; i >= 0; i--) {
-        out[count[(arr[i].cluster / exp) % 10] - 1] = arr[i];
-        count[(arr[i].cluster / exp) % 10]--;
-    }
-
-    // Copy the output array to arr[],
-    // so that arr[] now contains sorted
-    // numbers according to current digit
-    for (i = 0; i < n; i++)
-        arr[i] = out[i];
-
-    free(out);
-}
-
-// The main function to that sorts arr[]
-// of size n using Radix Sort
-__host__ void cpu_radixsort(edge* arr, int n)
-{
-
-    // Find the maximum number to
-    // know number of digits
-    int m = getMax_cluster(arr, n);
-
-    // Do counting sort for every digit.
-    // Note that instead of passing digit
-    // number, exp is passed. exp is 10^i
-    // where i is current digit number
-    for (int exp = 1; m / exp > 0; exp *= 10)
-        cpu_countSort(arr, n, exp);
-}
 
 
 __global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigned long int size){
@@ -568,7 +578,7 @@ __global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned lo
     __syncthreads();
 }
 
-__global__ void Hist_Prefix_Sum(unsigned long int* fin_bin){
+__global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* fin_bin_2){
     unsigned int tid = threadIdx.x+blockDim.x*blockIdx.x;
     __shared__ unsigned long int local[BLOCKS];
     if(tid<BLOCKS && tid!=0){
@@ -589,6 +599,21 @@ __global__ void Hist_Prefix_Sum(unsigned long int* fin_bin){
         }
     }
     if(tid<BLOCKS){
-        fin_bin[tid]=local[tid];
+        fin_bin_2[tid]=local[tid];
     }
+}
+
+__global__ void Build_Partition_Vertices(edge* edgelist, vertex* vert_list, unsigned long int* ptr_list, unsigned long int* ctr_list, int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    edge* local_edge=edgelist+ptr_list[blockIdx.x];
+    extern __shared__ edge shared_edge[];
+    extern __shared__ unsigned long int src[];
+    if(idx<size){
+        for(int i=tid; i<ctr_list[blockIdx.x+1];i+=blockDim.x){
+            shared_edge[i]=local_edge[i];
+        }
+    }
+    __syncthreads();
+
 }

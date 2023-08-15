@@ -13,6 +13,7 @@ using namespace std;
 //Google
 #define EDGES 5105039
 #define NODES 875713
+#define MAX_NEIGHBORS 20
 // #define EDGE_PATH "../../Data/Homogenous/google/webGoogle.csv"
 // #define CLUSTER_PATH "../../Data/Homogenous/google/Cluster_Assignment.csv"
 
@@ -27,8 +28,9 @@ struct graph{
 
 
 struct vertex{
-    unsigned long int end;
-    struct vertex *next;
+    unsigned long int id;
+    unsigned long int neighbors[MAX_NEIGHBORS];
+    unsigned long int cluster;
 };
 
 struct edge{
@@ -72,4 +74,6 @@ __global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigne
 
 __global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned long int* fin_bin, int size);
 
-__global__ void Hist_Prefix_Sum(unsigned long int* fin_bin);
+__global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* fin_bin_2);
+
+
