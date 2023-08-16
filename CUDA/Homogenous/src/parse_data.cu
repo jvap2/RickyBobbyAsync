@@ -284,22 +284,16 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     unsigned long int* dev_fin_hist;
     unsigned long int* dev_fin_count;
     // unsigned int* h_hist= new unsigned int [BLOCKS*blocks_per_grid];
-      int deviceCount = 0;
+    
+    int deviceCount = 0;
     cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
-
     if (error_id != cudaSuccess) {
         printf("cudaGetDeviceCount returned %d\n-> %s\n",
-            static_cast<int>(error_id), cudaGetErrorString(error_id));
+                static_cast<int>(error_id), cudaGetErrorString(error_id));
         printf("Result = FAIL\n");
         exit(EXIT_FAILURE);
     }
 
-    // This function call returns 0 if there are no CUDA capable devices.
-    if (deviceCount == 0) {
-        printf("There are no available device(s) that support CUDA\n");
-    } else {
-        printf("Detected %d CUDA Capable device(s)\n", deviceCount);
-    }
 
     int dev, driverVersion = 0, runtimeVersion = 0;
 
@@ -307,15 +301,13 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
         cudaSetDevice(dev);
         cudaDeviceProp deviceProp;
         cudaGetDeviceProperties(&deviceProp, dev);
-
-    
-    printf("  Total amount of constant memory:               %zu bytes\n",
-           deviceProp.totalConstMem);
-    printf("  Total amount of shared memory per block:       %zu bytes\n",
-           deviceProp.sharedMemPerBlock);
-    printf("  Total shared memory per multiprocessor:        %zu bytes\n",
-           deviceProp.sharedMemPerMultiprocessor);
-
+        printf("  Total amount of constant memory:               %zu bytes\n",
+            deviceProp.totalConstMem);
+        printf("  Total amount of shared memory per block:       %zu bytes\n",
+            deviceProp.sharedMemPerBlock);
+        printf("  Total shared memory per multiprocessor:        %zu bytes\n",
+            deviceProp.sharedMemPerMultiprocessor);
+    }
 
     if(!HandleCUDAError(cudaMalloc((void**)&d_hist, BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for histogram"<<endl;
