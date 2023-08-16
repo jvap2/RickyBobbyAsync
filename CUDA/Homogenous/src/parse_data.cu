@@ -684,10 +684,22 @@ __global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int 
 }
 
 
+/*
+What we need for the iterations of pagerank:
+(1)Gather
+(2)Apply
+(3)Scatter
+---------------------------------------------
+(1) Gather: 
+-First time, initialize random frogs (done)
+-Remaining iterations, we need to collect the frogs from the previous iteration sent to nodes from scatter
 
+(2) Apply:
+-This function takes care for keeping track of the number of frogs that have stopped on each vertex
 
-
-
+(3)Scatter 
+-This function takes care of sending the frogs to the next vertex
+*/
 
 
 __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned int* table, unsigned int k){
