@@ -126,7 +126,7 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
                 }
                 else{
                     if(column==0){
-                        if(count_succ>1){
+                        if(count_succ>0){
                             if(stoul(word)==last_src){
                                 count_succ++;
                             }
@@ -134,6 +134,11 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
                                 src_ptr[count_ptr]=(count_succ+src_ptr[count_ptr-1]);
                                 count_ptr++;
                                 count_succ=0;
+                            }
+                        }
+                        else{
+                            if(count_ptr==stoul(word)){
+                                count_succ++;
                             }
                         }
                         column++;
