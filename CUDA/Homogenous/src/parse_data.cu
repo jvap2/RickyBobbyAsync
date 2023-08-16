@@ -284,6 +284,37 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     unsigned long int* dev_fin_hist;
     unsigned long int* dev_fin_count;
     // unsigned int* h_hist= new unsigned int [BLOCKS*blocks_per_grid];
+      int deviceCount = 0;
+    cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
+
+    if (error_id != cudaSuccess) {
+        printf("cudaGetDeviceCount returned %d\n-> %s\n",
+            static_cast<int>(error_id), cudaGetErrorString(error_id));
+        printf("Result = FAIL\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // This function call returns 0 if there are no CUDA capable devices.
+    if (deviceCount == 0) {
+        printf("There are no available device(s) that support CUDA\n");
+    } else {
+        printf("Detected %d CUDA Capable device(s)\n", deviceCount);
+    }
+
+    int dev, driverVersion = 0, runtimeVersion = 0;
+
+    for (dev = 0; dev < deviceCount; ++dev) {
+        cudaSetDevice(dev);
+        cudaDeviceProp deviceProp;
+        cudaGetDeviceProperties(&deviceProp, dev);
+
+    
+    printf("  Total amount of constant memory:               %zu bytes\n",
+           deviceProp.totalConstMem);
+    printf("  Total amount of shared memory per block:       %zu bytes\n",
+           deviceProp.sharedMemPerBlock);
+    printf("  Total shared memory per multiprocessor:        %zu bytes\n",
+           deviceProp.sharedMemPerMultiprocessor);
 
 
     if(!HandleCUDAError(cudaMalloc((void**)&d_hist, BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
@@ -419,6 +450,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     //Figure out exec config param
     unsigned int blocks_init_frog= (node_size/20)/TPB+1;
     First_Init<<<blocks_init_frog,TPB>>>(d_frog_init, d_frogs, node_size, size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for first init"<<endl;
+    }
 
 
 
@@ -706,7 +740,7 @@ of the vertex. This will allow us to combine the functions into one and avoid pa
 
 __global__ void FrogWild(edge* edgelist, unsigned int* d_src, unsigned int* d_succ,
 unsigned int* d_c, unsigned int* d_frogs, unsigned int* edge_ptr,unsigned int* ctr_ptr,
-unsigned int node_size, unsigned int edge_size, unsigned int iter){
+unsigned int size, unsigned int iter){
     /*since init is done first with first init, we begin with apply, scatter,
     and then we will iterate through the rest*/
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
@@ -716,16 +750,23 @@ unsigned int node_size, unsigned int edge_size, unsigned int iter){
     extern __shared__ unsigned int local_src[];
     extern __shared__ unsigned int local_succ[];
     extern __shared__ edge local_edge[];
-    if(idx<node_size){
+    //Fetch memory for the block
+    if(idx<size){
+        //Use thread coarsening
         for(int i = tid; i<ctr_ptr[blockIdx.x];i+=blockDim.x){
-            local_frogs[i]=d_frogs[edge_ptr[blockIdx.x]+i];
-            local_c[i]=d_c[edge_ptr[blockIdx.x]+i];
-            local_src[i]=d_src[edge_ptr[blockIdx.x]+i];
-            local_succ[i]=d_succ[edge_ptr[blockIdx.x]+i];
             local_edge[i]=edgelist[edge_ptr[blockIdx.x]+i];
         }
     }
+    //We have fetched the local edges now, we need to gather the frogs, vertices etc for the block
     __syncthreads();
+    if(idx<size){
+        for(int i = tid; i<ctr_ptr[blockIdx.x];i+=blockDim.x){
+            local_c[i]=d_c[local_edge[i].start];
+            local_src[i]=d_src[local_edge[i].start];
+            local_succ[i]=d_succ[local_edge[i].start];
+        }
+    }
+
 
 }
 

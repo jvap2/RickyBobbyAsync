@@ -76,7 +76,7 @@ __global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int 
 
 __global__ void FrogWild(edge* edgelist, unsigned int* d_src, unsigned int* d_succ,
 unsigned int* d_c, unsigned int* d_frogs, unsigned int* edge_ptr,unsigned int* ctr_ptr,
-unsigned int node_size, unsigned int edge_size, unsigned int iter);
+unsigned int size, unsigned int iter);
 
 __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc);
 
