@@ -104,6 +104,59 @@ __host__ void return_edge_list(string path, edge* arr){
     data.close();
 }
 
+
+__host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_size, unsigned int* src_ptr, unsigned int* succ){
+    ifstream data;
+    data.open(path);
+    string line,word;
+    unsigned long int count_succ=0;
+    unsigned long int count_ptr=1;
+    unsigned int count = 0;
+    unsigned int column=0;
+    src_ptr[0]=0;
+    int last_src = -1;
+    if(data.is_open()){
+        //Check if data is open
+        while(getline(data,line)){
+            //Keep extracting data until a delimiter is found
+            stringstream stream_data(line); //Stream Class to operate on strings
+            while(getline(stream_data,word,',')){
+                if(count==0){
+                    continue;
+                }
+                else{
+                    if(column==0){
+                        if(count_succ>1){
+                            if(stoul(word)==last_src){
+                                count_succ++;
+                            }
+                            else{
+                                src_ptr[count_ptr]=(count_succ+src_ptr[count_ptr-1]);
+                                count_ptr++;
+                                count_succ=0;
+                            }
+                        }
+                        column++;
+                        last_src = stoul(word);
+                    }
+                    else{
+                        succ[count-1]=stoul(word);
+
+                    }
+                }
+                //Extract data until ',' is found
+            }
+            column=0;
+            count++;
+        }
+    }
+    else{
+        cout<<"Cannot open file"<<endl;
+    }
+    cout<<count<<endl;
+    data.close();
+}
+
 __host__ void get_graph_info(string path, unsigned long int* nodes, unsigned long int* edges){
     ifstream data;
     data.open(path);
@@ -603,25 +656,3 @@ __global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* f
     }
 }
 
-__global__ void Build_Partition_Vertices(edge* edgelist, vertex* vert_list, unsigned long int* ptr_list, unsigned long int* ctr_list, int size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    unsigned int tid = threadIdx.x;
-    edge* local_edge=edgelist+ptr_list[blockIdx.x];
-    extern __shared__ edge shared_edge[];
-    extern __shared__ unsigned int src[];
-
-    if(idx<size){
-        for(int i=tid; i<ctr_list[blockIdx.x+1];i+=blockDim.x){
-            shared_edge[i]=local_edge[i];
-        }
-    }
-    __syncthreads();
-    //Lines below assume that the list has been sorted already
-    if(idx<size){
-        for(int i=tid; i<ctr_list[blockIdx.x+1];i+=blockDim.x){
-            src[i]=(int)(shared_edge[i].start<shared_edge[i+1].end);//1 if different, 0 if the same
-        }
-    }
-
-
-}

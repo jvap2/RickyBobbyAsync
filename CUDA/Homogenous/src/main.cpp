@@ -9,6 +9,8 @@ int main()
     get_graph_info(GRAPH_DATA_PATH,&nodes,&edges);
     cout<<edges<<endl;
     edge* edge_list;
+    unsigned int* src_ptr = new unsigned int[node_size+1];
+    unsigned int* succ = new unsigned int[edge_size];
     edge_list=(edge*)malloc(sizeof(edge)*edges);
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
