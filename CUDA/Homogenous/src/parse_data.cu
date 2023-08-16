@@ -705,7 +705,9 @@ of the vertex. This will allow us to combine the functions into one and avoid pa
 
 
 __global__ void FrogWild(edge* edgelist, unsigned int* d_src, unsigned int* d_succ,
-unsigned int* d_c, unsigned int* d_frogs, unsigned int node_size, unsigned int edge_size){
+unsigned int* d_c, unsigned int* d_frogs, unsigned int node_size, unsigned int edge_size, unsigned int iter){
+    /*since init is done first with first init, we begin with apply, scatter,
+    and then we will iterate through the rest*/
 
 }
 
