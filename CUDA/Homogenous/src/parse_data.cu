@@ -120,11 +120,8 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
     ifstream data;
     data.open(path);
     string line,word;
-    unsigned long int count_succ=0;
-    unsigned long int count_ptr=1;
     unsigned int count = 0;
     unsigned int column=0;
-    src_ptr[0]=0;
     int last_src = -1;
     if(data.is_open()){
         //Check if data is open
@@ -137,23 +134,7 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
                 }
                 else{
                     if(column==0){
-                        if(count_succ>0){
-                            if(stoul(word)==last_src){
-                                count_succ++;
-                            }
-                            else{
-                                src_ptr[count_ptr]=(count_succ+src_ptr[count_ptr-1]);
-                                count_ptr++;
-                                count_succ=0;
-                            }
-                        }
-                        else{
-                            if(count_ptr==stoul(word)){
-                                count_succ++;
-                            }
-                        }
-                        column++;
-                        last_src = stoul(word);
+                        src_ptr[stoul(word)]++; //Create a histogram of values
                     }
                     else{
                         succ[count-1]=stoul(word);
@@ -168,6 +149,15 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
     }
     else{
         cout<<"Cannot open file"<<endl;
+    }
+    //Perform prefix sum of src_prt
+    unsigned int* copy_ptr = new unsigned int[node_size+1];
+    copy_ptr[0]=0;
+    for(unsigned int i=1; i<node_size+1;i++){
+        copy_ptr[i]=src_ptr[i-1];
+    }
+    for(unsigned int i=1; i<node_size+1;i++){
+        copy_ptr[i]+=copy_ptr[i-1];
     }
     cout<<count<<endl;
     data.close();
