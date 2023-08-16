@@ -277,7 +277,7 @@ __host__ void cpu_radixsort(edge* arr, int n)
 }
 
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned long int size, unsigned long int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;
@@ -412,12 +412,20 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size){
         cout<<"Unable to copy back edge data"<<endl;
     }
     unsigned long int *d_K, *d_c;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_K, size*sizeof(unsigned long int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_K, node_size*sizeof(unsigned long int)))){
         cout<<"Unable to allocate memory for K"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_c, size*sizeof(unsigned long int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned long int)))){
         cout<<"Unable to allocate memory for c"<<endl;
     }
+    unsigned int* d_src_ptr, d_succ;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, node_size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for src_ptr"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_succ, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for succ"<<endl;
+    }
+
 
     HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaDeviceReset());   

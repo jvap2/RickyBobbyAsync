@@ -28,6 +28,7 @@ struct graph{
 };
 
 
+
 struct vertex{
     unsigned long int id;
     unsigned long int neighbors[MAX_NEIGHBORS];
@@ -63,7 +64,7 @@ __global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* b
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned long int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned long int size);
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned long int size, unsigned long int node_size);
 
 __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned long int* table, unsigned long int* table_2, long int size, unsigned int iter);
 
