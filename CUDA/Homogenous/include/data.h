@@ -23,17 +23,7 @@ using namespace std;
 #define PTR_PATH "../../Data/Homogenous/google/ptr_Assignment.csv"
 #define LIST_PATH "../../Data/Homogenous/google/list_check.csv"
 
-struct graph{
-    struct vertex *point[NODES];
-};
 
-
-
-struct vertex{
-    unsigned long int id;
-    unsigned long int neighbors[MAX_NEIGHBORS];
-    unsigned long int cluster;
-};
 
 struct edge{
     unsigned long int end, start;

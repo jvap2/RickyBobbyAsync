@@ -425,6 +425,14 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMalloc((void**)&d_succ, size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for succ"<<endl;
     }
+    float* d_frog_init;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_frog_init, (node_size/20)*sizeof(float)))){
+        cout<<"Unable to allocate memory for frog_init"<<endl;
+    }
+    curandGenerator_t gen;
+    curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
+    curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
+    curandGenerateUniform(gen, d_frog_init, node_size/20);
 
 
     HandleCUDAError(cudaFree(d_edge));
