@@ -134,7 +134,8 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
                 }
                 else{
                     if(column==0){
-                        src_ptr[stoul(word)]++; //Create a histogram of values
+                        src_ptr[stoi(word)]++; //Create a histogram of values
+                        column++;
                     }
                     else{
                         succ[count-1]=stoul(word);
@@ -156,8 +157,10 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
     for(unsigned int i=1; i<node_size+1;i++){
         copy_ptr[i]=src_ptr[i-1];
     }
+    src_ptr[0]=0;
     for(unsigned int i=1; i<node_size+1;i++){
         copy_ptr[i]+=copy_ptr[i-1];
+        src_ptr[i]=copy_ptr[i];
     }
     cout<<count<<endl;
     data.close();
