@@ -417,7 +417,8 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
     curandGenerateUniform(gen, d_frog_init, node_size/20);
     //Figure out exec config param
-    First_Init<<<>>>(d_frog_init, d_frogs, node_size, size);
+    unsigned int blocks_init_frog= (node_size/20)/TPB+1;
+    First_Init<<<blocks_init_frog,TPB>>>(d_frog_init, d_frogs, node_size, size);
 
 
 
@@ -737,7 +738,7 @@ __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned
     }
 }
 
-__global__ float fin_acc(unsigned int* table, unsigned int k){
+__global__ void fin_acc(unsigned int* table, unsigned int k, float* acc){
     float acc;
     unsigned int tid = threadIdx.x;
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
@@ -752,7 +753,6 @@ __global__ float fin_acc(unsigned int* table, unsigned int k){
         }
     }
     if(tid==(blockDim.x-1)){
-        acc=float(table[tid])/float(k);
+        *acc=float(table[tid])/float(k);
     }
-    return acc;
 }
