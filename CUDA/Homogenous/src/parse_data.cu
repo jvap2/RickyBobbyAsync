@@ -445,6 +445,8 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Unable to synchronize with host for first init"<<endl;
     }
+    cudaFuncSetAttribute(FrogWild, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+    int s_mem_size=0;
 
 
 
@@ -792,7 +794,6 @@ __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned
 }
 
 __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc){
-    float acc;
     unsigned int tid = threadIdx.x;
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
