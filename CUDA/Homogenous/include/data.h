@@ -48,6 +48,8 @@ __host__ void cpu_countSort(edge* arr, int n, int exp);
 
 __host__ void cpu_radixsort(edge* arr, int n);
 
+__host__ void Check_Out_ptr(unsigned int* edge_list, int size);
+
 __global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size);
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned long int size,unsigned int iter);
@@ -70,4 +72,4 @@ __global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* f
 
 __global__ void final_scan_commit(unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size);
 
-__host__ void Check_Out_ptr(unsigned int* edge_list, int size);
+__global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int node_size, unsigned int edge_size);

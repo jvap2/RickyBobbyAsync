@@ -411,6 +411,10 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMalloc((void**)&d_frog_init, (node_size/20)*sizeof(float)))){
         cout<<"Unable to allocate memory for frog_init"<<endl;
     }
+    unsigned int* d_frogs;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_frogs, node_size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for frogs"<<endl;
+    }
     curandGenerator_t gen;
     curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
     curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
@@ -663,4 +667,11 @@ __global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* f
     }
 }
 
-__global__ void First_Init(edge* edge_list, unsigned int* d_src_ptr, unsigned int* d_succ, float* )
+__global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int node_size, unsigned int edge_size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    if(idx<node_size/20){
+        rand_frog[idx]=floorf(rand_frog[idx]*node_size);
+        atomicAdd(&d_frog[(int)rand_frog[idx]],1);
+    }
+}
