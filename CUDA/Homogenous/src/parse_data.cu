@@ -5,23 +5,6 @@
 #define TPB 256
 
 
-// __host__ graph *create_graph (edge *edges){
-//    int i;
-//    struct graph *graph = (struct graph *) malloc (sizeof (struct graph));
-//    for (i = 0; i < NODES; i++) {
-//       graph->point[i] = NULL;
-//    }
-//    for (i = 0; i < EDGES; i++) {
-//       int start = edges[i].start;
-//       int end = edges[i].end;
-//       struct vertex *v = (struct vertex *) malloc (sizeof (struct vertex));
-//       v->end = end;
-//       v->next = graph->point[start];
-//       graph->point[start] = v;
-//    }
-//    return graph;
-// }
-
 __host__ void Check_Out_csv_edge(edge* edge_list, int size){
     ofstream myfile;
     myfile.open(CLUSTER_PATH);
@@ -122,7 +105,6 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
     string line,word;
     unsigned int count = 0;
     unsigned int column=0;
-    int last_src = -1;
     if(data.is_open()){
         //Check if data is open
         while(getline(data,line)){
