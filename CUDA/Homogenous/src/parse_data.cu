@@ -663,3 +663,4 @@ __global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* f
     }
 }
 
+__global__ void First_Init(edge* edge_list, unsigned int* d_src_ptr, unsigned int* d_succ, float* )

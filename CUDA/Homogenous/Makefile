@@ -15,7 +15,7 @@ BIN := bin
 frog: $(BIN)/Frog
 
 $(BIN)/Frog: $(OBJ)/frog.o $(OBJ)/frog_func.o $(OBJ)/cuda_error.o
-	$(NVCC) $(LINK_FLAGS) $^ -o $@ -lcudadevrt
+	$(NVCC) $(LINK_FLAGS) $^ -o $@ $(INC_FLAGS)
 	
 $(OBJ)/frog.o: $(SRC)/main.cpp $(INC)/data.h 
 	$(NVCC) $(NVCC_FLAGS) -c $< -o $@ 
