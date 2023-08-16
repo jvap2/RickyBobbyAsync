@@ -705,9 +705,27 @@ of the vertex. This will allow us to combine the functions into one and avoid pa
 
 
 __global__ void FrogWild(edge* edgelist, unsigned int* d_src, unsigned int* d_succ,
-unsigned int* d_c, unsigned int* d_frogs, unsigned int node_size, unsigned int edge_size, unsigned int iter){
+unsigned int* d_c, unsigned int* d_frogs, unsigned int* edge_ptr,unsigned int* ctr_ptr,
+unsigned int node_size, unsigned int edge_size, unsigned int iter){
     /*since init is done first with first init, we begin with apply, scatter,
     and then we will iterate through the rest*/
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    extern __shared__ unsigned int local_frogs[];
+    extern __shared__ unsigned int local_c[];
+    extern __shared__ unsigned int local_src[];
+    extern __shared__ unsigned int local_succ[];
+    extern __shared__ edge local_edge[];
+    if(idx<node_size){
+        for(int i = tid; i<ctr_ptr[blockIdx.x];i+=blockDim.x){
+            local_frogs[i]=d_frogs[edge_ptr[blockIdx.x]+i];
+            local_c[i]=d_c[edge_ptr[blockIdx.x]+i];
+            local_src[i]=d_src[edge_ptr[blockIdx.x]+i];
+            local_succ[i]=d_succ[edge_ptr[blockIdx.x]+i];
+            local_edge[i]=edgelist[edge_ptr[blockIdx.x]+i];
+        }
+    }
+    __syncthreads();
 
 }
 
