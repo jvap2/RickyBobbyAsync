@@ -393,10 +393,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
-    unsigned long int *d_K, *d_c;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_K, node_size*sizeof(unsigned long int)))){
-        cout<<"Unable to allocate memory for K"<<endl;
-    }
+    unsigned long int *d_c;
     if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned long int)))){
         cout<<"Unable to allocate memory for c"<<endl;
     }
@@ -419,6 +416,8 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
     curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
     curandGenerateUniform(gen, d_frog_init, node_size/20);
+    //Figure out exec config param
+    First_Init<<<>>>(d_frog_init, d_frogs, node_size, size);
 
 
 
@@ -427,7 +426,6 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     HandleCUDAError(cudaFree(d_frogs));
     HandleCUDAError(cudaFree(d_src_ptr));
     HandleCUDAError(cudaFree(d_succ));
-    HandleCUDAError(cudaFree(d_K));
     HandleCUDAError(cudaFree(d_c));
     HandleCUDAError(cudaDeviceReset());   
 }
@@ -699,7 +697,16 @@ What we need for the iterations of pagerank:
 
 (3)Scatter 
 -This function takes care of sending the frogs to the next vertex
+
+Instead of dictating which block is the master of which vertex, we will have the global memory act as the sole master
+of the vertex. This will allow us to combine the functions into one and avoid passing of data, and ease the synchronization
 */
+
+
+__global__ void FrogWild(edge* edgelist, unsigned int* d_src, unsigned int* d_succ,
+unsigned int* d_c, unsigned int* d_frogs, unsigned int node_size, unsigned int edge_size){
+
+}
 
 
 __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned int* table, unsigned int k){
