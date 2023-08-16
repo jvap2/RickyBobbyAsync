@@ -400,7 +400,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned long int)))){
         cout<<"Unable to allocate memory for c"<<endl;
     }
-    unsigned int* d_src_ptr, d_succ;
+    unsigned int *d_src_ptr, *d_succ;
     if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, node_size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for src_ptr"<<endl;
     }
@@ -421,7 +421,14 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     curandGenerateUniform(gen, d_frog_init, node_size/20);
 
 
+
     HandleCUDAError(cudaFree(d_edge));
+    HandleCUDAError(cudaFree(d_frog_init));
+    HandleCUDAError(cudaFree(d_frogs));
+    HandleCUDAError(cudaFree(d_src_ptr));
+    HandleCUDAError(cudaFree(d_succ));
+    HandleCUDAError(cudaFree(d_K));
+    HandleCUDAError(cudaFree(d_c));
     HandleCUDAError(cudaDeviceReset());   
 }
 
