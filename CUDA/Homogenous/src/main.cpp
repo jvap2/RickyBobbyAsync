@@ -12,6 +12,7 @@ int main()
     unsigned int* src_ptr = new unsigned int[nodes+1];
     unsigned int* succ = new unsigned int[edges];
     CSR_Graph(EDGE_PATH,nodes, edges, src_ptr,succ);
+    Check_Out_ptr(src_ptr, nodes+1);
     edge_list=(edge*)malloc(sizeof(edge)*edges);
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);

@@ -37,6 +37,17 @@ __host__ void Check_Out_csv_edge(edge* edge_list, int size){
     myfile.close();
 }
 
+__host__ void Check_Out_ptr(unsigned int* edge_list, int size){
+    ofstream myfile;
+    myfile.open(PTR_PATH);
+    myfile <<"ptr\n";
+    for(int i=0; i<size;i++){
+        myfile<< to_string(edge_list[i]);
+        myfile<< "\n";
+    }
+    myfile.close();
+}
+
 
 __host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* list_2, int size){
     ofstream myfile;

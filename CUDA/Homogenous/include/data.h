@@ -20,6 +20,7 @@ using namespace std;
 #define EDGE_PATH "../../Data/Homogenous/rand/rand_net.csv"
 #define GRAPH_DATA_PATH "../../Data/Homogenous/rand/rand_net_info.csv"
 #define CLUSTER_PATH "../../Data/Homogenous/google/Cluster_Assignment.csv"
+#define PTR_PATH "../../Data/Homogenous/google/ptr_Assignment.csv"
 #define LIST_PATH "../../Data/Homogenous/google/list_check.csv"
 
 struct graph{
@@ -80,4 +81,4 @@ __global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* f
 
 __global__ void final_scan_commit(unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size);
 
-
+__host__ void Check_Out_ptr(unsigned int* edge_list, int size);
