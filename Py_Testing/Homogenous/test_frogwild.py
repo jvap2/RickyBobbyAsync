@@ -7,6 +7,26 @@ from math import modf,floor
 global clusters
 clusters=32
 
+
+class Dir_Graph:
+    def __init__(self, no_edges):
+        self.no_nodes=0
+        self.no_edges=no_edges
+        self.graph={}
+        self.node_list=[]
+        self.edge_list=[]
+        self.node_degrees={}
+    def generate_graph(self):
+        for i in range(self.no_edges):
+            self.add_edge()
+    def add_edge(self):
+        to, frm = self.generate_edge()
+        self.graph[frm].append(to)
+        self.edge_list.append((frm,to))
+        self.node_degrees[frm]+=1
+    def generate_edge(self, edge_list):
+        to, frm = 
+
 def Random_Edge_Placement(i):
     cluster=i%clusters
     return cluster
