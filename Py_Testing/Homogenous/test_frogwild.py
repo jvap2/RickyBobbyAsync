@@ -2,16 +2,14 @@ import polars as pl
 import os
 import sys
 import numpy as np
-from math import modf
+from math import modf,floor
 
 global clusters
 clusters=32
 
-def Random_Edge_Placement(edge, r):
-    cluster_list=[]
-    for i,_ in enumerate(edge):
-        cluster_list.append((modf(i*r)[0])*clusters)
-    return cluster_list
+def Random_Edge_Placement(i):
+    cluster=i%clusters
+    return cluster
 
 
 
@@ -32,6 +30,28 @@ for c,n in enumerate(num_out_neigh[:,0]):
     for i in range(num_out_neigh[c,1]):
         g[n].append(to[count])
         count+=1
+
+
+cluster_assign={}
+for c in range(clusters):
+    cluster_assign[c]=[]
+
+count=0
+for key in g.keys():
+    for val in g[key]:
+        cluster_assign[Random_Edge_Placement(count)].append({key:val})
+        count+=1
+
+'''We need to now commence the random walk'''
+c={}
+K={}
+for n in range(no_nodes):
+    c[n]=0
+    K[n]=0
+
+
+
+
 
 
 
