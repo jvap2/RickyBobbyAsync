@@ -12,20 +12,23 @@ class Dir_Graph:
     def __init__(self, no_edges):
         self.no_nodes=0
         self.no_edges=no_edges
-        self.graph={}
-        self.node_list=[]
-        self.edge_list=[]
-        self.node_degrees={}
-    def generate_graph(self):
-        for i in range(self.no_edges):
-            self.add_edge()
-    def add_edge(self):
-        to, frm = self.generate_edge()
-        self.graph[frm].append(to)
-        self.edge_list.append((frm,to))
-        self.node_degrees[frm]+=1
-    def generate_edge(self, edge_list):
-        to, frm = 
+        self.src=[]
+        self.succ=[]
+        self.idx=[]
+        self.out_degree=[]
+    def gen_CSR(self, edge_list):
+        '''Here, we want to read the edge_list in and generate the CSR representation of the graph
+        The attributes of the class that will be worked on are the following:
+        (1) src: this points to the starting index of the successors to a node
+        (2) succ: this is the list of successors to a node
+        (3) idx: this is the index of the node
+        (4) out_degree: this is the out degree of the node
+        '''
+        idx,self.out_degree=np.unique(edge_list[:,0]) ##This provides a list of the unique outgoing values in the graph, and their respective counts
+        self.no_nodes=len(idx)
+        self.src=np.zeros(self.no_nodes+1)
+
+
 
 def Random_Edge_Placement(i):
     cluster=i%clusters
