@@ -20,7 +20,7 @@ def Degree_Cluster_Hash(clusters, edge_list, in_d, out_d):
     for c in range(clusters):
         cluster_assign[c]=[]
     for e in edge_list:
-        cluster_assign[Random_Edge_Placement(max(in_d[e[0]]+out_d[e[0]],in_d[e[1]]+in_d[e[0]]))].append({e[0]:e[1]})
+        cluster_assign[Random_Edge_Placement(max(in_d[e[0]]+out_d[e[0]],in_d[e[1]]+in_d[e[0]]))].append([e[0],e[1]])
     return cluster_assign
 
 
@@ -30,12 +30,12 @@ def Random_Edge_Placement(i):
 
 def Gen_CSR(edge_list, no_nodes, no_edges):
     edge_list=edge_list[edge_list[:,0].argsort()]
-    src = np.zeros(shape=no_nodes)
+    src = np.zeros(shape=no_nodes+1)
     succ = np.zeros(shape=no_edges)
     for i,e in enumerate(edge_list):
         src[e[0]]+=1
         succ[i]=e[1]
-    src_hold=np.zeros(shape=no_nodes)
+    src_hold=np.zeros(shape=no_nodes+1)
     src_hold[1:]=src[:-1]
     src=src_hold
     for i in range(1,len(src)):
@@ -53,9 +53,8 @@ def Gen_SubGraphs(succ,src,cluster_assign):
     '''We need to sift through the cluster assign and then add the src and succ to the respective clusters'''
     for c in range(clusters):
         for v in cluster_assign[c]:
-            print(v.keys())
-            src_cluster[c].append(src[v.keys()])
-            succ_cluster[c].append(succ[src[v.keys()[0]]:src[v.keys()[0]+1]])
+            src_cluster[c].append(src[v[0]])
+            succ_cluster[c].append(succ[int(src[v[0]]):int(src[v[0]+1])])
     return src_cluster, succ_cluster
 
 
