@@ -28,6 +28,21 @@ def Random_Edge_Placement(i):
     cluster=i%clusters
     return cluster
 
+def Gen_CSR(edge_list, no_nodes, no_edges):
+    edge_list=edge_list[edge_list[:,0].argsort]
+    src = np.zeros(shape=no_nodes)
+    succ = np.zeros(shape=no_edges)
+    for i,e in enumerate(edge_list):
+        src[e[0]]+=1
+        succ[i]=e[1]
+    src_hold=np.zeros(shape=no_nodes)
+    src_hold[1:]=src[:-1]
+    src=src_hold
+    for i in range(1,len(src)):
+        src[i]+=src[i-1]
+    return src, succ
+    
+
 
 
 df_edge=pl.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/rand_net.csv"))
