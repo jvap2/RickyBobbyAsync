@@ -15,6 +15,7 @@ def Degree_Calculation(edge_list, no_nodes):
         in_degree[edge_list[i][1]]+=1
     return out_degree,in_degree
 
+<<<<<<< HEAD
 def Random_Walk():
     pass
 
@@ -28,7 +29,24 @@ def Assign_Cluster(edge_list,no_edges, out_degree,in_degree):
 
 def Generate_Sub_Graph(no_nodes,no_edges):
     pass
+=======
+>>>>>>> f1ca65146ff39d35ad6f6e7f052e603bb2bf2451
 
+def Get_Degree(edge_list, no_nodes):
+    in_degree = np.zeroes(no_nodes)
+    out_degree = np.zeroes(no_nodes)
+    for e in edge_list:
+        in_degree[e[0]]+=1
+        out_degree[e[1]]+=1
+    return in_degree, out_degree
+
+def Degree_Cluster_Hash(clusters, edge_list, in_d, out_d):
+    cluster_assign={}
+    for c in range(clusters):
+        cluster_assign[c]=[]
+    for e in edge_list:
+        cluster_assign[Random_Edge_Placement(max(in_d[e[0]]+out_d[e[0]],in_d[e[1]]+in_d[e[0]]))].append({e[0]:e[1]})
+    return cluster_assign
 
 
 def Random_Edge_Placement(i):
@@ -42,29 +60,15 @@ df_graph_data=pl.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/r
 
 no_nodes, no_edges = df_graph_data.get_column("No. Nodes")[0], df_graph_data.get_column("No. Edges ")[0]
 
-to, frm = df_edge.get_column("to").to_numpy(), df_edge.get_column("from")
-num_out_neigh = frm.value_counts().sort(by='from').to_numpy()
+edge_list = [df_edge.get_column("to").to_numpy(), df_edge.get_column("from").to_numpy()]
+
+in_d, out_d =Get_Degree(edge_list, no_nodes)
+
+cluster_assign = Degree_Cluster_Hash(clusters, edge_list, in_d, out_d)
+
+print(cluster_assign)
 
 
-
-g={}
-count=0
-for c,n in enumerate(num_out_neigh[:,0]):
-    g[n]=[]
-    for i in range(num_out_neigh[c,1]):
-        g[n].append(to[count])
-        count+=1
-
-
-cluster_assign={}
-for c in range(clusters):
-    cluster_assign[c]=[]
-
-count=0
-for key in g.keys():
-    for val in g[key]:
-        cluster_assign[Random_Edge_Placement(count)].append({key:val})
-        count+=1
 
 '''We need to now commence the random walk'''
 c={}
