@@ -58,6 +58,31 @@ def Gen_SubGraphs(succ,src,cluster_assign):
     return src_cluster, succ_cluster
 
 
+def init_1(no_nodes):
+    init_pos=np.random.randint(0,no_nodes, size=no_nodes/10)
+    return init_pos
+
+def Gather(c,K,src_cluster,succ_cluster):
+    pass
+
+def Apply(c,K,src_cluster,succ_cluster):
+    pass
+
+def Scatter(c,K,src_cluster,succ_cluster):
+    pass
+
+def FrogWild(c,K,src_cluster,succ_cluster, no_nodes, iterations):
+    init_pos=init_1(no_nodes)
+    for i in range(iterations): 
+        Gather(c,K,src_cluster,succ_cluster)
+        Apply(c,K,src_cluster,succ_cluster)
+        Scatter(c,K,src_cluster,succ_cluster)
+    return c
+
+
+
+
+
 df_edge=pl.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/rand_net.csv"))
 df_graph_data=pl.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/rand_net_info.csv"))
 
@@ -79,8 +104,7 @@ print(cluster_assign)
 
 sub_src, sub_succ = Gen_SubGraphs(succ,src,cluster_assign)
 
-print(sub_src)
-print(sub_succ)
+
 
 '''We need to now commence the random walk'''
 c={}
