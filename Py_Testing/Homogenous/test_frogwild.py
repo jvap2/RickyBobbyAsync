@@ -54,6 +54,10 @@ def Gen_SubGraphs(succ,src,cluster_assign):
     for c in range(clusters):
         for v in cluster_assign[c]:
             src_cluster[c].append(src[v[0]])
+        src_cluster[c]=list(set(src_cluster[c]))
+        print(type(src_cluster[c][0]))
+        for v in src_cluster[c]:
+            print(v)
             succ_cluster[c].append(succ[int(src[v[0]]):int(src[v[0]+1])])
     return src_cluster, succ_cluster
 
@@ -98,7 +102,7 @@ src, succ = Gen_CSR(edge_list,no_nodes,no_edges)
 
 cluster_assign = Degree_Cluster_Hash(clusters, edge_list, in_d, out_d)
 
-print(cluster_assign)
+# print(cluster_assign)
 '''How do we disperse the values for a random walk now?'''
 '''Let us begin by making an array of arrays for each cluster with local_succ and local_ptr'''
 
