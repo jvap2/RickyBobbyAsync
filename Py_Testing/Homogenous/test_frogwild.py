@@ -7,31 +7,6 @@ from math import modf,floor
 global clusters
 clusters=32
 
-def Degree_Calculation(edge_list, no_nodes):
-    out_degree=np.zeros(no_nodes)
-    in_degree=np.zeros(no_nodes)
-    for i in range(len(edge_list)):
-        out_degree[edge_list[i][0]]+=1
-        in_degree[edge_list[i][1]]+=1
-    return out_degree,in_degree
-
-<<<<<<< HEAD
-def Random_Walk():
-    pass
-
-def Assign_Cluster(edge_list,no_edges, out_degree,in_degree):
-    cluster_assign=np.zeros(no_edges)
-    for i,e in enumerate(edge_list):
-        ##Assign cluster based on the degree of the node in the edges
-        cluster_assign[i]=Random_Edge_Placement(max(out_degree[e[0]]+in_degree[e[0]],in_degree[e[1]]+out_degree[e[1]]))
-
-    return cluster_assign
-
-def Generate_Sub_Graph(no_nodes,no_edges):
-    pass
-=======
->>>>>>> f1ca65146ff39d35ad6f6e7f052e603bb2bf2451
-
 def Get_Degree(edge_list, no_nodes):
     in_degree = np.zeroes(no_nodes)
     out_degree = np.zeroes(no_nodes)
