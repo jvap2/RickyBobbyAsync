@@ -8,8 +8,8 @@ global clusters
 clusters=32
 
 def Get_Degree(edge_list, no_nodes):
-    in_degree = np.zeroes(no_nodes)
-    out_degree = np.zeroes(no_nodes)
+    in_degree = np.zeros(no_nodes)
+    out_degree = np.zeros(no_nodes)
     for e in edge_list:
         in_degree[e[0]]+=1
         out_degree[e[1]]+=1
