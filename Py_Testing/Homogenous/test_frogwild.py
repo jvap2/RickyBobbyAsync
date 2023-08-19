@@ -7,26 +7,27 @@ from math import modf,floor
 global clusters
 clusters=32
 
+def Degree_Calculation(edge_list, no_nodes):
+    out_degree=np.zeros(no_nodes)
+    in_degree=np.zeros(no_nodes)
+    for i in range(len(edge_list)):
+        out_degree[edge_list[i][0]]+=1
+        in_degree[edge_list[i][1]]+=1
+    return out_degree,in_degree
 
-class Dir_Graph:
-    def __init__(self, no_edges):
-        self.no_nodes=0
-        self.no_edges=no_edges
-        self.src=[]
-        self.succ=[]
-        self.idx=[]
-        self.out_degree=[]
-    def gen_CSR(self, edge_list):
-        '''Here, we want to read the edge_list in and generate the CSR representation of the graph
-        The attributes of the class that will be worked on are the following:
-        (1) src: this points to the starting index of the successors to a node
-        (2) succ: this is the list of successors to a node
-        (3) idx: this is the index of the node
-        (4) out_degree: this is the out degree of the node
-        '''
-        idx,self.out_degree=np.unique(edge_list[:,0]) ##This provides a list of the unique outgoing values in the graph, and their respective counts
-        self.no_nodes=len(idx)
-        self.src=np.zeros(self.no_nodes+1)
+def Random_Walk():
+    pass
+
+def Assign_Cluster(edge_list,no_edges, out_degree,in_degree):
+    cluster_assign=np.zeros(no_edges)
+    for i,e in enumerate(edge_list):
+        ##Assign cluster based on the degree of the node in the edges
+        cluster_assign[i]=Random_Edge_Placement(max(out_degree[e[0]]+in_degree[e[0]],in_degree[e[1]]+out_degree[e[1]]))
+
+    return cluster_assign
+
+def Generate_Sub_Graph(no_nodes,no_edges):
+    pass
 
 
 
