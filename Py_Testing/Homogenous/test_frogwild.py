@@ -35,7 +35,13 @@ df_graph_data=pl.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/r
 
 no_nodes, no_edges = df_graph_data.get_column("No. Nodes")[0], df_graph_data.get_column("No. Edges ")[0]
 
-edge_list = [df_edge.get_column("to").to_numpy(), df_edge.get_column("from").to_numpy()]
+frm,to = df_edge.get_column("from").to_numpy().tolist(), df_edge.get_column("to").to_numpy().tolist()
+
+edge_list = np.zeros(shape=(no_edges,2), dtype='int32')
+
+edge_list[:,0], edge_list[:,1]=frm, to
+
+print(edge_list)
 
 in_d, out_d =Get_Degree(edge_list, no_nodes)
 
