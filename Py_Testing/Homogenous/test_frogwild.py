@@ -5,7 +5,7 @@ import numpy as np
 
 
 global clusters
-clusters=16
+clusters=4
 
 def Get_Degree(edge_list, no_nodes):
     in_degree = np.zeros(no_nodes)
@@ -17,15 +17,25 @@ def Get_Degree(edge_list, no_nodes):
 
 def Degree_Cluster_Hash(clusters, edge_list, in_d, out_d):
     cluster_assign={}
+    '''We need to find the number of replicas or mirrors are present'''
+    replicas= {}
+    for c in range(len(in_d)):
+        replicas[c]=[]
     for c in range(clusters):
         cluster_assign[c]=[]
     for e in edge_list:
-        cluster_assign[Random_Edge_Placement(max(in_d[e[0]]+out_d[e[0]],in_d[e[1]]+in_d[e[0]]))].append([e[0],e[1]])
-    return cluster_assign
+        cluster=Random_Edge_Placement(max(out_d[e[0]]+in_d[e[0]],out_d[e[1]]+in_d[e[1]]))
+        cluster_assign[cluster].append([e[0],e[1]])
+        replicas[e[0]].append(cluster)
+        replicas[e[1]].append(cluster)
+    for i,r in enumerate(replicas.values()):
+        temp=set(r)
+        replicas[i]=list(temp)
+    return cluster_assign, replicas
 
 
 def Random_Edge_Placement(i):
-    cluster=i%clusters
+    cluster=int(i%clusters)
     return cluster
 
 def Gen_CSR(edge_list, no_nodes, no_edges):
@@ -102,12 +112,19 @@ def FrogWild(c,K,src_cluster,succ_cluster, succ_hash, no_nodes, iterations):
     init_pos=np.unique(init_1(no_nodes))
     '''We need activate the initial nodes'''
     for i in init_pos:
-        for c in range(clusters):
-            if i in succ_hash[c]:
-                K[c][succ_hash[c][i]]=1
+        for clust in range(clusters):
+            if i in succ_hash[clust]:
+                K[clust][succ_hash[clust][i]]=1
     '''The frontier has now been defined, now we need to first gather the values from the frontier, and evaluate where the frogs will jump to next'''
     '''This is now the scatter portion of the algorithm'''
-
+    for clust in range(clusters):
+        for i,val in enumerate(K[clust]):
+            if val==1:
+                c[clust][succ_hash[clust][val]]+=1
+                K[clust][succ_hash[clust][val]]=0
+                if succ_hash[clust][i] in succ_hash[clust]:
+                    for j in range(src_cluster[clust][succ_hash[clust][i]],src_cluster[clust][succ_hash[clust][i]+1]):
+                        K[clust][succ_cluster[clust][j]]=1
     for i in range(iterations): 
         Gather(c,K,src_cluster,succ_cluster)
         Apply(c,K,src_cluster,succ_cluster)
@@ -131,22 +148,25 @@ if __name__ == "__main__":
 
     src, succ = Gen_CSR(edge_list,no_nodes,no_edges)
 
-    cluster_assign = Degree_Cluster_Hash(clusters, edge_list, in_d, out_d)
+    cluster_assign, num_replicas = Degree_Cluster_Hash(clusters, edge_list, in_d, out_d)
+    # print(cluster_assign)
+    # print(num_replicas)
 
     '''How do we disperse the values for a random walk now?'''
     '''Let us begin by making an array of arrays for each cluster with local_succ and local_ptr'''
 
     hash_table, sub_src, sub_succ = Gen_SubGraphs(cluster_assign)
+    
 
-    # print("SUCC HASH TABLE")
-    # print('----------------')
-    # print(hash_table)
-    # print("SUB SRC ARRAY")
-    # print('----------------')
-    # print(sub_src)
-    # print("SUB SUCC ARRAY")
-    # print('----------------')
-    # print(sub_succ)
+    print("SUCC HASH TABLE")
+    print('----------------')
+    print(hash_table)
+    print("SUB SRC ARRAY")
+    print('----------------')
+    print(sub_src)
+    print("SUB SUCC ARRAY")
+    print('----------------')
+    print(sub_succ)
 
 
     '''We need to now commence the random walk'''
