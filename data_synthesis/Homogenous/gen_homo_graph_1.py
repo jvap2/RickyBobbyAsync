@@ -24,8 +24,9 @@ for house in range(num_node):
     for i in range(0, num_used):
         p_system[i] = int( np.random.random() * num_node )
     p_system = np.unique(p_system)
-    for i in range(0, num_used):
-        Network.write(str(house) + "," + str(p_system[i]) + "\n")
+    for i in range(len(p_system)):
+        if p_system[i] != house:
+            Network.write(str(house) + "," + str(p_system[i]) + "\n")
 
 Network.close()
 
