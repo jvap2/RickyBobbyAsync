@@ -99,14 +99,15 @@ def Scatter(c,K,src_cluster,succ_cluster):
     pass
 
 def FrogWild(c,K,src_cluster,succ_cluster, succ_hash, no_nodes, iterations):
-    init_pos=init_1(no_nodes)
+    init_pos=np.unique(init_1(no_nodes))
     '''We need activate the initial nodes'''
-    print(init_pos)
     for i in init_pos:
         for c in range(clusters):
             if i in succ_hash[c]:
                 K[c][succ_hash[c][i]]=1
-    print(K)
+    '''The frontier has now been defined, now we need to first gather the values from the frontier, and evaluate where the frogs will jump to next'''
+    '''This is now the scatter portion of the algorithm'''
+
     for i in range(iterations): 
         Gather(c,K,src_cluster,succ_cluster)
         Apply(c,K,src_cluster,succ_cluster)
@@ -115,54 +116,54 @@ def FrogWild(c,K,src_cluster,succ_cluster, succ_hash, no_nodes, iterations):
 
 
 
+if __name__ == "__main__":
+
+    df_edge=pl.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/rand_net.csv"))
+    df_graph_data=pl.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/rand_net_info.csv"))
+
+    no_nodes, no_edges = df_graph_data.get_column("No. Nodes")[0], df_graph_data.get_column("No. Edges ")[0]
+
+    edge_list = np.zeros(shape=(no_edges,2), dtype='int32')
+
+    edge_list[:,0],edge_list[:,1] = df_edge.get_column("from").to_numpy().tolist(), df_edge.get_column("to").to_numpy().tolist()
+
+    in_d, out_d =Get_Degree(edge_list, no_nodes)
+
+    src, succ = Gen_CSR(edge_list,no_nodes,no_edges)
+
+    cluster_assign = Degree_Cluster_Hash(clusters, edge_list, in_d, out_d)
+
+    '''How do we disperse the values for a random walk now?'''
+    '''Let us begin by making an array of arrays for each cluster with local_succ and local_ptr'''
+
+    hash_table, sub_src, sub_succ = Gen_SubGraphs(cluster_assign)
+
+    # print("SUCC HASH TABLE")
+    # print('----------------')
+    # print(hash_table)
+    # print("SUB SRC ARRAY")
+    # print('----------------')
+    # print(sub_src)
+    # print("SUB SUCC ARRAY")
+    # print('----------------')
+    # print(sub_succ)
 
 
-df_edge=pl.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/rand_net.csv"))
-df_graph_data=pl.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/rand_net_info.csv"))
+    '''We need to now commence the random walk'''
+    clust_c={}
+    clust_k={}
 
-no_nodes, no_edges = df_graph_data.get_column("No. Nodes")[0], df_graph_data.get_column("No. Edges ")[0]
+    for c in range(clusters):
+        clust_c[c]=[0]*len(hash_table[c])
+        clust_k[c]=[0]*len(hash_table[c])
 
-edge_list = np.zeros(shape=(no_edges,2), dtype='int32')
-
-edge_list[:,0],edge_list[:,1] = df_edge.get_column("from").to_numpy().tolist(), df_edge.get_column("to").to_numpy().tolist()
-
-in_d, out_d =Get_Degree(edge_list, no_nodes)
-
-src, succ = Gen_CSR(edge_list,no_nodes,no_edges)
-
-cluster_assign = Degree_Cluster_Hash(clusters, edge_list, in_d, out_d)
-
-'''How do we disperse the values for a random walk now?'''
-'''Let us begin by making an array of arrays for each cluster with local_succ and local_ptr'''
-
-hash_table, sub_src, sub_succ = Gen_SubGraphs(cluster_assign)
-
-print("SUCC HASH TABLE")
-print('----------------')
-print(hash_table)
-print("SUB SRC ARRAY")
-print('----------------')
-print(sub_src)
-print("SUB SUCC ARRAY")
-print('----------------')
-print(sub_succ)
-
-
-'''We need to now commence the random walk'''
-clust_c={}
-clust_k={}
-
-for c in range(clusters):
-    clust_c[c]=[0]*len(hash_table[c])
-    clust_k[c]=[0]*len(hash_table[c])
-
-print("CLUST C")
-print('----------------')
-print(clust_c)
-print("CLUST K")
-print('----------------')
-print(clust_k)
+    # print("CLUST C")
+    # print('----------------')
+    # print(clust_c)
+    # print("CLUST K")
+    # print('----------------')
+    # print(clust_k)
 
 
 
-FrogWild(clust_c,clust_k,sub_src,sub_succ,hash_table,no_nodes,10)
+    FrogWild(clust_c,clust_k,sub_src,sub_succ,hash_table,no_nodes,10)
