@@ -48,15 +48,13 @@ def Gen_SubGraphs(cluster_assign):
     succ_cluster={}
     local_src_vertices={}
     local_succ_vertices={}
-    src_hash_table={}
-    succ_hash_table={}
+    hash_table={}
     for c in range(clusters):
         src_cluster[c]=[]
         succ_cluster[c]=[]
         local_src_vertices[c]=[]
         local_succ_vertices[c]=[]
-        src_hash_table[c]={}
-        succ_hash_table[c]={}
+        hash_table[c]={}
     
     '''We need to sift through the cluster assign and then add the src and succ to the respective clusters'''
     '''We need to extract all of the vertices within each cluster, local and ghost'''
@@ -64,21 +62,22 @@ def Gen_SubGraphs(cluster_assign):
     for c in range(clusters):
         for e in cluster_assign[c]:
             local_src_vertices[c].append(e[0])
-        '''Hold the values for the local vertices in global terms'''
-        temp = np.unique(local_src_vertices[c])
-        src_hash_table[c]=dict(zip(temp,range(len(temp))))
-        src_cluster[c]=[0]*len(src_hash_table[c])  
-        for v in local_src_vertices[c]:
-            src_cluster[c][src_hash_table[c][v]]+=1
-        for e in cluster_assign[c]:
             local_succ_vertices[c].append(e[1])
         '''Hold the values for the local vertices in global terms'''
-        temp = np.unique(local_succ_vertices[c])
-        succ_hash_table[c]=dict(zip(temp,range(len(temp))))
+        temp = np.unique(local_src_vertices[c])
+        src_cluster[c]=[0]*(len(temp)+1)
+        temp = np.unique(np.concatenate(temp,local_succ_vertices[c], axis=None))
+        hash_table[c]=dict(zip(temp,range(len(temp))))
+        src_cluster[c][0]=0  
+        for v in local_src_vertices[c]:
+            src_cluster[c][hash_table[c][v]+1]+=1
+        for i in range(1,len(src_cluster[c])):
+            src_cluster[c][i]+=src_cluster[c][i-1]
+        '''Hold the values for the local vertices in global terms'''
         succ_cluster[c]=[0]*len(local_succ_vertices[c])
         for i,v in enumerate(local_succ_vertices[c]):
-            succ_cluster[c][i]+=succ_hash_table[c][v]
-    return src_hash_table, src_cluster, succ_cluster
+            succ_cluster[c][i]=hash_table[c][v]
+    return hash_table, src_cluster, succ_cluster
         
 
             
@@ -128,7 +127,17 @@ cluster_assign = Degree_Cluster_Hash(clusters, edge_list, in_d, out_d)
 '''How do we disperse the values for a random walk now?'''
 '''Let us begin by making an array of arrays for each cluster with local_succ and local_ptr'''
 
-sub_src, sub_succ = Gen_SubGraphs(cluster_assign)
+hash_table, sub_src, sub_succ = Gen_SubGraphs(cluster_assign)
+
+print("SUCC HASH TABLE")
+print('----------------')
+print(hash_table)
+print("SUB SRC ARRAY")
+print('----------------')
+print(sub_src)
+print("SUB SUCC ARRAY")
+print('----------------')
+print(sub_succ)
 
 
 '''We need to now commence the random walk'''

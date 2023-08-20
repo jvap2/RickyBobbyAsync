@@ -31,7 +31,7 @@ df=p.read_csv(os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/r
 edges=df.height
 print(edges)
 Network_Info = open(os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/rand_net_info.csv"), 'w')
-Network_Info.write("No. Nodes, No. Edges \n")
+Network_Info.write("No. Nodes,No. Edges \n")
 Network_Info.write(str(sys.argv[1]) + "," + str(edges))
 
 Network_Info.close()
