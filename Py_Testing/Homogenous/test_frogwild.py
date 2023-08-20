@@ -5,7 +5,7 @@ import numpy as np
 
 
 global clusters
-clusters=32
+clusters=16
 
 def Get_Degree(edge_list, no_nodes):
     in_degree = np.zeros(no_nodes)
@@ -29,7 +29,7 @@ def Random_Edge_Placement(i):
     return cluster
 
 def Gen_CSR(edge_list, no_nodes, no_edges):
-    edge_list=edge_list[edge_list[:,0].argsort()]
+    # edge_list=edge_list[edge_list[:,0].argsort()]
     src = np.zeros(shape=no_nodes+1)
     succ = np.zeros(shape=no_edges)
     for i,e in enumerate(edge_list):
@@ -43,22 +43,42 @@ def Gen_CSR(edge_list, no_nodes, no_edges):
     return src, succ
 
 
-def Gen_SubGraphs(succ,src,cluster_assign):
+def Gen_SubGraphs(cluster_assign):
     src_cluster={}
     succ_cluster={}
+    local_src_vertices={}
+    local_succ_vertices={}
+    src_hash_table={}
+    succ_hash_table={}
     for c in range(clusters):
         src_cluster[c]=[]
         succ_cluster[c]=[]
+        local_src_vertices[c]=[]
+        local_succ_vertices[c]=[]
+        src_hash_table[c]={}
+        succ_hash_table[c]={}
     
     '''We need to sift through the cluster assign and then add the src and succ to the respective clusters'''
+    '''We need to extract all of the vertices within each cluster, local and ghost'''
+    '''We are going to only save the src pointers from the source nodes in each cluster as a test'''
     for c in range(clusters):
-        for v in cluster_assign[c]:
-            src_cluster[c].append(int(src[v[0]]))
-        src_cluster[c]=list(set(src_cluster[c]))
-        print(type(src_cluster[c][0]))
-        for v in src_cluster[c]:
-            succ_cluster[c].append(succ[v:v+1])
-    return src_cluster, succ_cluster
+        for e in cluster_assign[c]:
+            local_src_vertices[c].append(e[0])
+        '''Hold the values for the local vertices in global terms'''
+        temp = np.unique(local_src_vertices[c])
+        src_hash_table[c]=dict(zip(temp,range(len(temp))))
+        src_cluster[c]=[0]*len(src_hash_table[c])  
+        for v in local_src_vertices[c]:
+            src_cluster[c][src_hash_table[c][v]]+=1
+        for e in cluster_assign[c]:
+            local_succ_vertices[c].append(e[1])
+        '''Hold the values for the local vertices in global terms'''
+        temp = np.unique(local_succ_vertices[c])
+    return src_hash_table, src_cluster, succ_cluster
+        
+
+            
+
 
 
 def init_1(no_nodes):
@@ -98,18 +118,15 @@ edge_list[:,0],edge_list[:,1] = df_edge.get_column("from").to_numpy().tolist(), 
 in_d, out_d =Get_Degree(edge_list, no_nodes)
 
 src, succ = Gen_CSR(edge_list,no_nodes,no_edges)
-print(np.shape(src))
 
 cluster_assign = Degree_Cluster_Hash(clusters, edge_list, in_d, out_d)
-print(cluster_assign)
 
 '''How do we disperse the values for a random walk now?'''
 '''Let us begin by making an array of arrays for each cluster with local_succ and local_ptr'''
 
-sub_src, sub_succ = Gen_SubGraphs(succ,src,cluster_assign)
+sub_src, sub_succ = Gen_SubGraphs(cluster_assign)
 
-print(sub_src)
-print(sub_succ)
+
 '''We need to now commence the random walk'''
 c={}
 K={}

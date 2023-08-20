@@ -60,6 +60,8 @@ __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned long int* tabl
 
 __global__ void Random_Edge_Placement(edge *edges, double rand_num);
 
+__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr);
+
 __global__ void fin_exclusive_scan(unsigned long int* bits_3, unsigned long int size);
 
 __global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned long int size);

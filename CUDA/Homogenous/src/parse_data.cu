@@ -279,6 +279,13 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMemcpy(d_edge,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
         cout<<"Unable to copy cluster data"<<endl;
     }
+    unsigned int *d_src_ptr, *d_succ;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, node_size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for src_ptr"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_succ, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for succ"<<endl;
+    }
 
     unsigned long int* d_hist;
     unsigned long int* dev_fin_hist;
@@ -319,7 +326,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
         cout<<"Unable to allocate memory for histogram"<<endl;
     }
     double r = ((double) rand() / (RAND_MAX));
-    Random_Edge_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge, r);
+    Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_src_ptr, r);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     }
@@ -420,13 +427,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned long int)))){
         cout<<"Unable to allocate memory for c"<<endl;
     }
-    unsigned int *d_src_ptr, *d_succ;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, node_size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for src_ptr"<<endl;
-    }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_succ, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for succ"<<endl;
-    }
+
     float* d_frog_init;
     if(!HandleCUDAError(cudaMalloc((void**)&d_frog_init, (node_size/20)*sizeof(float)))){
         cout<<"Unable to allocate memory for frog_init"<<endl;
@@ -622,6 +623,22 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num){
         edges[idx].cluster=hash;
     }
     __syncthreads();
+
+}
+/*CHECK THIS ONE- MAKE SURE THE CSR FORMAT IS PROPER*/
+__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num){
+    unsigned int idx= threadIdx.x+blockDim.x*blockIdx.x;
+    if(idx<EDGES){
+        unsigned int start = edges[idx].start;
+        unsigned int end = edges[idx].end;
+        unsigned int deg_start = deg_arr[start+1]-deg_arr[start];
+        unsigned int deg_end = deg_arr[end+1]-deg_arr[end];
+        unsigned int v_hash = (deg_start>deg_end)?start:end;
+        double intpart;
+        double mod_part = modf(v_hash*rand_num, &intpart);
+        unsigned long int hash = (unsigned int)(BLOCKS*mod_part);
+        edges[idx].cluster=hash;
+    }
 
 }
 
