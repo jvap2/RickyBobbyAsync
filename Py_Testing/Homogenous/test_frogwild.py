@@ -67,7 +67,6 @@ def Gen_SubGraphs(cluster_assign):
         src_unq_len = len(np.unique(local_src_vertices[c]))
         lst_nodes,idx = np.unique(temp, return_index=True)
         lst_nodes = [temp[i] for i in sorted(idx)]
-        print(lst_nodes)
         src_cluster[c]=[0]*(src_unq_len+1)
         hash_table[c]=dict(zip(lst_nodes,range(len(lst_nodes))))
         src_cluster[c][0]=0  
@@ -83,11 +82,11 @@ def Gen_SubGraphs(cluster_assign):
         
 
             
+'''How do we define a frontier of active nodes?'''
 
 
-
-def init_1(no_nodes, cluster_assign):
-    init_pos=np.random.randint(0,no_nodes, size=no_nodes/10)
+def init_1(no_nodes):
+    init_pos=np.random.randint(0,no_nodes, size=int(no_nodes/2))
     return init_pos
 
 def Gather(c,K,src_cluster,succ_cluster):
@@ -101,6 +100,13 @@ def Scatter(c,K,src_cluster,succ_cluster):
 
 def FrogWild(c,K,src_cluster,succ_cluster, succ_hash, no_nodes, iterations):
     init_pos=init_1(no_nodes)
+    '''We need activate the initial nodes'''
+    print(init_pos)
+    for i in init_pos:
+        for c in range(clusters):
+            if i in succ_hash[c]:
+                K[c][succ_hash[c][i]]=1
+    print(K)
     for i in range(iterations): 
         Gather(c,K,src_cluster,succ_cluster)
         Apply(c,K,src_cluster,succ_cluster)
@@ -143,19 +149,20 @@ print(sub_succ)
 
 
 '''We need to now commence the random walk'''
-c={}
-K={}
-for n in range(no_nodes):
-    c[n]=0
-    K[n]=0
+clust_c={}
+clust_k={}
+
+for c in range(clusters):
+    clust_c[c]=[0]*len(hash_table[c])
+    clust_k[c]=[0]*len(hash_table[c])
+
+print("CLUST C")
+print('----------------')
+print(clust_c)
+print("CLUST K")
+print('----------------')
+print(clust_k)
 
 
 
-
-
-
-
-
-
-
-
+FrogWild(clust_c,clust_k,sub_src,sub_succ,hash_table,no_nodes,10)
