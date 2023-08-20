@@ -55,7 +55,6 @@ def Gen_SubGraphs(cluster_assign):
         local_src_vertices[c]=[]
         local_succ_vertices[c]=[]
         hash_table[c]={}
-    
     '''We need to sift through the cluster assign and then add the src and succ to the respective clusters'''
     '''We need to extract all of the vertices within each cluster, local and ghost'''
     '''We are going to only save the src pointers from the source nodes in each cluster as a test'''
@@ -64,10 +63,13 @@ def Gen_SubGraphs(cluster_assign):
             local_src_vertices[c].append(e[0])
             local_succ_vertices[c].append(e[1])
         '''Hold the values for the local vertices in global terms'''
-        temp = np.unique(local_src_vertices[c])
-        src_cluster[c]=[0]*(len(temp)+1)
-        temp = np.unique(np.concatenate(temp,local_succ_vertices[c], axis=None))
-        hash_table[c]=dict(zip(temp,range(len(temp))))
+        temp = np.concatenate((local_src_vertices[c],local_succ_vertices[c]), axis=None)
+        src_unq_len = len(np.unique(local_src_vertices[c]))
+        lst_nodes,idx = np.unique(temp, return_index=True)
+        lst_nodes = [temp[i] for i in sorted(idx)]
+        print(lst_nodes)
+        src_cluster[c]=[0]*(src_unq_len+1)
+        hash_table[c]=dict(zip(lst_nodes,range(len(lst_nodes))))
         src_cluster[c][0]=0  
         for v in local_src_vertices[c]:
             src_cluster[c][hash_table[c][v]+1]+=1
@@ -84,7 +86,7 @@ def Gen_SubGraphs(cluster_assign):
 
 
 
-def init_1(no_nodes):
+def init_1(no_nodes, cluster_assign):
     init_pos=np.random.randint(0,no_nodes, size=no_nodes/10)
     return init_pos
 
@@ -97,7 +99,7 @@ def Apply(c,K,src_cluster,succ_cluster):
 def Scatter(c,K,src_cluster,succ_cluster):
     pass
 
-def FrogWild(c,K,src_cluster,succ_cluster, no_nodes, iterations):
+def FrogWild(c,K,src_cluster,succ_cluster, succ_hash, no_nodes, iterations):
     init_pos=init_1(no_nodes)
     for i in range(iterations): 
         Gather(c,K,src_cluster,succ_cluster)
