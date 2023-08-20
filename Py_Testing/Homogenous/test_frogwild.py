@@ -74,6 +74,10 @@ def Gen_SubGraphs(cluster_assign):
             local_succ_vertices[c].append(e[1])
         '''Hold the values for the local vertices in global terms'''
         temp = np.unique(local_succ_vertices[c])
+        succ_hash_table[c]=dict(zip(temp,range(len(temp))))
+        succ_cluster[c]=[0]*len(local_succ_vertices[c])
+        for i,v in enumerate(local_succ_vertices[c]):
+            succ_cluster[c][i]+=succ_hash_table[c][v]
     return src_hash_table, src_cluster, succ_cluster
         
 
