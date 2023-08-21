@@ -854,24 +854,48 @@ __global__ void gen_backward_end_mask(edge* edgelist, unsigned int* ptr_table, u
     }
 }
 
-__global__ void scan_mask(unsigned int* start_mask, unsigned int* end_mask, unsigned* compct_start, unsigned int* compct_end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
+__global__ void scan_start_mask(unsigned int* start_mask, unsigned* compct_start, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     extern __shared__ unsigned int local_start_mask[];
-    extern __shared__ unsigned int local_end_mask[];
     extern __shared__ unsigned int local_compct_start[];
-    extern __shared__ unsigned int local_compct_end[];
-    if(idx<size){
-        for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
-            local_start_mask[i]=start_mask[ptr_table[blockIdx.x]+i];
-            local_end_mask[i]=end_mask[ptr_table[blockIdx.x]+i];
-        }
+    //We need to use global memory if we intend to use dynamic parallelism, so we need to copy the data over
+    /*Now, we can execute the exclusive scan- issue will be that this will be larger than the size of a thread block
+    Can we use dynamic parallelism in order to compute partial sums to then acquire a final sum?*/
+    int num_of_blocks = (ctr_table[blockIdx.x]/blockDim.x)+1;
+    if(tid<num_of_blocks){
+        int dym_size=(tid==num_of_blocks-1)?(ctr_table[blockIdx.x]-tid*blockDim.x):(blockDim.x);
+        Prefix_Scan_Cmpt<<<1,TPB>>>(start_mask+ptr_table[blockIdx.x]+tid*blockDim.x, compct_start+ptr_table[blockIdx.x]+tid*blockDim.x,dym_size);
+    }
+    
+}
+
+__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    __shared__ unsigned int local_cmpt[TPB];
+    if(tid<BLOCKS && tid!=0){
+        local_cmpt[tid]=mask[tid-1];
+    }
+    else{
+        local_cmpt[tid]=0;
     }
     __syncthreads();
-    if(idx<size){
-
+    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
+        __syncthreads();
+        unsigned int temp;
+        if(tid>=stride){
+            temp=local_cmpt[tid]+local_cmpt[tid-stride];
+        }
+        __syncthreads();
+        if(tid>=stride){
+            local_cmpt[tid]=temp;
+        }
     }
-
+    if(idx<size){
+        cmpt[idx]=local_cmpt[tid];
+    }
+    __syncthreads();
 }
 
 
