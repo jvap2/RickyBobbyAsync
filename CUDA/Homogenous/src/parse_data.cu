@@ -960,20 +960,20 @@ __global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigne
 
 /*CHECK THIS*/
 
-__global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, unsigned int* mask, unsigned int* new_size, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
+__global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, unsigned int* new_size, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     if(idx<size){
-        for(int i = tid; i<size;i+=blockDim.x){
+        for(int i = tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
             if(i==0){
-                cmpt[i]=0;
+                cmpt[ptr_table[blockIdx.x]+i]=0;
             }
             if(i==size-1){
-                cmpt[scanned[i]]=i+1;
-                *new_size=scanned[i];
+                cmpt[ptr_table[blockIdx.x]+scanned[ptr_table[blockIdx.x]+i]]=i+1;
+                *new_size=scanned[ptr_table[blockIdx.x]+i];
             }
-            else if(scanned[i]!=scanned[i-1]){
-                cmpt[scanned[i]]=i;
+            else if(scanned[ptr_table[blockIdx.x]+i]!=scanned[ptr_table[blockIdx.x]+i-1]){
+                cmpt[scanned[ptr_table[blockIdx.x]+i]]=i;
             }
         }
     }

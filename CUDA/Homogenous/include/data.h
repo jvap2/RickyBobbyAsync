@@ -101,7 +101,6 @@ __global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigne
 
 __global__ void scan_end_mask(unsigned int* end_mask, unsigned* compct_end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
 
-__global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, unsigned int* mask, unsigned int* new_size, unsigned int* ptr_table, 
-unsigned int* ctr_table, unsigned int size);
+__global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, unsigned int* new_size, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
 
 __global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, unsigned int* in, unsigned int* new_idx, unsigned int* out);
