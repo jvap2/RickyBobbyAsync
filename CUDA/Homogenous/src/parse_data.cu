@@ -418,45 +418,101 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     HandleCUDAError(cudaFree(d_table));
     HandleCUDAError(cudaFree(d_table_2));
     HandleCUDAError(cudaFree(d_table_3));
-    HandleCUDAError(cudaFree(dev_fin_hist));
+    // HandleCUDAError(cudaFree(dev_fin_hist));
 
-    if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy back edge data"<<endl;
+    //Now, we need to organize the vertex data
+    int tpb_2 = 1024;
+    cudaStream_t stream1, stream2;
+    cudaStreamCreate(&stream1);
+    cudaStreamCreate(&stream2);
+    //How do we get the shared memory for the 
+    unsigned int *d_strt_mask, *d_end_mask;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_strt_mask, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start mask"<<endl;
     }
-    unsigned int *d_c;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for c"<<endl;
+    if(HandleCUDAError(cudaMalloc((void**)&d_end_mask, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for end mask"<<endl;
     }
+    unsigned int *d_cmpt_start, *d_cmpt_end;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt_start, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start mask"<<endl;
+    }
+    if(HandleCUDAError(cudaMalloc((void**)&d_cmpt_end, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for end mask"<<endl;
+    }
+    unsigned int *d_scan_start, *d_scan_end;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_scan_start, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start mask"<<endl;
+    }
+    if(HandleCUDAError(cudaMalloc((void**)&d_scan_end, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for end mask"<<endl;
+    }
+    unsigned int *d_cmpt_start, *d_cmpt_end;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt_start, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start mask"<<endl;
+    }
+    if(HandleCUDAError(cudaMalloc((void**)&d_cmpt_end, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for end mask"<<endl;
+    }
+    unsigned int *d_len_start,*d_len_end;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt_start, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start mask"<<endl;
+    }
+    if(HandleCUDAError(cudaMalloc((void**)&d_cmpt_end, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for end mask"<<endl;
+    }
+    gen_backward_start_mask<<<BLOCKS,tpb_2,0,stream1>>>(d_edge,dev_fin_count,dev_fin_hist,d_strt_mask,size);
+    cudaStreamSynchronize(stream1);
+    gen_backward_end_mask<<<BLOCKS,tpb_2,0,stream2>>>(d_edge,dev_fin_count,dev_fin_hist,d_end_mask,size);
+    cudaStreamSynchronize(stream2);
+    scan_start_mask<<<BLOCKS,tpb_2,0,stream1>>>(d_strt_mask,d_scan_start,dev_fin_count,dev_fin_hist,size);
+    cudaStreamSynchronize(stream1);
+    scan_end_mask<<<BLOCKS,tpb_2,0,stream2>>>(d_end_mask,d_scan_end,dev_fin_count,dev_fin_hist,size);
+    cudaStreamSynchronize(stream2);
+    //Now Perform prefix sums
+    Scanned_To_Compact<<<BLOCKS,tpb_2,0,stream1>>>(d_cmpt_start,d_scan_start,d_len_start,dev_fin_count,dev_fin_hist,size);
+    cudaStreamSynchronize(stream1);
+    Scanned_To_Compact<<<BLOCKS,tpb_2,0,stream2>>>(d_cmpt_end,d_scan_end,d_len_end,dev_fin_count,dev_fin_hist,size);
+    cudaStreamSynchronize(stream2);
+    //Now, we need to perform the scatter
+    //Need to alter the Final Compact
+    // if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
+    //     cout<<"Unable to copy back edge data"<<endl;
+    // }
+    // unsigned int *d_c;
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned int)))){
+    //     cout<<"Unable to allocate memory for c"<<endl;
+    // }
 
-    float* d_frog_init;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_frog_init, (node_size/20)*sizeof(float)))){
-        cout<<"Unable to allocate memory for frog_init"<<endl;
-    }
-    unsigned int* d_frogs;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_frogs, node_size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for frogs"<<endl;
-    }
-    curandGenerator_t gen;
-    curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
-    curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
-    curandGenerateUniform(gen, d_frog_init, node_size/20);
-    //Figure out exec config param
-    unsigned int blocks_init_frog= (node_size/20)/TPB+1;
-    First_Init<<<blocks_init_frog,TPB>>>(d_frog_init, d_frogs, node_size, size);
-    if(!HandleCUDAError(cudaDeviceSynchronize())){
-        cout<<"Unable to synchronize with host for first init"<<endl;
-    }
-    cudaFuncSetAttribute(FrogWild, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
-    int s_mem_size=0;
+    // float* d_frog_init;
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_frog_init, (node_size/20)*sizeof(float)))){
+    //     cout<<"Unable to allocate memory for frog_init"<<endl;
+    // }
+    // unsigned int* d_frogs;
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_frogs, node_size*sizeof(unsigned int)))){
+    //     cout<<"Unable to allocate memory for frogs"<<endl;
+    // }
+    // curandGenerator_t gen;
+    // curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
+    // curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
+    // curandGenerateUniform(gen, d_frog_init, node_size/20);
+    // //Figure out exec config param
+    // unsigned int blocks_init_frog= (node_size/20)/TPB+1;
+    // First_Init<<<blocks_init_frog,TPB>>>(d_frog_init, d_frogs, node_size, size);
+    // if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //     cout<<"Unable to synchronize with host for first init"<<endl;
+    // }
+    // cudaFuncSetAttribute(FrogWild, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+    // int s_mem_size=0;
 
 
 
     HandleCUDAError(cudaFree(d_edge));
-    HandleCUDAError(cudaFree(d_frog_init));
-    HandleCUDAError(cudaFree(d_frogs));
+    // HandleCUDAError(cudaFree(d_frog_init));
+    // HandleCUDAError(cudaFree(d_frogs));
     HandleCUDAError(cudaFree(d_src_ptr));
     HandleCUDAError(cudaFree(d_succ));
-    HandleCUDAError(cudaFree(d_c));
+    // HandleCUDAError(cudaFree(d_c));
     HandleCUDAError(cudaDeviceReset());   
 }
 
