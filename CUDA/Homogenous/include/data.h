@@ -89,5 +89,7 @@ __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc);
 
 __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned int* table, unsigned int k);
 
-__global__ void gen_backward_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
+__global__ void gen_backward_start_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* start_mask, unsigned int size);
+
+__global__ void gen_backward_end_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* end_mask, unsigned int size);
 

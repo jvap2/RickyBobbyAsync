@@ -782,18 +782,15 @@ unsigned int size, unsigned int iter){
 }
 
 
-__global__ void gen_backward_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
+__global__ void gen_backward_start_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* start_mask, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     extern __shared__ unsigned long int start[];
-    extern __shared__ unsigned long int end[];
     extern __shared__ unsigned int start_back_mask[];
-    extern __shared__ unsigned int end_back_mask[];
     if(idx<size){
         //Check that the ctr table is doing what we want
         for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
             start[i]=edgelist[ptr_table[blockIdx.x]+i].start;
-            end[i]=edgelist[ptr_table[blockIdx.x]+i].end;
         }
     }
     __syncthreads();
@@ -803,7 +800,6 @@ __global__ void gen_backward_mask(edge* edgelist, unsigned int* ptr_table, unsig
         for(int i = tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
             if(i==0){
                 start_back_mask[i]=1;
-                end_back_mask[i]=1;
             }
             else{
                 if(start[i]!=start[i-1]){
@@ -812,6 +808,36 @@ __global__ void gen_backward_mask(edge* edgelist, unsigned int* ptr_table, unsig
                 else{
                     start_back_mask[i]=0;
                 }
+            }
+        }
+    }
+    __syncthreads();
+    /*We have the mask, now, we need to commit to global memory for next kernel*/
+    for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
+        start_back_mask[i]=start_mask[ptr_table[blockIdx.x]+i];
+    }
+}
+
+__global__ void gen_backward_end_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* end_mask, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    extern __shared__ unsigned long int end[];
+    extern __shared__ unsigned int end_back_mask[];
+    if(idx<size){
+        //Check that the ctr table is doing what we want
+        for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
+            end[i]=edgelist[ptr_table[blockIdx.x]+i].end;
+        }
+    }
+    __syncthreads();
+    if(idx<size){
+        /*Now, we need to generate the hash values*/
+        /*We will utilize run length encoding to find the unique values*/
+        for(int i = tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
+            if(i==0){
+                end_back_mask[i]=1;
+            }
+            else{
                 if(end[i]!=end[i-1]){
                     end_back_mask[i]=1;
                 }
@@ -822,8 +848,32 @@ __global__ void gen_backward_mask(edge* edgelist, unsigned int* ptr_table, unsig
         }
     }
     __syncthreads();
-    /*We have the mask, now, we must perform an exclusive scan in a subsequent kernel*/
+    /*We have the mask, now, we need to commit to global memory for next kernel*/
+    for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
+        end_back_mask[i]=end_mask[ptr_table[blockIdx.x]+i];
+    }
 }
+
+__global__ void scan_mask(unsigned int* start_mask, unsigned int* end_mask, unsigned* compct_start, unsigned int* compct_end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    extern __shared__ unsigned int local_start_mask[];
+    extern __shared__ unsigned int local_end_mask[];
+    extern __shared__ unsigned int local_compct_start[];
+    extern __shared__ unsigned int local_compct_end[];
+    if(idx<size){
+        for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
+            local_start_mask[i]=start_mask[ptr_table[blockIdx.x]+i];
+            local_end_mask[i]=end_mask[ptr_table[blockIdx.x]+i];
+        }
+    }
+    __syncthreads();
+    if(idx<size){
+
+    }
+
+}
+
 
 __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned int* table, unsigned int k){
     unsigned int idx=threadIdx.x + (blockIdx.x*blockDim.x);
