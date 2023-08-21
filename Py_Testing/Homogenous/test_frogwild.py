@@ -108,27 +108,41 @@ def Apply(c,K,src_cluster,succ_cluster):
 def Scatter(c,K,src_cluster,succ_cluster):
     pass
 
-def FrogWild(c,K,src_cluster,succ_cluster, succ_hash, no_nodes, iterations):
+def FrogWild(c,K,src, succ, src_cluster,succ_cluster, succ_hash, no_nodes, iterations):
     init_pos=np.unique(init_1(no_nodes))
     '''We need activate the initial nodes'''
+    active_clusters={}
+    for clust in range(clusters):
+        active_clusters[clust]=0
     for i in init_pos:
         for clust in range(clusters):
             if i in succ_hash[clust]:
                 K[clust][succ_hash[clust][i]]=1
+                active_clusters[clust]=1
     '''The frontier has now been defined, now we need to first gather the values from the frontier, and evaluate where the frogs will jump to next'''
     '''This is now the scatter portion of the algorithm'''
     for clust in range(clusters):
-        for i,val in enumerate(K[clust]):
-            if val==1:
-                '''Ok- what do we want to do here? 
-                We need to find a way to send frogs neighboring nodes, but we need to do this in a way that is efficient'''
-                '''We also need to find a way to emulate this chance synchronization with the master to send x number of frogs across edges 
-                incident to a a mirror of vertex i'''
-                '''But How? Not certain- SUBLIME!'''
-                if succ_hash[clust][i]<len(src_cluster[clust])-1:
-                    print(succ_hash[clust][i])
-                    for j in range(src_cluster[clust][succ_hash[clust][i]],src_cluster[clust][succ_hash[clust][i]+1]):
-                        K[clust][succ_cluster[clust][j]]=1
+        '''We are going to iterate throught the clusters and then find the active nodes'''
+        if active_clusters[clust]==1:
+            '''We have nodes here which are active'''
+            for i, val in enumerate(K[clust]):
+                if val==1:
+                    '''We have an active node'''
+                    c[clust][i]+=1
+                    '''We have incremented the counter for the node in the cluster'''
+                    '''We need to find successors within the cluster'''
+                    if i<len(src_cluster[clust])-1:
+                        '''We have successors'''
+                        num_local_neigh = src_cluster[clust][i+1]-src_cluster[clust][i]
+                        location = np.random.randint(0,num_local_neigh)
+                        '''We have a location for the successor'''
+                        K[clust][succ_cluster[clust][src_cluster[clust][i]+location]]=1
+                    else:
+                        '''Successors are in a different cluster'''
+                        '''We need to use the hash table to locate the global address and send the value to the correct cluster'''
+                        '''We need to find the global address of the node'''
+                        global_address = succ_hash[clust][i]
+
     for i in range(iterations): 
         Gather(c,K,src_cluster,succ_cluster)
         Apply(c,K,src_cluster,succ_cluster)
@@ -176,7 +190,9 @@ if __name__ == "__main__":
     '''We need to now commence the random walk'''
     clust_c={}
     clust_k={}
-
+    '''I think it actually may be worthwhile to save c and K in csr format (Maybe, Maybe not)
+    Need to look further into how frontiers are saved
+    '''
     for c in range(clusters):
         clust_c[c]=[0]*len(hash_table[c])
         clust_k[c]=[0]*len(hash_table[c])
@@ -190,4 +206,4 @@ if __name__ == "__main__":
 
 
 
-    FrogWild(clust_c,clust_k,sub_src,sub_succ,hash_table,no_nodes,10)
+    FrogWild(clust_c,clust_k,src, succ, sub_src,sub_succ,hash_table,no_nodes,10)
