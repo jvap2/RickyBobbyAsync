@@ -5,7 +5,7 @@
 
 int main()
 {  
-    unsigned long int nodes, edges;
+    unsigned int nodes, edges;
     get_graph_info(GRAPH_DATA_PATH,&nodes,&edges);
     cout<<edges<<endl;
     edge* edge_list;

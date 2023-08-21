@@ -26,13 +26,13 @@ using namespace std;
 
 
 struct edge{
-    unsigned long int end, start;
-    unsigned long int cluster;
+    unsigned int end, start;
+    unsigned int cluster;
 };
 
 struct vert_hash_table{
-    unsigned long int local_vert;
-    unsigned long int global_vert;
+    unsigned int local_vert;
+    unsigned int global_vert;
 };
 
 __host__ void Check_Out_csv_edge(edge* edge_list, int size);
@@ -43,9 +43,9 @@ __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned in
 
 __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_size, unsigned int* src_ptr, unsigned int* succ);
 
-__host__ void get_graph_info(string path, unsigned long int* nodes, unsigned long int* edges);
+__host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edges);
 
-__host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* list_2, int size);
+__host__ void Check_Out_pref_sum(unsigned int* list_1, unsigned int* list_2, int size);
 
 __host__ int getMax_cluster(edge* edge_list, int n);
 
@@ -55,29 +55,29 @@ __host__ void cpu_radixsort(edge* arr, int n);
 
 __host__ void Check_Out_ptr(unsigned int* edge_list, int size);
 
-__global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size);
+__global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
-__global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned long int size,unsigned int iter);
+__global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned long int size, unsigned long int node_size);
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int size, unsigned int node_size);
 
-__global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned long int* table, unsigned long int* table_2, long int size, unsigned int iter);
+__global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, unsigned int* table_2, long int size, unsigned int iter);
 
 __global__ void Random_Edge_Placement(edge *edges, double rand_num);
 
 __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num);
 
-__global__ void fin_exclusive_scan(unsigned long int* bits_3, unsigned long int size);
+__global__ void fin_exclusive_scan(unsigned int* bits_3, unsigned int size);
 
-__global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned long int size);
+__global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned int size);
 
-__global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigned long int size);
+__global__ void Histogram_1(edge* edgelist, unsigned int* hist_bin, unsigned int size);
 
-__global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned long int* fin_bin, int size);
+__global__ void Kogge_Stone_Hist_Reduct(unsigned int* hist_bin, unsigned int* fin_bin, int size);
 
-__global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* fin_bin_2);
+__global__ void Hist_Prefix_Sum(unsigned int* fin_bin, unsigned int* fin_bin_2);
 
-__global__ void final_scan_commit(unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size);
+__global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
 __global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int node_size, unsigned int edge_size);
 

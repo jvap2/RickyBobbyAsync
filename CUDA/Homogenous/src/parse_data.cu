@@ -32,11 +32,11 @@ __host__ void Check_Out_ptr(unsigned int* edge_list, int size){
 }
 
 
-__host__ void Check_Out_pref_sum(unsigned long int* list_1, unsigned long int* list_2, int size){
+__host__ void Check_Out_pref_sum(unsigned int* list_1, unsigned int* list_2, int size){
     ofstream myfile;
     myfile.open(LIST_PATH);
     myfile <<"i,List1,List2,List2Check\n";
-    unsigned long int* check = new unsigned long int[size];
+    unsigned int* check = new unsigned int[size];
     check[0]=0;
     for(int i=0; i<size;i++){
         myfile<< to_string(i);
@@ -63,7 +63,7 @@ __host__ void return_edge_list(string path, edge* arr){
     ifstream data;
     data.open(path);
     string line,word;
-    unsigned long int count=0;
+    unsigned int count=0;
     unsigned int column=0;
     cout<<data.is_open()<<endl;
     if(data.is_open()){
@@ -148,7 +148,7 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
     data.close();
 }
 
-__host__ void get_graph_info(string path, unsigned long int* nodes, unsigned long int* edges){
+__host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edges){
     ifstream data;
     data.open(path);
     string line,word;
@@ -259,18 +259,18 @@ __host__ void cpu_radixsort(edge* arr, int n)
 }
 
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned long int size, unsigned long int node_size){
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;
-    unsigned long int* d_table;
-    unsigned long int* d_table_2;
-    unsigned long int* d_table_3;
+    unsigned int* d_table;
+    unsigned int* d_table_2;
+    unsigned int* d_table_3;
 
-    unsigned long int threads_per_block=TPB;
-    unsigned long int blocks_per_grid= size/threads_per_block+1;
+    unsigned int threads_per_block=TPB;
+    unsigned int blocks_per_grid= size/threads_per_block+1;
     cout<<"Num of blocks "<<blocks_per_grid<<endl;
-    unsigned long int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
+    unsigned int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
     cout<<"Second amount of blocks "<< ex_block_pg <<endl;
     
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
@@ -287,9 +287,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
         cout<<"Unable to allocate memory for succ"<<endl;
     }
 
-    unsigned long int* d_hist;
-    unsigned long int* dev_fin_hist;
-    unsigned long int* dev_fin_count;
+    unsigned int* d_hist;
+    unsigned int* dev_fin_hist;
+    unsigned int* dev_fin_count;
     // unsigned int* h_hist= new unsigned int [BLOCKS*blocks_per_grid];
     
     int deviceCount = 0;
@@ -334,7 +334,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Hist_1"<<endl;
     }
-    Kogge_Stone_Hist_Reduct<<<BLOCKS,blocks_per_grid, blocks_per_grid*sizeof(unsigned long int)>>>(d_hist,dev_fin_hist,BLOCKS*blocks_per_grid);
+    Kogge_Stone_Hist_Reduct<<<BLOCKS,blocks_per_grid, blocks_per_grid*sizeof(unsigned int)>>>(d_hist,dev_fin_hist,BLOCKS*blocks_per_grid);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host for reduce"<<endl;
     }
@@ -346,24 +346,24 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge_2, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table,(2*blocks_per_grid)*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for the table data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+    if(!HandleCUDAError(cudaMemset(d_table,0,(2*blocks_per_grid)*sizeof(unsigned int)))){
         cout<<"Unable to set table to 0"<<endl;
     }
 
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table_2,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table_2,(2*blocks_per_grid)*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for the table data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(d_table_2,0,(2*blocks_per_grid)*sizeof(unsigned long int)))){
+    if(!HandleCUDAError(cudaMemset(d_table_2,0,(2*blocks_per_grid)*sizeof(unsigned int)))){
         cout<<"Unable to set table to 0"<<endl;
     }
 
-    if(!HandleCUDAError(cudaMalloc((void**) &d_table_3,(ex_block_pg)*sizeof(unsigned long int)))){
+    if(!HandleCUDAError(cudaMalloc((void**) &d_table_3,(ex_block_pg)*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for the table data"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(d_table_3,0,(ex_block_pg)*sizeof(unsigned long int)))){
+    if(!HandleCUDAError(cudaMemset(d_table_3,0,(ex_block_pg)*sizeof(unsigned int)))){
         cout<<"Unable to set table to 0"<<endl;
     }
     if(ex_block_pg>0){
@@ -423,8 +423,8 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back edge data"<<endl;
     }
-    unsigned long int *d_c;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned long int)))){
+    unsigned int *d_c;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for c"<<endl;
     }
 
@@ -460,14 +460,14 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     HandleCUDAError(cudaDeviceReset());   
 }
 
-__global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned long int size,unsigned int iter){
+__global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter){
     //Need to sort through the cluster data and organize it
     //organize into the data for each block of FrogWild
     unsigned int idx= threadIdx.x + (blockIdx.x*blockDim.x);
     unsigned int tid= threadIdx.x;
     __shared__ edge shared_edge[TPB];
-    __shared__ unsigned long int bits[TPB];
-    __shared__ unsigned long int ex_bits[TPB+1];
+    __shared__ unsigned int bits[TPB];
+    __shared__ unsigned int ex_bits[TPB+1];
     //Load vertex and cluster info into the shared memory
     if(idx<size){
         shared_edge[tid]=edgelist[idx];
@@ -475,7 +475,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     __syncthreads();
 
     //Perform sorting
-    unsigned long int key, bit;
+    unsigned int key, bit;
     int from, to;
     if(idx<size){
         key = shared_edge[tid].cluster;
@@ -494,7 +494,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     }
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
-        unsigned long int temp;
+        unsigned int temp;
         if(tid>=stride){
             temp=ex_bits[tid]+ex_bits[tid-stride];
         }
@@ -503,7 +503,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
             ex_bits[tid]=temp;
         }
     }
-    unsigned long int num_one_total;
+    unsigned int num_one_total;
     if(idx==size-1 || tid == blockDim.x-1){
         ex_bits[blockDim.x]=bits[tid]+ex_bits[tid];
         table[blockIdx.x]=(idx==size-1)?(size-(blockIdx.x*blockDim.x+ex_bits[blockDim.x])):(TPB-ex_bits[blockDim.x]);
@@ -512,9 +512,9 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     }
     __syncthreads();
     if(idx<size){
-        unsigned long int num_one_bef=ex_bits[tid];
-        unsigned long int num_one_total=ex_bits[blockDim.x];
-        unsigned long int dst = (1-bit)*(tid - num_one_bef)+ bit*(blockDim.x-num_one_total+num_one_bef);
+        unsigned int num_one_bef=ex_bits[tid];
+        unsigned int num_one_total=ex_bits[blockDim.x];
+        unsigned int dst = (1-bit)*(tid - num_one_bef)+ bit*(blockDim.x-num_one_total+num_one_bef);
         shared_edge[dst].cluster=key;
         shared_edge[dst].start=from;
         shared_edge[dst].end=to;
@@ -526,7 +526,7 @@ __global__ void Sort_Cluster(edge* edgelist, unsigned long int* table, unsigned 
     }
 }
 
-__global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned long int* table, unsigned long int* table_2, long int size, unsigned int iter){
+__global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, unsigned int* table_2, long int size, unsigned int iter){
     unsigned int idx= threadIdx.x + (blockIdx.x*blockDim.x);
     unsigned int tid= threadIdx.x;
     // const unsigned int cluster_size= size/gridDim.x+1;
@@ -545,7 +545,7 @@ __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned long int* tabl
     }
 }
 
-__global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size){
+__global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size){
     unsigned int tid=threadIdx.x;
     unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
     __shared__ unsigned int ex_bits[TPB];
@@ -557,7 +557,7 @@ __global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* b
     }
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
-        unsigned long int temp;
+        unsigned int temp;
         if(tid>=stride){
             temp=ex_bits[tid]+ex_bits[tid-stride];
         }
@@ -575,13 +575,13 @@ __global__ void bit_exclusive_scan(unsigned long int* bits, unsigned long int* b
     __syncthreads();
 }
 
-__global__ void fin_exclusive_scan(unsigned long int* bits_3, unsigned long int size){
-    unsigned long int tid = threadIdx.x;
-    unsigned long int idx = threadIdx.x + (blockIdx.x*blockDim.x);
+__global__ void fin_exclusive_scan(unsigned int* bits_3, unsigned int size){
+    unsigned int tid = threadIdx.x;
+    unsigned int idx = threadIdx.x + (blockIdx.x*blockDim.x);
     __syncthreads();
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
-        unsigned long int temp;
+        unsigned int temp;
         if(tid>=stride){
             temp=bits_3[tid]+bits_3[tid-stride];
         }
@@ -592,7 +592,7 @@ __global__ void fin_exclusive_scan(unsigned long int* bits_3, unsigned long int 
     }
 }
 
-__global__ void final_scan_commit(unsigned long int* bits_2, unsigned long int* bits_3, unsigned long int size){
+__global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size){
     unsigned int bid = blockIdx.x;
     unsigned int idx = threadIdx.x + (blockIdx.x*blockDim.x);
     if(idx<size && bid>0){
@@ -603,7 +603,7 @@ __global__ void final_scan_commit(unsigned long int* bits_2, unsigned long int* 
 
 //d_table_2 contains the prefix sum
 //d_table contains the counts
-__global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned long int size){
+__global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned int size){
     unsigned int idx=threadIdx.x+(blockDim.x*blockIdx.x);
     if(idx<size){
         edge_1[idx]=edge_2[idx];
@@ -617,7 +617,7 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num){
     //Use multiplication hashing
     double intpart;
     double mod_part = modf(idx*rand_num, &intpart);
-    unsigned long int hash = (unsigned int)(BLOCKS*mod_part);
+    unsigned int hash = (unsigned int)(BLOCKS*mod_part);
     //We now have the key, we need to sort
     if(idx<EDGES){
         edges[idx].cluster=hash;
@@ -636,7 +636,7 @@ __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, doubl
         unsigned int v_hash = (deg_start>deg_end)?start:end;
         double intpart;
         double mod_part = modf(v_hash*rand_num, &intpart);
-        unsigned long int hash = (unsigned int)(BLOCKS*mod_part);
+        unsigned int hash = (unsigned int)(BLOCKS*mod_part);
         edges[idx].cluster=hash;
     }
 
@@ -646,7 +646,7 @@ __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, doubl
 
 
 
-__global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigned long int size){
+__global__ void Histogram_1(edge* edgelist, unsigned int* hist_bin, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     __shared__ unsigned int s_edge_list[TPB];
@@ -666,10 +666,10 @@ __global__ void Histogram_1(edge* edgelist, unsigned long int* hist_bin, unsigne
     //Now, all the data is stored locally on a blocks/grid by BLOCKS array which we need to reduce
 }
 
-__global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned long int* fin_bin, int size){
+__global__ void Kogge_Stone_Hist_Reduct(unsigned int* hist_bin, unsigned int* fin_bin, int size){
     unsigned int idx = threadIdx.x + blockIdx.x*blockDim.x;
     unsigned int tid = threadIdx.x;
-    extern __shared__ unsigned long int clust_val[];
+    extern __shared__ unsigned int clust_val[];
     if(idx<size){
         clust_val[tid]=hist_bin[tid*BLOCKS+blockIdx.x];
     }
@@ -678,7 +678,7 @@ __global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned lo
     }
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
-        unsigned long int temp;
+        unsigned int temp;
         if(tid>=stride){
             temp=clust_val[tid]+clust_val[tid-stride];
         }
@@ -693,9 +693,9 @@ __global__ void Kogge_Stone_Hist_Reduct(unsigned long int* hist_bin, unsigned lo
     __syncthreads();
 }
 
-__global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* fin_bin_2){
+__global__ void Hist_Prefix_Sum(unsigned int* fin_bin, unsigned int* fin_bin_2){
     unsigned int tid = threadIdx.x+blockDim.x*blockIdx.x;
-    __shared__ unsigned long int local[BLOCKS];
+    __shared__ unsigned int local[BLOCKS];
     if(tid<BLOCKS && tid!=0){
         local[tid]=fin_bin[tid-1];
     }
@@ -704,7 +704,7 @@ __global__ void Hist_Prefix_Sum(unsigned long int* fin_bin, unsigned long int* f
     }
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
         __syncthreads();
-        unsigned long int temp;
+        unsigned int temp;
         if(tid>=stride){
             temp=local[tid]+local[tid-stride];
         }
@@ -785,7 +785,7 @@ unsigned int size, unsigned int iter){
 __global__ void gen_backward_start_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* start_mask, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    extern __shared__ unsigned long int start[];
+    extern __shared__ unsigned int start[];
     extern __shared__ unsigned int start_back_mask[];
     if(idx<size){
         //Check that the ctr table is doing what we want
@@ -821,7 +821,7 @@ __global__ void gen_backward_start_mask(edge* edgelist, unsigned int* ptr_table,
 __global__ void gen_backward_end_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* end_mask, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    extern __shared__ unsigned long int end[];
+    extern __shared__ unsigned int end[];
     extern __shared__ unsigned int end_back_mask[];
     if(idx<size){
         //Check that the ctr table is doing what we want
@@ -868,8 +868,24 @@ __global__ void scan_start_mask(unsigned int* start_mask, unsigned* compct_start
         Prefix_Scan_Cmpt<<<1,TPB>>>(start_mask+ptr_table[blockIdx.x]+tid*blockDim.x, compct_start+ptr_table[blockIdx.x]+tid*blockDim.x,dym_size,tid);
     }
     __syncthreads();
+    __shared__ unsigned int end_vals[num_of_blocks];
     /*Now, we have partial sums, we need to find the final value of each accumulated sum*/
     /*How do we do this..... SUBLIME!*/
+    if(tid<num_of_blocks){
+        int loc = (tid==num_of_blocks-1)? (ptr_table[blockIdx.x+1]-1):(ptr_table[blockIdx.x]+(tid+1)*blockDim.x-1);
+        end_vals[tid]=compct_start[loc];
+    }
+    __syncthreads();
+    if(tid<num_of_blocks){
+        int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
+        //Check this
+        Prefix_Scan_Cmpt<<<1,num_of_blocks>>>(end_vals, end_vals,dym_size,0);
+    }
+    __syncthreads();
+    if(tid<num_of_blocks){
+        int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
+        final_scan_commit<<<1,TPB>>>(compct_start+ptr_table[blockIdx.x]+tid*blockDim.x,end_vals, dym_size);
+    }
     
 }
 
@@ -881,14 +897,30 @@ __global__ void scan_end_mask(unsigned int* end_mask, unsigned* compct_end, unsi
     //We need to use global memory if we intend to use dynamic parallelism, so we need to copy the data over
     /*Now, we can execute the exclusive scan- issue will be that this will be larger than the size of a thread block
     Can we use dynamic parallelism in order to compute partial sums to then acquire a final sum?*/
-    int num_of_blocks = (ctr_table[blockIdx.x]/blockDim.x)+1;
+    const int num_of_blocks = (ctr_table[blockIdx.x]/blockDim.x)+1;
     if(tid<num_of_blocks){
         int dym_size=(tid==num_of_blocks-1)?(ctr_table[blockIdx.x]-tid*blockDim.x):(blockDim.x);
         Prefix_Scan_Cmpt<<<1,TPB>>>(end_mask+ptr_table[blockIdx.x]+tid*blockDim.x, compct_end+ptr_table[blockIdx.x]+tid*blockDim.x,dym_size,tid);
     }
     __syncthreads();
+    __shared__ unsigned int end_vals[num_of_blocks];
     /*Now, we have partial sums, we need to find the final value of each accumulated sum*/
     /*How do we do this..... SUBLIME!*/
+    if(tid<num_of_blocks){
+        int loc = (tid==num_of_blocks-1)? (ptr_table[blockIdx.x+1]-1):(ptr_table[blockIdx.x]+(tid+1)*blockDim.x-1);
+        end_vals[tid]=compct_end[loc];
+    }
+    __syncthreads();
+    if(tid<num_of_blocks){
+        int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
+        //Check this
+        Prefix_Scan_Cmpt<<<1,num_of_blocks>>>(end_vals, end_vals,dym_size,0);
+    }
+    __syncthreads();
+    if(tid<num_of_blocks){
+        int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
+        final_scan_commit<<<1,TPB>>>(compct_end+ptr_table[blockIdx.x]+tid*blockDim.x,end_vals, dym_size);
+    }
 
 }
 
