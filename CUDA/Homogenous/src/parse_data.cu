@@ -865,20 +865,50 @@ __global__ void scan_start_mask(unsigned int* start_mask, unsigned* compct_start
     int num_of_blocks = (ctr_table[blockIdx.x]/blockDim.x)+1;
     if(tid<num_of_blocks){
         int dym_size=(tid==num_of_blocks-1)?(ctr_table[blockIdx.x]-tid*blockDim.x):(blockDim.x);
-        Prefix_Scan_Cmpt<<<1,TPB>>>(start_mask+ptr_table[blockIdx.x]+tid*blockDim.x, compct_start+ptr_table[blockIdx.x]+tid*blockDim.x,dym_size);
+        Prefix_Scan_Cmpt<<<1,TPB>>>(start_mask+ptr_table[blockIdx.x]+tid*blockDim.x, compct_start+ptr_table[blockIdx.x]+tid*blockDim.x,dym_size,tid);
     }
+    __syncthreads();
+    /*Now, we have partial sums, we need to find the final value of each accumulated sum*/
+    /*How do we do this..... SUBLIME!*/
     
 }
 
-__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size){
+__global__ void scan_end_mask(unsigned int* end_mask, unsigned* compct_end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    extern __shared__ unsigned int local_start_mask[];
+    extern __shared__ unsigned int local_compct_start[];
+    //We need to use global memory if we intend to use dynamic parallelism, so we need to copy the data over
+    /*Now, we can execute the exclusive scan- issue will be that this will be larger than the size of a thread block
+    Can we use dynamic parallelism in order to compute partial sums to then acquire a final sum?*/
+    int num_of_blocks = (ctr_table[blockIdx.x]/blockDim.x)+1;
+    if(tid<num_of_blocks){
+        int dym_size=(tid==num_of_blocks-1)?(ctr_table[blockIdx.x]-tid*blockDim.x):(blockDim.x);
+        Prefix_Scan_Cmpt<<<1,TPB>>>(end_mask+ptr_table[blockIdx.x]+tid*blockDim.x, compct_end+ptr_table[blockIdx.x]+tid*blockDim.x,dym_size,tid);
+    }
+    __syncthreads();
+    /*Now, we have partial sums, we need to find the final value of each accumulated sum*/
+    /*How do we do this..... SUBLIME!*/
+
+}
+
+__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size, unsigned int block){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     __shared__ unsigned int local_cmpt[TPB];
-    if(tid<BLOCKS && tid!=0){
-        local_cmpt[tid]=mask[tid-1];
+    if(block==0){
+        if(tid<size && tid!=0){
+            local_cmpt[tid]=mask[tid-1];
+        }
+        else{
+            local_cmpt[tid]=0;
+        }
     }
     else{
-        local_cmpt[tid]=0;
+        if(tid<size){
+            local_cmpt[tid]=mask[tid];
+        }
+
     }
     __syncthreads();
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){

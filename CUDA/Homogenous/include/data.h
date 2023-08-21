@@ -97,4 +97,6 @@ __global__ void scan_start_mask(unsigned int* start_mask, unsigned* compct_start
 
 __global__ void scan_end_mask(unsigned int* start_mask, unsigned* compct_start, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
 
-__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size);
+__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size, unsigned int block);
+
+__global__ void scan_end_mask(unsigned int* end_mask, unsigned* compct_end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
