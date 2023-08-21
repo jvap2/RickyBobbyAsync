@@ -982,7 +982,10 @@ __global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, un
 __global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, unsigned int* in, unsigned int* new_idx, unsigned int* out){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    
+    for(int i=tid; i<*new_size;i+=blockDim.x){
+        out[i]=in[cmpt[i]];
+        new_idx[i]=cmpt[i+1]-cmpt[i];
+    }   
 }
 
 
