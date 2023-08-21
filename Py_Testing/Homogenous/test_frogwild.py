@@ -2,6 +2,8 @@ import polars as pl
 import os
 import sys
 import numpy as np
+import cugraph as cg
+import cudf
 
 
 global clusters
@@ -212,13 +214,15 @@ def FrogWild(c,K,src, succ, src_cluster,succ_cluster, succ_hash, no_nodes, itera
     for clust in range(clusters):
         for i, val in enumerate(K[clust]):
             c[clust][i]+=val
-    global_c=[0]*no_nodes
-    for clust in range(clusters):
-        for i,val in enumerate(c[clust]):
-            global_c[succ_hash[clust][i]]+=val
     return c
 
-
+def com_final_pr(clust_c, no_nodes, hash_table):
+    global_c=[0]*no_nodes
+    for clust in range(clusters):
+        print("CLUSTER: ", clust)
+        for i,val in enumerate(hash_table[clust].keys()):
+            global_c[val]+=clust_c[clust][i]
+    return global_c
 
 if __name__ == "__main__":
 
@@ -275,5 +279,14 @@ if __name__ == "__main__":
 
 
 
-    C= FrogWild(clust_c,clust_k,src, succ, sub_src,sub_succ,hash_table,no_nodes,10)
-    print(C)
+    C= FrogWild(clust_c,clust_k,src, succ, sub_src,sub_succ,hash_table,no_nodes,20)
+    global_c = com_final_pr(C, no_nodes, hash_table)
+    print(global_c)
+    vert_rank = np.argsort(global_c)
+    print(vert_rank)
+    df_edge=cudf.read_csv(os.path.join(os.getcwd()[:-21],"Data/Homogenous/rand/rand_net.csv"))
+
+    cgraph = cg.from_cudf_edgelist(df_edge, source='from', destination='to', renumber=True)
+    pr = cg.pagerank(cgraph)['vertex'].to_pandas().to_numpy()
+    print(pr)
+    

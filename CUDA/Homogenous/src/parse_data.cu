@@ -782,6 +782,49 @@ unsigned int size, unsigned int iter){
 }
 
 
+__global__ void gen_backward_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    extern __shared__ unsigned long int start[];
+    extern __shared__ unsigned long int end[];
+    extern __shared__ unsigned int start_back_mask[];
+    extern __shared__ unsigned int end_back_mask[];
+    if(idx<size){
+        //Check that the ctr table is doing what we want
+        for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
+            start[i]=edgelist[ptr_table[blockIdx.x]+i].start;
+            end[i]=edgelist[ptr_table[blockIdx.x]+i].end;
+        }
+    }
+    __syncthreads();
+    if(idx<size){
+        /*Now, we need to generate the hash values*/
+        /*We will utilize run length encoding to find the unique values*/
+        for(int i = tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
+            if(i==0){
+                start_back_mask[i]=1;
+                end_back_mask[i]=1;
+            }
+            else{
+                if(start[i]!=start[i-1]){
+                    start_back_mask[i]=1;
+                }
+                else{
+                    start_back_mask[i]=0;
+                }
+                if(end[i]!=end[i-1]){
+                    end_back_mask[i]=1;
+                }
+                else{
+                    end_back_mask[i]=0;
+                }
+            }
+        }
+    }
+    __syncthreads();
+    /*We have the mask, now, we must perform an exclusive scan in a subsequent kernel*/
+}
+
 __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned int* table, unsigned int k){
     unsigned int idx=threadIdx.x + (blockIdx.x*blockDim.x);
     unsigned int tid = threadIdx.x;

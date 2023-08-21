@@ -30,6 +30,11 @@ struct edge{
     unsigned long int cluster;
 };
 
+struct vert_hash_table{
+    unsigned long int local_vert;
+    unsigned long int global_vert;
+};
+
 __host__ void Check_Out_csv_edge(edge* edge_list, int size);
 
 __host__ void return_edge_list(string path, edge* arr);
@@ -60,7 +65,7 @@ __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned long int* tabl
 
 __global__ void Random_Edge_Placement(edge *edges, double rand_num);
 
-__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr);
+__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num);
 
 __global__ void fin_exclusive_scan(unsigned long int* bits_3, unsigned long int size);
 
@@ -83,3 +88,6 @@ unsigned int size, unsigned int iter);
 __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc);
 
 __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned int* table, unsigned int k);
+
+__global__ void gen_backward_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
+
