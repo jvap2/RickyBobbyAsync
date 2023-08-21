@@ -857,8 +857,6 @@ __global__ void gen_backward_end_mask(edge* edgelist, unsigned int* ptr_table, u
 __global__ void scan_start_mask(unsigned int* start_mask, unsigned* compct_start, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    extern __shared__ unsigned int local_start_mask[];
-    extern __shared__ unsigned int local_compct_start[];
     //We need to use global memory if we intend to use dynamic parallelism, so we need to copy the data over
     /*Now, we can execute the exclusive scan- issue will be that this will be larger than the size of a thread block
     Can we use dynamic parallelism in order to compute partial sums to then acquire a final sum?*/
@@ -892,8 +890,6 @@ __global__ void scan_start_mask(unsigned int* start_mask, unsigned* compct_start
 __global__ void scan_end_mask(unsigned int* end_mask, unsigned* compct_end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    extern __shared__ unsigned int local_start_mask[];
-    extern __shared__ unsigned int local_compct_start[];
     //We need to use global memory if we intend to use dynamic parallelism, so we need to copy the data over
     /*Now, we can execute the exclusive scan- issue will be that this will be larger than the size of a thread block
     Can we use dynamic parallelism in order to compute partial sums to then acquire a final sum?*/
@@ -921,6 +917,7 @@ __global__ void scan_end_mask(unsigned int* end_mask, unsigned* compct_end, unsi
         int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
         final_scan_commit<<<1,TPB>>>(compct_end+ptr_table[blockIdx.x]+tid*blockDim.x,end_vals, dym_size);
     }
+    ///Now, we should have the compacted start and end masks
 
 }
 
@@ -958,6 +955,34 @@ __global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigne
         cmpt[idx]=local_cmpt[tid];
     }
     __syncthreads();
+}
+
+
+/*CHECK THIS*/
+
+__global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, unsigned int* mask, unsigned int* new_size, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    if(idx<size){
+        for(int i = tid; i<size;i+=blockDim.x){
+            if(i==0){
+                cmpt[i]=0;
+            }
+            if(i==size-1){
+                cmpt[scanned[i]]=i+1;
+                *new_size=scanned[i];
+            }
+            else if(scanned[i]!=scanned[i-1]){
+                cmpt[scanned[i]]=i;
+            }
+        }
+    }
+}
+
+__global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, unsigned int* in, unsigned int* new_idx, unsigned int* out){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    
 }
 
 
