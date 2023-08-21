@@ -120,9 +120,13 @@ def FrogWild(c,K,src_cluster,succ_cluster, succ_hash, no_nodes, iterations):
     for clust in range(clusters):
         for i,val in enumerate(K[clust]):
             if val==1:
-                c[clust][succ_hash[clust][val]]+=1
-                K[clust][succ_hash[clust][val]]=0
-                if succ_hash[clust][i] in succ_hash[clust]:
+                '''Ok- what do we want to do here? 
+                We need to find a way to send frogs neighboring nodes, but we need to do this in a way that is efficient'''
+                '''We also need to find a way to emulate this chance synchronization with the master to send x number of frogs across edges 
+                incident to a a mirror of vertex i'''
+                '''But How? Not certain- SUBLIME!'''
+                if succ_hash[clust][i]<len(src_cluster[clust])-1:
+                    print(succ_hash[clust][i])
                     for j in range(src_cluster[clust][succ_hash[clust][i]],src_cluster[clust][succ_hash[clust][i]+1]):
                         K[clust][succ_cluster[clust][j]]=1
     for i in range(iterations): 
