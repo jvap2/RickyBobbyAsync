@@ -142,9 +142,18 @@ def FrogWild(c,K,src, succ, src_cluster,succ_cluster, succ_hash, no_nodes, itera
                         '''We need to use the hash table to locate the global address and send the value to the correct cluster'''
                         '''We need to find the global address of the node'''
                         global_address = succ_hash[clust][i]
-                        print(src[global_address:global_address+1])
                         '''We need to find the cluster(s) that the node is in'''
                         non_local_succ = succ[src[global_address]:src[global_address+1]]
+                        if len(non_local_succ)>1:
+                            location = np.random.randint(non_local_succ[0], non_local_succ[-1])
+                        else:
+                            location = non_local_succ[0]
+                        '''We have a location for the successor'''
+                        '''We need to find the cluster that the successor is in'''
+                        for clust_2 in range(clusters):
+                            if location in succ_hash[clust_2]:
+                                K[clust_2][succ_cluster[clust_2][succ_hash[clust_2][location]]]=1
+                                active_clusters[clust_2]=1
 
     for i in range(iterations): 
         Gather(c,K,src_cluster,succ_cluster)
