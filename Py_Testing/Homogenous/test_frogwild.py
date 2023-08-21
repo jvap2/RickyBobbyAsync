@@ -40,12 +40,12 @@ def Random_Edge_Placement(i):
 
 def Gen_CSR(edge_list, no_nodes, no_edges):
     # edge_list=edge_list[edge_list[:,0].argsort()]
-    src = np.zeros(shape=no_nodes+1)
-    succ = np.zeros(shape=no_edges)
+    src = np.zeros(shape=no_nodes+1, dtype='int32')
+    succ = np.zeros(shape=no_edges, dtype='int32')
     for i,e in enumerate(edge_list):
         src[e[0]]+=1
         succ[i]=e[1]
-    src_hold=np.zeros(shape=no_nodes+1)
+    src_hold=np.zeros(shape=no_nodes+1, dtype='int32')
     src_hold[1:]=src[:-1]
     src=src_hold
     for i in range(1,len(src)):
@@ -142,6 +142,9 @@ def FrogWild(c,K,src, succ, src_cluster,succ_cluster, succ_hash, no_nodes, itera
                         '''We need to use the hash table to locate the global address and send the value to the correct cluster'''
                         '''We need to find the global address of the node'''
                         global_address = succ_hash[clust][i]
+                        print(src[global_address:global_address+1])
+                        '''We need to find the cluster(s) that the node is in'''
+                        non_local_succ = succ[src[global_address]:src[global_address+1]]
 
     for i in range(iterations): 
         Gather(c,K,src_cluster,succ_cluster)
