@@ -99,8 +99,15 @@ def init_1(no_nodes):
     init_pos=np.random.randint(0,no_nodes, size=int(no_nodes/2))
     return init_pos
 
-def Gather(c,K,src_cluster,succ_cluster):
-    pass
+def Gather(c,K):
+    for clust in range(clusters):
+        for i, val in enumerate(K[clust]):
+                '''We need to simulate the dying of frogs'''
+                if K[clust][i]>0:
+                    liv = np.random.randint(0,1)
+                    if liv<=.15:
+                        K[clust][i]-=1
+                c[clust][i]+=val
 
 def Apply(c,K,src_cluster,succ_cluster):
     pass
@@ -117,7 +124,7 @@ def FrogWild(c,K,src, succ, src_cluster,succ_cluster, succ_hash, no_nodes, itera
     for i in init_pos:
         for clust in range(clusters):
             if i in succ_hash[clust]:
-                K[clust][succ_hash[clust][i]]=1
+                K[clust][succ_hash[clust][i]]=+1
                 active_clusters[clust]=1
     '''The frontier has now been defined, now we need to first gather the values from the frontier, and evaluate where the frogs will jump to next'''
     '''This is now the scatter portion of the algorithm'''
@@ -126,37 +133,42 @@ def FrogWild(c,K,src, succ, src_cluster,succ_cluster, succ_hash, no_nodes, itera
         if active_clusters[clust]==1:
             '''We have nodes here which are active'''
             for i, val in enumerate(K[clust]):
-                if val==1:
-                    '''We have an active node'''
-                    c[clust][i]+=1
-                    '''We have incremented the counter for the node in the cluster'''
-                    '''We need to find successors within the cluster'''
-                    if i<len(src_cluster[clust])-1:
-                        '''We have successors'''
-                        num_local_neigh = src_cluster[clust][i+1]-src_cluster[clust][i]
-                        location = np.random.randint(0,num_local_neigh)
-                        '''We have a location for the successor'''
-                        K[clust][succ_cluster[clust][src_cluster[clust][i]+location]]=1
-                    else:
-                        '''Successors are in a different cluster'''
-                        '''We need to use the hash table to locate the global address and send the value to the correct cluster'''
-                        '''We need to find the global address of the node'''
-                        global_address = succ_hash[clust][i]
-                        '''We need to find the cluster(s) that the node is in'''
-                        non_local_succ = succ[src[global_address]:src[global_address+1]]
-                        if len(non_local_succ)>1:
-                            location = np.random.randint(non_local_succ[0], non_local_succ[-1])
-                        else:
-                            location = non_local_succ[0]
-                        '''We have a location for the successor'''
-                        '''We need to find the cluster that the successor is in'''
+                '''We have an active node'''
+                c[clust][i]+=val
+                '''We have incremented the counter for the node in the cluster'''
+                '''We need to find successors within the cluster'''
+                if i<len(src_cluster[clust])-1:
+                    '''We have successors locally'''
+                    num_local_neigh = src_cluster[clust][i+1]-src_cluster[clust][i]
+                    location = np.random.randint(0,num_local_neigh, size=val)
+                    '''We have a location for the successor'''
+                    for l in location:
+                        K[clust][succ_cluster[clust][src_cluster[clust][i]+l]]+=1
+                else:
+                    '''Successors are in a different cluster'''
+                    '''We need to use the hash table to locate the global address and send the value to the correct cluster'''
+                    '''We need to find the global address of the node'''
+                    global_address = succ_hash[clust][i]
+                    '''We need to find the cluster(s) that the node is in'''
+                    non_local_succ = succ[src[global_address]:src[global_address+1]]
+                    if len(non_local_succ)>1:
+                        location = np.random.randint(non_local_succ[0], non_local_succ[-1], size=val)
                         for clust_2 in range(clusters):
-                            if location in succ_hash[clust_2]:
-                                K[clust_2][succ_cluster[clust_2][succ_hash[clust_2][location]]]=1
-                                active_clusters[clust_2]=1
+                            for l in location:
+                                if l in succ_hash[clust_2]:
+                                    K[clust_2][succ_cluster[clust_2][succ_hash[clust_2][l]]]+=1
+                                    active_clusters[clust_2]=1
+                    else:
+                        location = non_local_succ[0]
+                        for clust_2 in range(clusters):
+                                if location in succ_hash[clust_2]:
+                                    K[clust_2][succ_cluster[clust_2][succ_hash[clust_2][location]]]+=1
+                                    active_clusters[clust_2]=1
+                    '''We have a location for the successor'''
+                    '''We need to find the cluster that the successor is in'''
 
     for i in range(iterations): 
-        Gather(c,K,src_cluster,succ_cluster)
+        Gather(c,K)
         Apply(c,K,src_cluster,succ_cluster)
         Scatter(c,K,src_cluster,succ_cluster)
     return c
