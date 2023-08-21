@@ -112,8 +112,45 @@ def Gather(c,K):
 def Apply(c,K,src_cluster,succ_cluster):
     pass
 
-def Scatter(c,K,src_cluster,succ_cluster):
-    pass
+def Scatter(c,K,src_cluster,succ_cluster,succ_hash,src,succ,active_clusters):
+    for clust in range(clusters):
+        '''We are going to iterate throught the clusters and then find the active nodes'''
+        if active_clusters[clust]==1:
+            '''We have nodes here which are active'''
+            for i, val in enumerate(K[clust]):
+                '''We have an active node'''
+                c[clust][i]+=val
+                '''We have incremented the counter for the node in the cluster'''
+                '''We need to find successors within the cluster'''
+                if i<len(src_cluster[clust])-1:
+                    '''We have successors locally'''
+                    num_local_neigh = src_cluster[clust][i+1]-src_cluster[clust][i]
+                    location = np.random.randint(0,num_local_neigh, size=val)
+                    '''We have a location for the successor'''
+                    for l in location:
+                        K[clust][succ_cluster[clust][src_cluster[clust][i]+l]]+=1
+                else:
+                    '''Successors are in a different cluster'''
+                    '''We need to use the hash table to locate the global address and send the value to the correct cluster'''
+                    '''We need to find the global address of the node'''
+                    global_address = succ_hash[clust][i]
+                    '''We need to find the cluster(s) that the node is in'''
+                    non_local_succ = succ[src[global_address]:src[global_address+1]]
+                    if len(non_local_succ)>1:
+                        location = np.random.randint(non_local_succ[0], non_local_succ[-1], size=val)
+                        for clust_2 in range(clusters):
+                            for l in location:
+                                if l in succ_hash[clust_2]:
+                                    K[clust_2][succ_cluster[clust_2][succ_hash[clust_2][l]]]+=1
+                                    active_clusters[clust_2]=1
+                    else:
+                        location = non_local_succ[0]
+                        for clust_2 in range(clusters):
+                                if location in succ_hash[clust_2]:
+                                    K[clust_2][succ_cluster[clust_2][succ_hash[clust_2][location]]]+=1
+                                    active_clusters[clust_2]=1
+                    '''We have a location for the successor'''
+                    '''We need to find the cluster that the successor is in'''
 
 def FrogWild(c,K,src, succ, src_cluster,succ_cluster, succ_hash, no_nodes, iterations):
     init_pos=np.unique(init_1(no_nodes))
@@ -170,7 +207,15 @@ def FrogWild(c,K,src, succ, src_cluster,succ_cluster, succ_hash, no_nodes, itera
     for i in range(iterations): 
         Gather(c,K)
         Apply(c,K,src_cluster,succ_cluster)
-        Scatter(c,K,src_cluster,succ_cluster)
+        Scatter(c,K,src_cluster,succ_cluster,succ_hash,src,succ,active_clusters)
+    '''We need to return the values of c for each cluster'''
+    for clust in range(clusters):
+        for i, val in enumerate(K[clust]):
+            c[clust][i]+=val
+    global_c=[0]*no_nodes
+    for clust in range(clusters):
+        for i,val in enumerate(c[clust]):
+            global_c[succ_hash[clust][i]]+=val
     return c
 
 
@@ -230,4 +275,5 @@ if __name__ == "__main__":
 
 
 
-    FrogWild(clust_c,clust_k,src, succ, sub_src,sub_succ,hash_table,no_nodes,10)
+    C= FrogWild(clust_c,clust_k,src, succ, sub_src,sub_succ,hash_table,no_nodes,10)
+    print(C)
