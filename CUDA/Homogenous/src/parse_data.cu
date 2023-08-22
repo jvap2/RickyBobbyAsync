@@ -99,7 +99,7 @@ __host__ void return_edge_list(string path, edge* arr){
 }
 
 
-__host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_size, unsigned int* src_ptr, unsigned int* succ){
+__host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_size, unsigned int* src_ptr, unsigned int* succ, unsigned int* deg_arr){
     ifstream data;
     data.open(path);
     string line,word;
@@ -425,13 +425,13 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num){
 
 }
 /*CHECK THIS ONE- MAKE SURE THE CSR FORMAT IS PROPER*/
-__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num){
+__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num, unsigned int size){
     unsigned int idx= threadIdx.x+blockDim.x*blockIdx.x;
-    if(idx<EDGES){
+    if(idx<size){
         unsigned int start = edges[idx].start;
         unsigned int end = edges[idx].end;
-        unsigned int deg_start = deg_arr[start+1]-deg_arr[start];
-        unsigned int deg_end = deg_arr[end+1]-deg_arr[end];
+        unsigned int deg_start = deg_arr[start];
+        unsigned int deg_end = deg_arr[end];
         unsigned int v_hash = (deg_start>deg_end)?start:end;
         double intpart;
         double mod_part = modf(v_hash*rand_num, &intpart);
@@ -853,7 +853,7 @@ __global__ void Find_Max_Cluster(unsigned int* ctr_table, unsigned int* max_val)
         __syncthreads();
         unsigned int temp;
         if(tid>=stride && (tid + 1)%(stride*2)==0){
-            temp=local_max[tid]+local_max[tid-stride];
+            temp=(local_max[tid]>local_max[tid-stride])?local_max[tid]:local_max[tid-stride];
         }
         __syncthreads();
         if(tid>=stride && (tid + 1)%(stride*2)==0){
@@ -868,7 +868,7 @@ __global__ void Find_Max_Cluster(unsigned int* ctr_table, unsigned int* max_val)
 
 
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int size, unsigned int node_size){
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;
@@ -881,21 +881,24 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     cout<<"Num of blocks "<<blocks_per_grid<<endl;
     unsigned int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
     cout<<"Second amount of blocks "<< ex_block_pg <<endl;
-    
+    cout<<"Allocating d_edge"<<endl;
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
     }
+    cout<<"Copying edge list"<<endl;
     if(!HandleCUDAError(cudaMemcpy(d_edge,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
         cout<<"Unable to copy cluster data"<<endl;
     }
-    unsigned int *d_src_ptr, *d_succ;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, node_size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for src_ptr"<<endl;
-    }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_succ, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for succ"<<endl;
-    }
+    cout<<"Done with edge list"<<endl;
+    // unsigned int *d_src_ptr, *d_succ;
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, node_size*sizeof(unsigned int)))){
+    //     cout<<"Unable to allocate memory for src_ptr"<<endl;
+    // }
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_succ, size*sizeof(unsigned int)))){
+    //     cout<<"Unable to allocate memory for succ"<<endl;
+    // }
 
+    unsigned int* d_degree;
     unsigned int* d_hist;
     unsigned int* dev_fin_hist;
     unsigned int* dev_fin_count;
@@ -939,8 +942,14 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMalloc((void**)&dev_fin_count, BLOCKS*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for histogram"<<endl;
     }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_degree, node_size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for degree"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(d_degree,h_deg,node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+        cout<<"Unable to copy degree data"<<endl;
+    }
     double r = ((double) rand() / (RAND_MAX));
-    Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_src_ptr, r);
+    Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_degree, r,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     }
@@ -963,6 +972,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMemcpy(h_max_val,max_val,sizeof(unsigned int), cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy max val"<<endl;
     }
+    HandleCUDAError(cudaFree(max_val));
     HandleCUDAError(cudaFree(d_hist));
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge_2, size*sizeof(edge)))){
         cout<<"Unable to allocate memory for vertex data"<<endl;
@@ -1016,7 +1026,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
         }
     }
     else{
-        for(unsigned int i=0; i<32;i++){
+        for(unsigned int i=0; i<(unsigned int)log2(double(BLOCKS));i++){
             Sort_Cluster<<<blocks_per_grid,threads_per_block>>>(d_edge,d_table,size,i);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Unable to synchronize with host with Sort Cluster"<<endl;
@@ -1039,8 +1049,17 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     HandleCUDAError(cudaFree(d_table));
     HandleCUDAError(cudaFree(d_table_2));
     HandleCUDAError(cudaFree(d_table_3));
-    // HandleCUDAError(cudaFree(dev_fin_hist));
-
+    
+    size_t free_byte ;
+    size_t total_byte ;
+    if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
+        cout<<"Unable to get memory info"<<endl;
+    }
+    double free_db = (double)free_byte ;
+    double total_db = (double)total_byte ;
+    double used_db = total_db - free_db ;
+    printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
+        used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
     //Now, we need to organize the vertex data
     int tpb_2 = 1024;
     cudaStream_t stream1, stream2;
@@ -1048,46 +1067,46 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     cudaStreamCreate(&stream2);
     //How do we get the shared memory for the 
     unsigned int *d_strt_mask, *d_end_mask;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_strt_mask, size*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMallocAsync((void**)&d_strt_mask, size*sizeof(unsigned int),stream1))){
         cout<<"Unable to allocate memory for start mask"<<endl;
     }
-    if(HandleCUDAError(cudaMalloc((void**)&d_end_mask, size*sizeof(unsigned int)))){
+    if(HandleCUDAError(cudaMallocAsync((void**)&d_end_mask, size*sizeof(unsigned int),stream2))){
         cout<<"Unable to allocate memory for end mask"<<endl;
     }
     unsigned int *d_cmpt_start, *d_cmpt_end;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt_start, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for start mask"<<endl;
+    if(!HandleCUDAError(cudaMallocAsync((void**)&d_cmpt_start, size*sizeof(unsigned int),stream1))){
+        cout<<"Unable to allocate memory for start compt"<<endl;
     }
-    if(HandleCUDAError(cudaMalloc((void**)&d_cmpt_end, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for end mask"<<endl;
+    if(HandleCUDAError(cudaMallocAsync((void**)&d_cmpt_end, size*sizeof(unsigned int),stream2))){
+        cout<<"Unable to allocate memory for end compt"<<endl;
     }
     unsigned int *d_scan_start, *d_scan_end;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_scan_start, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for start mask"<<endl;
+    if(!HandleCUDAError(cudaMallocAsync((void**)&d_scan_start, size*sizeof(unsigned int),stream1))){
+        cout<<"Unable to allocate memory for start scan"<<endl;
     }
-    if(HandleCUDAError(cudaMalloc((void**)&d_scan_end, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for end mask"<<endl;
+    if(HandleCUDAError(cudaMallocAsync((void**)&d_scan_end, size*sizeof(unsigned int),stream2))){
+        cout<<"Unable to allocate memory for end scan"<<endl;
     }
     unsigned int *d_len_start,*d_len_end;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt_start, BLOCKS*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_start, BLOCKS*sizeof(unsigned int),stream1))){
         cout<<"Unable to allocate memory for start mask"<<endl;
     }
-    if(HandleCUDAError(cudaMalloc((void**)&d_cmpt_end, BLOCKS*sizeof(unsigned int)))){
+    if(HandleCUDAError(cudaMallocAsync((void**)&d_len_end, BLOCKS*sizeof(unsigned int),stream2))){
         cout<<"Unable to allocate memory for end mask"<<endl;
     }
     unsigned int *d_idx_start, *d_idx_end;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_idx_start, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for start mask"<<endl;
+    if(!HandleCUDAError(cudaMallocAsync((void**)&d_idx_start, size*sizeof(unsigned int),stream1))){
+        cout<<"Unable to allocate memory for start idx"<<endl;
     }
-    if(HandleCUDAError(cudaMalloc((void**)&d_idx_end, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for end mask"<<endl;
+    if(HandleCUDAError(cudaMallocAsync((void**)&d_idx_end, size*sizeof(unsigned int),stream2))){
+        cout<<"Unable to allocate memory for end idx"<<endl;
     }
     unsigned int *d_unique_start, *d_unique_end;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_idx_start, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for start mask"<<endl;
+    if(!HandleCUDAError(cudaMallocAsync((void**)&d_unique_start, size*sizeof(unsigned int),stream1))){
+        cout<<"Unable to allocate memory for start unique"<<endl;
     }
-    if(HandleCUDAError(cudaMalloc((void**)&d_idx_end, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for end mask"<<endl;
+    if(HandleCUDAError(cudaMallocAsync((void**)&d_unique_end, size*sizeof(unsigned int),stream2))){
+        cout<<"Unable to allocate memory for end unique"<<endl;
     }
     gen_backward_start_mask<<<BLOCKS,tpb_2,(*h_max_val)*sizeof(unsigned int),stream1>>>(d_edge,dev_fin_count,dev_fin_hist,d_strt_mask,size);
     if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
@@ -1123,20 +1142,20 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
         cout<<"Unable to synchronize with host for end mask"<<endl;
     }
+    HandleCUDAError(cudaFreeAsync(d_end_mask,stream2));
+    HandleCUDAError(cudaFreeAsync(d_cmpt_start,stream1));
+    HandleCUDAError(cudaFreeAsync(d_cmpt_end,stream2));
+    HandleCUDAError(cudaFreeAsync(d_scan_start,stream1));
+    HandleCUDAError(cudaFreeAsync(d_scan_end,stream2));
+    HandleCUDAError(cudaFreeAsync(d_len_start,stream1));
+    HandleCUDAError(cudaFreeAsync(d_len_end,stream2));
+
     if(!HandleCUDAError(cudaStreamDestroy(stream1))){
         cout<<"Unable to destroy stream 1"<<endl;
     }
     if(!HandleCUDAError(cudaStreamDestroy(stream2))){
         cout<<"Unable to destroy stream 1"<<endl;
     }
-    HandleCUDAError(cudaFree(d_strt_mask));
-    HandleCUDAError(cudaFree(d_end_mask));
-    HandleCUDAError(cudaFree(d_cmpt_start));
-    HandleCUDAError(cudaFree(d_cmpt_end));
-    HandleCUDAError(cudaFree(d_scan_start));
-    HandleCUDAError(cudaFree(d_scan_end));
-    HandleCUDAError(cudaFree(d_len_start));
-    HandleCUDAError(cudaFree(d_len_end));
     //Now, we need to perform the scatter
     //Need to alter the Final Compact
     // if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
@@ -1173,8 +1192,8 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     HandleCUDAError(cudaFree(d_edge));
     // HandleCUDAError(cudaFree(d_frog_init));
     // HandleCUDAError(cudaFree(d_frogs));
-    HandleCUDAError(cudaFree(d_src_ptr));
-    HandleCUDAError(cudaFree(d_succ));
+    // HandleCUDAError(cudaFree(d_src_ptr));
+    // HandleCUDAError(cudaFree(d_succ));
     // HandleCUDAError(cudaFree(d_c));
     HandleCUDAError(cudaDeviceReset());   
 }

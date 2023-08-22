@@ -41,7 +41,7 @@ __host__ void return_edge_list(string path, edge* arr);
 
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size);
 
-__host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_size, unsigned int* src_ptr, unsigned int* succ);
+__host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_size, unsigned int* src_ptr, unsigned int* succ, unsigned int* deg_arr);
 
 __host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edges);
 
@@ -59,13 +59,13 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, uns
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int size, unsigned int node_size);
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size);
 
 __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, unsigned int* table_2, long int size, unsigned int iter);
 
 __global__ void Random_Edge_Placement(edge *edges, double rand_num);
 
-__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num);
+__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num, unsigned int size);
 
 __global__ void fin_exclusive_scan(unsigned int* bits_3, unsigned int size);
 
