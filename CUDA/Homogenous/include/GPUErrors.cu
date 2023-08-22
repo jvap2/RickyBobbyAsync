@@ -4,7 +4,8 @@ bool HandleCUDAError(cudaError_t t)
 {
 	if (t != cudaSuccess)
 	{
-		cout << cudaGetErrorString(cudaGetLastError());//This will get the string of the error for blocking error
+		cout << cudaGetErrorString(cudaGetLastError())<<endl;//This will get the string of the error for blocking error
+		cout<<t<<endl;
 		return false;
 	}
 	return true;
