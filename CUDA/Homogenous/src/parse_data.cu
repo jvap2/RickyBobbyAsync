@@ -1206,36 +1206,44 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     /*Then, we can generate a hash table corresponding to the global address of the value and commence
     SUBLIME*/
 
-    //Now, we need to perform the scatter
-    //Need to alter the Final Compact
-    // if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
-    //     cout<<"Unable to copy back edge data"<<endl;
-    // }
-    // unsigned int *d_c;
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for c"<<endl;
-    // }
 
-    // float* d_frog_init;
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_frog_init, (node_size/20)*sizeof(float)))){
-    //     cout<<"Unable to allocate memory for frog_init"<<endl;
-    // }
-    // unsigned int* d_frogs;
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_frogs, node_size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for frogs"<<endl;
-    // }
-    // curandGenerator_t gen;
-    // curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
-    // curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
-    // curandGenerateUniform(gen, d_frog_init, node_size/20);
-    // //Figure out exec config param
-    // unsigned int blocks_init_frog= (node_size/20)/TPB+1;
-    // First_Init<<<blocks_init_frog,TPB>>>(d_frog_init, d_frogs, node_size, size);
-    // if(!HandleCUDAError(cudaDeviceSynchronize())){
-    //     cout<<"Unable to synchronize with host for first init"<<endl;
-    // }
-    // cudaFuncSetAttribute(FrogWild, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
-    // int s_mem_size=0;
+    /*For the next step, this could be done quickly with a sort, then a comparision, that does not seem wise
+    for this implementation*/
+
+    /*We should make a small multithreaded kernel that goes through each of the start values and compares
+    Then at the end if the end value is equal to none of them, then append it*/
+
+    /*From this, we can then generate a local_src and local_succ*/
+    //Now, we need to perform the scatter
+
+    if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back edge data"<<endl;
+    }
+    unsigned int *d_c;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for c"<<endl;
+    }
+
+    float* d_frog_init;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_frog_init, (node_size/20)*sizeof(float)))){
+        cout<<"Unable to allocate memory for frog_init"<<endl;
+    }
+    unsigned int* d_frogs;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_frogs, node_size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for frogs"<<endl;
+    }
+    curandGenerator_t gen;
+    curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
+    curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
+    curandGenerateUniform(gen, d_frog_init, node_size/20);
+    //Figure out exec config param
+    unsigned int blocks_init_frog= (node_size/20)/TPB+1;
+    First_Init<<<blocks_init_frog,TPB>>>(d_frog_init, d_frogs, node_size, size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for first init"<<endl;
+    }
+    cudaFuncSetAttribute(FrogWild, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+    int s_mem_size=0;
 
 
 
