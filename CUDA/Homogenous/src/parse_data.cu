@@ -866,7 +866,32 @@ __global__ void Find_Max_Cluster(unsigned int* ctr_table, unsigned int* max_val)
     }
 }
 
-
+__global__ void unq_exclusive_scan(unsigned int* len, unsigned int* unq_ptr){
+    unsigned int tid=threadIdx.x;
+    unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
+    __shared__ unsigned int local_ptr_val[BLOCKS];
+    if(idx<BLOCKS && idx!=0){
+        local_ptr_val[tid]=len[idx-1];
+    }
+    else{
+        local_ptr_val[tid]=0;
+    }
+    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
+        __syncthreads();
+        unsigned int temp;
+        if(tid>=stride){
+            temp=local_ptr_val[tid]+local_ptr_val[tid-stride];
+        }
+        __syncthreads();
+        if(tid>=stride){
+            local_ptr_val[tid]=temp;
+        }
+    }
+    if(idx<BLOCKS){
+        unq_ptr[idx]=local_ptr_val[tid];
+    }
+    __syncthreads();
+}
 
 __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
@@ -1106,6 +1131,15 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
         cout<<"Unable to allocate memory for end mask"<<endl;
     }
 
+    unsigned int* d_len_ex_start, *d_len_ex_end;
+
+    if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_ex_start, BLOCKS*sizeof(unsigned int),stream1))){
+        cout<<"Unable to allocate memory for start len"<<endl;
+    }
+    if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_ex_end, BLOCKS*sizeof(unsigned int),stream2))){
+        cout<<"Unable to allocate memory for end mask"<<endl;
+    }
+
     unsigned int *d_idx_start, *d_idx_end;
 
     if(!HandleCUDAError(cudaMallocAsync((void**)&d_idx_start, size*sizeof(unsigned int),stream1))){
@@ -1182,6 +1216,24 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     HandleCUDAError(cudaFreeAsync(d_cmpt_end,stream2));
     HandleCUDAError(cudaFreeAsync(d_scan_end,stream2));
 
+    /*Find the ptr values to the start and end arrays*/
+    /*Now, we need to find the new size of the unique value array
+    This will include performing an exclusive scan of both the end and start cluster, then 
+    merge the two. Secondly, we need to ensure there are not replicated values in the start and end
+    With the current implementation, this is probable. We may need to iterate through these values again*/
+
+    unq_exclusive_scan<<<1,BLOCKS,0,stream1>>>(d_len_start,d_len_ex_start);
+
+    if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
+
+    unq_exclusive_scan<<<1,BLOCKS,0,stream2>>>(d_len_end,d_len_ex_end);
+
+    if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
+
     if(!HandleCUDAError(cudaStreamDestroy(stream1))){
         cout<<"Unable to destroy stream 1"<<endl;
     }
@@ -1199,10 +1251,6 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
         used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 
-    /*Now, we need to find the new size of the unique value array
-    This will include performing an exclusive scan of both the end and start cluster, then 
-    merge the two. Secondly, we need to ensure there are not replicated values in the start and end
-    With the current implementation, this is probable. We may need to iterate through these values again*/
     /*Then, we can generate a hash table corresponding to the global address of the value and commence
     SUBLIME*/
 
