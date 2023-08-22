@@ -893,6 +893,13 @@ __global__ void unq_exclusive_scan(unsigned int* len, unsigned int* unq_ptr){
     __syncthreads();
 }
 
+__global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr){
+    unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
+    if(idx<BLOCKS){
+        fin_ptr[idx]=start_ptr[idx]+end_ptr[idx];
+    }
+}
+
 __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
@@ -1221,6 +1228,8 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     This will include performing an exclusive scan of both the end and start cluster, then 
     merge the two. Secondly, we need to ensure there are not replicated values in the start and end
     With the current implementation, this is probable. We may need to iterate through these values again*/
+    /*Then, we can generate a hash table corresponding to the global address of the value and commence
+    SUBLIME*/
 
     unq_exclusive_scan<<<1,BLOCKS,0,stream1>>>(d_len_start,d_len_ex_start);
 
@@ -1242,6 +1251,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
         cout<<"Unable to destroy stream 1"<<endl;
     }
 
+    /*Now, we need to find the counts of everything in total*/
+
+
     if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
         cout<<"Unable to get memory info"<<endl;
     }
@@ -1250,9 +1262,6 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     used_db = total_db - free_db ;
     printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
         used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
-
-    /*Then, we can generate a hash table corresponding to the global address of the value and commence
-    SUBLIME*/
 
 
     /*For the next step, this could be done quickly with a sort, then a comparision, that does not seem wise
