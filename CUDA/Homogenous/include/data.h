@@ -108,3 +108,5 @@ __global__ void Find_Max_Cluster(unsigned int* ctr_table, unsigned int* max_val)
 __global__ void unq_exclusive_scan(unsigned int* len, unsigned int* unq_ptr);
 
 __global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr);
+
+__global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr);

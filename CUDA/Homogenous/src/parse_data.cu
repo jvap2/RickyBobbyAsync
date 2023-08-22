@@ -895,9 +895,34 @@ __global__ void unq_exclusive_scan(unsigned int* len, unsigned int* unq_ptr){
 
 __global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr){
     unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
+    unsigned int tid = threadIdx.x;
     if(idx<BLOCKS){
         fin_ptr[idx]=start_ptr[idx]+end_ptr[idx];
     }
+    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
+        __syncthreads();
+        unsigned int temp;
+        if(tid>=stride){
+            temp=fin_ptr[tid]+fin_ptr[tid-stride];
+        }
+        __syncthreads();
+        if(tid>=stride){
+            fin_ptr[tid]=temp;
+        }
+    }
+    if(idx==blockDim.x-1){
+        *fin_ptr=fin_ptr[tid];
+    }
+    __syncthreads();
+}
+
+__global__ void Find_Length_of_Unique(unsigned int* start_len, unsigned int* end_len, unsigned int* vector_length){
+    unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
+    __shared__ unsigned int local_size[BLOCKS];
+    if(idx<BLOCKS){
+        local_size[idx]=start_len[idx]+end_len[idx];
+    }
+
 }
 
 __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size){
@@ -1251,8 +1276,24 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
         cout<<"Unable to destroy stream 1"<<endl;
     }
 
-    /*Now, we need to find the counts of everything in total*/
 
+    unsigned int* init_unq_total_ptr;
+    if(!HandleCUDAError(cudaMalloc((void**)&init_unq_total_ptr, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for init unq total ptr"<<endl;
+    }
+    unsigned int* d_unique_vect_len;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_unique_vect_len, sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for unique vect len"<<endl;
+    }
+    /*Now, we need to find the counts of everything in total*/
+    Total_Unq_Ptr<<<1,BLOCKS>>>(d_len_ex_start,d_len_ex_end,init_unq_total_ptr);
+    cudaDeviceSynchronize();
+    Find_Length_of_Unique<<<1,BLOCKS>>>(d_len_start,d_len_end,d_unique_vect_len);
+    /*We need to find the length of the vector now*/
+    unsigned int h_unique_vect_len=0;
+    if(!HandleCUDAError(cudaMemcpy(&h_unique_vect_len,d_unique_vect_len,sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy unique vect len"<<endl;
+    }
 
     if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
         cout<<"Unable to get memory info"<<endl;
