@@ -101,4 +101,6 @@ __global__ void scan_end_mask(unsigned int* end_mask, unsigned* compct_end, unsi
 
 __global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, unsigned int* new_size, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
 
-__global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, unsigned int* in, unsigned int* new_idx, unsigned int* out);
+__global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, edge* edge_list, unsigned int* new_idx, unsigned int* out, int type);
+
+__global__ void Find_Max_Cluster(unsigned int* ctr_table, unsigned int* max_val);
