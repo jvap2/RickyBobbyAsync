@@ -11,8 +11,9 @@ using namespace std;
 #include <curand_kernel.h>
 #include "../include/GPUErrors.h"
 //Google
-#define EDGES 5105039
-#define NODES 875713
+#define BLOCKS 32
+// #define EDGES 5105039
+// #define NODES 875713
 #define MAX_NEIGHBORS 20
 // #define EDGE_PATH "../../Data/Homogenous/google/webGoogle.csv"
 // #define CLUSTER_PATH "../../Data/Homogenous/google/Cluster_Assignment.csv"
@@ -28,6 +29,7 @@ using namespace std;
 struct edge{
     unsigned int end, start;
     unsigned int cluster;
+    unsigned int local_end, local_start;
 };
 
 struct vert_hash_table{
@@ -38,7 +40,7 @@ struct vert_hash_table{
 struct replica_tracker{
     unsigned int clusters[BLOCKS];
     unsigned int num_replicas;
-}
+};
 
 __host__ void Check_Out_csv_edge(edge* edge_list, int size);
 
@@ -68,9 +70,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
 
 __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, unsigned int* table_2, long int size, unsigned int iter);
 
-__global__ void Random_Edge_Placement(edge *edges, double rand_num);
+__global__ void Random_Edge_Placement(edge *edges, double rand_num, unsigned int size);
 
-__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, replica_tracker* d_rep,double rand_num, unsigned int size);
+__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num, replica_tracker* d_rep, unsigned int size);
 
 __global__ void Finalize_Replica_Tracker(replica_tracker* d_rep, unsigned int node_size);
 

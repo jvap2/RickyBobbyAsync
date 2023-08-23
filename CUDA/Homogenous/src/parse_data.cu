@@ -78,10 +78,12 @@ __host__ void return_edge_list(string path, edge* arr){
                 else{
                     if(column==0){
                         arr[count-1].start=stoul(word);
+                        arr[count-1].local_start=0u;
                         column++;
                     }
                     else{
                         arr[count-1].end=stoul(word);
+                        arr[count-1].local_end=0u;
                         arr[count-1].cluster=0u;
                     }
                 }
@@ -410,7 +412,7 @@ __global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned int size){
 }
 
 
-__global__ void Random_Edge_Placement(edge *edges, double rand_num){
+__global__ void Random_Edge_Placement(edge *edges, double rand_num, unsigned int size){
     unsigned int idx= threadIdx.x+blockDim.x*blockIdx.x;
     __syncthreads();
     //Use multiplication hashing
@@ -418,7 +420,7 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num){
     double mod_part = modf(idx*rand_num, &intpart);
     unsigned int hash = (unsigned int)(BLOCKS*mod_part);
     //We now have the key, we need to sort
-    if(idx<EDGES){
+    if(idx<size){
         edges[idx].cluster=hash;
     }
     __syncthreads();
@@ -955,10 +957,6 @@ __global__ void Find_Length_of_Unique(unsigned int* start_len, unsigned int* end
 }
 
 
-__global__ void Naive_Merge_Start_End_Unique(){
-    
-}
-
 __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
@@ -1046,7 +1044,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     }
     double r = ((double) rand() / (RAND_MAX));
     cout<<"Starting random edge placement"<<endl;
-    Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_degree,d_tracker,r,size);
+    Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_degree,r,d_tracker,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     }
@@ -1400,4 +1398,34 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     // HandleCUDAError(cudaFree(d_succ));
     HandleCUDAError(cudaFree(d_c));
     HandleCUDAError(cudaDeviceReset());   
+}
+
+
+__device__ void merge_sequential(unsigned int* start, unsigned int* end, int m, int n, int* unq){
+    int i=0;
+    int j=0;
+    int k=0;
+    while(i<m && j<n){
+        if(start[i]<=end[j]){
+            unq[k]=start[i];
+            i++;
+            k++;
+        }
+        else{
+            unq[k]=end[j];
+            j++;
+            k++;
+        }
+    }
+    while(i<m){
+        unq[k]=start[i];
+        i++;
+        k++;
+    }
+    while(j<n){
+        unq[k]=end[j];
+        j++;
+        k++;
+    }
+    
 }
