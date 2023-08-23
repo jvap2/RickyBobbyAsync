@@ -925,6 +925,11 @@ __global__ void Find_Length_of_Unique(unsigned int* start_len, unsigned int* end
 
 }
 
+
+__global__ void Naive_Merge_Start_End_Unique(){
+    
+}
+
 __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
@@ -1298,6 +1303,11 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
         cout<<"Unable to get memory info"<<endl;
     }
+
+    unsigned int* unique_vector;
+    if(!HandleCUDAError(cudaMalloc((void**)&unique_vector, h_unique_vect_len*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for unique vector"<<endl;
+    }
     free_db = (double)free_byte ;
     total_db = (double)total_byte ;
     used_db = total_db - free_db ;
@@ -1346,10 +1356,10 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
 
 
     HandleCUDAError(cudaFree(d_edge));
-    // HandleCUDAError(cudaFree(d_frog_init));
-    // HandleCUDAError(cudaFree(d_frogs));
+    HandleCUDAError(cudaFree(d_frog_init));
+    HandleCUDAError(cudaFree(d_frogs));
     // HandleCUDAError(cudaFree(d_src_ptr));
     // HandleCUDAError(cudaFree(d_succ));
-    // HandleCUDAError(cudaFree(d_c));
+    HandleCUDAError(cudaFree(d_c));
     HandleCUDAError(cudaDeviceReset());   
 }

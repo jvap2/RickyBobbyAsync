@@ -35,6 +35,11 @@ struct vert_hash_table{
     unsigned int global_vert;
 };
 
+struct replica_tracker{
+    unsigned int vert_id;
+    unsigned int clusters[BLOCKS];
+}
+
 __host__ void Check_Out_csv_edge(edge* edge_list, int size);
 
 __host__ void return_edge_list(string path, edge* arr);
