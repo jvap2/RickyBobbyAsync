@@ -127,6 +127,6 @@ __global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, un
 
 /*DEVICE FUNCTIONS*/
 
-__device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k, int* unq);
+__device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);
 
-__device__ void merge_sequential(unsigned int* start, unsigned int* end, int m, int n, int* unq);
+__device__ void merge_sequential(unsigned int* start, unsigned int* end, int m, int n, unsigned int* unq);

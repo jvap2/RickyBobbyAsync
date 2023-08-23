@@ -957,6 +957,22 @@ __global__ void Find_Length_of_Unique(unsigned int* start_len, unsigned int* end
 }
 
 
+__global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* unq){
+    unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
+    unsigned int tid = threadIdx.x;
+    unsigned int* local_start=start+ptr_table[blockIdx.x];
+    unsigned int* local_end=end+ptr_table[blockIdx.x];
+    unsigned int* local_unq=unq+2*ptr_table[blockIdx.x];
+    unsigned int elem_per_thread = (2*ctr_table[blockIdx.x]/blockDim.x)+1;
+    unsigned int k_curr = tid*elem_per_thread; //Check that this makes sense
+    unsigned int k_next = (tid+1)*elem_per_thread<=2*ctr_table[blockIdx.x]?(tid+1)*elem_per_thread:2*ctr_table[blockIdx.x];
+    unsigned int i_curr =co_rank(local_start, local_end,ctr_table[blockIdx.x],ctr_table[blockIdx.x],k_curr);
+    unsigned int i_next =co_rank(local_start, local_end,ctr_table[blockIdx.x],ctr_table[blockIdx.x],k_next);
+    int j_curr = k_curr-i_curr;
+    int j_next = k_next-i_next;
+    merge_sequential(local_start+i_curr, local_end+j_curr, i_next-i_curr, j_next-j_curr,local_unq+k_curr);
+}
+
 __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
@@ -1401,7 +1417,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
 }
 
 
-__device__ void merge_sequential(unsigned int* start, unsigned int* end, int m, int n, int* unq){
+__device__ void merge_sequential(unsigned int* start, unsigned int* end, int m, int n, unsigned int* unq){
     int i=0;
     int j=0;
     int k=0;
@@ -1431,7 +1447,7 @@ __device__ void merge_sequential(unsigned int* start, unsigned int* end, int m, 
 }
 
 
-__device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k, int* unq){
+__device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k){
     int i = k<m ? k:m;
     int j = k-i;
     int i_low = 0>(k-n) ? 0: k-n;
