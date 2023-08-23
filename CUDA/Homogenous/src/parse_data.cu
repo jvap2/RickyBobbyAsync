@@ -1429,3 +1429,31 @@ __device__ void merge_sequential(unsigned int* start, unsigned int* end, int m, 
     }
     
 }
+
+
+__device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k, int* unq){
+    int i = k<m ? k:m;
+    int j = k-i;
+    int i_low = 0>(k-n) ? 0: k-n;
+    int j_low = 0>(k-m) ? 0: k-m;
+    int dlt;
+    bool done = false;
+    while(!done){
+        if(i>0 && j<n && start[i-1]>end[j]){
+            dlt = (i-i_low+1)/2;
+            j_low=j;
+            j=j+dlt;
+            i=i-dlt;
+        }
+        else if(j>0 && i<m && end[j-1]>=start[i]){
+            dlt = (j-j_low+1)/2;
+            i_low=i;
+            i=i+dlt;
+            j=j-dlt;
+        }
+        else{
+            done=true;
+        }
+    }
+    return i;
+}

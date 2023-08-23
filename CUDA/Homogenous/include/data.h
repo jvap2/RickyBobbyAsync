@@ -42,6 +42,8 @@ struct replica_tracker{
     unsigned int num_replicas;
 };
 
+/*CPU FUNCTIONS*/
+
 __host__ void Check_Out_csv_edge(edge* edge_list, int size);
 
 __host__ void return_edge_list(string path, edge* arr);
@@ -61,6 +63,8 @@ __host__ void cpu_countSort(edge* arr, int n, int exp);
 __host__ void cpu_radixsort(edge* arr, int n);
 
 __host__ void Check_Out_ptr(unsigned int* edge_list, int size);
+
+/*HELPER FUNCTION AND KERNELS*/
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
@@ -119,3 +123,10 @@ __global__ void unq_exclusive_scan(unsigned int* len, unsigned int* unq_ptr);
 __global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr);
 
 __global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr);
+
+
+/*DEVICE FUNCTIONS*/
+
+__device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k, int* unq);
+
+__device__ void merge_sequential(unsigned int* start, unsigned int* end, int m, int n, int* unq);
