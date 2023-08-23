@@ -424,8 +424,16 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num){
     __syncthreads();
 
 }
+
+__global__ void  Fill_Replica_Vert_Ids(replica_tracker* d_rep, unsigned int node_size){
+    int idx = threadIdx.x+blockDim.x*blockIdx.x;
+    if(idx<node_size){
+        d_rep[idx].vert_id=idx;
+    }
+}
+
 /*CHECK THIS ONE- MAKE SURE THE CSR FORMAT IS PROPER*/
-__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num, unsigned int size){
+__global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num, replica_tracker* d_rep, unsigned int size){
     unsigned int idx= threadIdx.x+blockDim.x*blockIdx.x;
     if(idx<size){
         unsigned int start = edges[idx].start;
@@ -437,6 +445,8 @@ __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, doubl
         double mod_part = modf(v_hash*rand_num, &intpart);
         unsigned int hash = (unsigned int)(BLOCKS*mod_part);
         edges[idx].cluster=hash;
+        //Now, we need to update the replica tracker
+
     }
 
 }
@@ -934,6 +944,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;
+    replica_tracker *d_tracker;
     unsigned int* d_table;
     unsigned int* d_table_2;
     unsigned int* d_table_3;
@@ -952,6 +963,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
         cout<<"Unable to copy cluster data"<<endl;
     }
     cout<<"Done with edge list"<<endl;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_tracker, node_size*sizeof(replica_tracker)))){
+        cout<<"Unable to allocate memory for tracker"<<endl;
+    }
     // unsigned int *d_src_ptr, *d_succ;
     // if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, node_size*sizeof(unsigned int)))){
     //     cout<<"Unable to allocate memory for src_ptr"<<endl;
@@ -1012,7 +1026,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     }
     double r = ((double) rand() / (RAND_MAX));
     cout<<"Starting random edge placement"<<endl;
-    Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_degree, r,size);
+    Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_degree,d_tracker,r,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     }
