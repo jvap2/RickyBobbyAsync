@@ -36,7 +36,6 @@ struct vert_hash_table{
 };
 
 struct replica_tracker{
-    unsigned int vert_id;
     unsigned int clusters[BLOCKS];
     unsigned int num_replicas;
 }
@@ -71,9 +70,9 @@ __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, un
 
 __global__ void Random_Edge_Placement(edge *edges, double rand_num);
 
-__global__ void  Fill_Replica_Vert_Ids(replica_tracker* d_rep, unsigned int node_size);
-
 __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, replica_tracker* d_rep,double rand_num, unsigned int size);
+
+__global__ void Finalize_Replica_Tracker(replica_tracker* d_rep, unsigned int node_size);
 
 __global__ void fin_exclusive_scan(unsigned int* bits_3, unsigned int size);
 

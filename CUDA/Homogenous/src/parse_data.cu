@@ -425,12 +425,6 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num){
 
 }
 
-__global__ void  Fill_Replica_Vert_Ids(replica_tracker* d_rep, unsigned int node_size){
-    int idx = threadIdx.x+blockDim.x*blockIdx.x;
-    if(idx<node_size){
-        d_rep[idx].vert_id=idx;
-    }
-}
 
 /*CHECK THIS ONE- MAKE SURE THE CSR FORMAT IS PROPER*/
 __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num, replica_tracker* d_rep, unsigned int size){
@@ -446,13 +440,38 @@ __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, doubl
         unsigned int hash = (unsigned int)(BLOCKS*mod_part);
         edges[idx].cluster=hash;
         //Now, we need to update the replica tracker
+        /*We are going to need to use some atomic form to be able to write correctly*/
+        atomicAdd(&d_rep[start].clusters[hash],1);
+        atomicAdd(&d_rep[end].clusters[hash],1);
 
     }
 
 }
 
 
+/*We will now need to reduce the d_rep stuff*/
 
+__global__ void Finalize_Replica_Tracker(replica_tracker* d_rep, unsigned int node_size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    __shared__ replica_tracker shared_rep[TPB];
+    if(idx<node_size){
+        shared_rep[tid]=d_rep[idx];
+    }
+    __syncthreads();
+    if(idx<node_size){
+        for(int i=0; i<BLOCKS; i++){
+            if(shared_rep[tid].clusters[i]>0){
+                shared_rep[tid].clusters[i]=1;
+                shared_rep[tid].num_replicas++;
+            }
+        }
+    }
+    __syncthreads();
+    if(idx<node_size){
+        d_rep[idx]=shared_rep[tid];
+    }
+}
 
 
 __global__ void Histogram_1(edge* edgelist, unsigned int* hist_bin, unsigned int size){
@@ -951,6 +970,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
 
     unsigned int threads_per_block=TPB;
     unsigned int blocks_per_grid= size/threads_per_block+1;
+    unsigned int blocks_per_grid_node = node_size/threads_per_block+1;
     cout<<"Num of blocks "<<blocks_per_grid<<endl;
     unsigned int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
     cout<<"Second amount of blocks "<< ex_block_pg <<endl;
@@ -1029,6 +1049,10 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_degree,d_tracker,r,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
+    }
+    Finalize_Replica_Tracker<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,node_size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host with Finalize_Replica_Tracker"<<endl;
     }
     Histogram_1<<<blocks_per_grid,threads_per_block>>>(d_edge,d_hist,size); 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
