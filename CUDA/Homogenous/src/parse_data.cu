@@ -973,6 +973,14 @@ __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigne
     merge_sequential(local_start+i_curr, local_end+j_curr, i_next-i_curr, j_next-j_curr,local_unq+k_curr);
 }
 
+__global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsigned int* end, unsigned int edge_size){
+    unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
+    if(idx<edge_size){
+        start[idx]=edge_list[idx].start;
+        end[idx]=edge_list[idx].end;
+    }
+}
+
 __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
@@ -1178,188 +1186,204 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
         used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
     //Now, we need to organize the vertex data
     int tpb_2 = 1024;
-    cudaStream_t stream1, stream2;
-    cudaStreamCreate(&stream1);
-    cudaStreamCreate(&stream2);
-    //How do we get the shared memory for the 
-    unsigned int *d_strt_mask, *d_end_mask;
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_strt_mask, size*sizeof(unsigned int),stream1))){
-        cout<<"Unable to allocate memory for start mask"<<endl;
+    unsigned int *start, *end, *unq;
+    if(!HandleCUDAError(cudaMalloc((void**)&start, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start"<<endl;
     }
-
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_end_mask, size*sizeof(unsigned int),stream2))){
-        cout<<"Unable to allocate memory for end mask"<<endl;
+    if(!HandleCUDAError(cudaMalloc((void**)&end, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for end"<<endl;
     }
-
-    unsigned int *d_cmpt_start, *d_cmpt_end;
-
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_cmpt_start, size*sizeof(unsigned int),stream1))){
-        cout<<"Unable to allocate memory for start compt"<<endl;
+    if(!HandleCUDAError(cudaMalloc((void**)&unq, 2*size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for unq"<<endl;
     }
-
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_cmpt_end, size*sizeof(unsigned int),stream2))){
-        cout<<"Unable to allocate memory for end compt"<<endl;
+    temp_Copy_Start_End<<<blocks_per_grid,threads_per_block>>>(d_edge,start,end,size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for temp copy start end"<<endl;
     }
+    //Now we need to merge and sort the start and end lists
+    //The edge list is sorted, let us now merge the start and end points
+    // cudaStream_t stream1, stream2;
+    // cudaStreamCreate(&stream1);
+    // cudaStreamCreate(&stream2);
+    // //How do we get the shared memory for the 
+    // unsigned int *d_strt_mask, *d_end_mask;
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_strt_mask, size*sizeof(unsigned int),stream1))){
+    //     cout<<"Unable to allocate memory for start mask"<<endl;
+    // }
 
-    unsigned int *d_scan_start, *d_scan_end;
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_end_mask, size*sizeof(unsigned int),stream2))){
+    //     cout<<"Unable to allocate memory for end mask"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_scan_start, size*sizeof(unsigned int),stream1))){
-        cout<<"Unable to allocate memory for start scan"<<endl;
-    }
+    // unsigned int *d_cmpt_start, *d_cmpt_end;
 
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_scan_end, size*sizeof(unsigned int),stream2))){
-        cout<<"Unable to allocate memory for end scan"<<endl;
-    }
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_cmpt_start, size*sizeof(unsigned int),stream1))){
+    //     cout<<"Unable to allocate memory for start compt"<<endl;
+    // }
 
-    unsigned int *d_len_start,*d_len_end;
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_cmpt_end, size*sizeof(unsigned int),stream2))){
+    //     cout<<"Unable to allocate memory for end compt"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_start, BLOCKS*sizeof(unsigned int),stream1))){
-        cout<<"Unable to allocate memory for start len"<<endl;
-    }
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_end, BLOCKS*sizeof(unsigned int),stream2))){
-        cout<<"Unable to allocate memory for end mask"<<endl;
-    }
+    // unsigned int *d_scan_start, *d_scan_end;
 
-    unsigned int* d_len_ex_start, *d_len_ex_end;
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_scan_start, size*sizeof(unsigned int),stream1))){
+    //     cout<<"Unable to allocate memory for start scan"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_ex_start, BLOCKS*sizeof(unsigned int),stream1))){
-        cout<<"Unable to allocate memory for start len"<<endl;
-    }
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_ex_end, BLOCKS*sizeof(unsigned int),stream2))){
-        cout<<"Unable to allocate memory for end mask"<<endl;
-    }
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_scan_end, size*sizeof(unsigned int),stream2))){
+    //     cout<<"Unable to allocate memory for end scan"<<endl;
+    // }
 
-    unsigned int *d_idx_start, *d_idx_end;
+    // unsigned int *d_len_start,*d_len_end;
 
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_idx_start, size*sizeof(unsigned int),stream1))){
-        cout<<"Unable to allocate memory for start idx"<<endl;
-    }
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_start, BLOCKS*sizeof(unsigned int),stream1))){
+    //     cout<<"Unable to allocate memory for start len"<<endl;
+    // }
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_end, BLOCKS*sizeof(unsigned int),stream2))){
+    //     cout<<"Unable to allocate memory for end mask"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_idx_end, size*sizeof(unsigned int),stream2))){
-        cout<<"Unable to allocate memory for end idx"<<endl;
-    }
-    unsigned int *d_unique_start, *d_unique_end;
+    // unsigned int* d_len_ex_start, *d_len_ex_end;
+
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_ex_start, BLOCKS*sizeof(unsigned int),stream1))){
+    //     cout<<"Unable to allocate memory for start len"<<endl;
+    // }
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_ex_end, BLOCKS*sizeof(unsigned int),stream2))){
+    //     cout<<"Unable to allocate memory for end mask"<<endl;
+    // }
+
+    // unsigned int *d_idx_start, *d_idx_end;
+
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_idx_start, size*sizeof(unsigned int),stream1))){
+    //     cout<<"Unable to allocate memory for start idx"<<endl;
+    // }
+
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_idx_end, size*sizeof(unsigned int),stream2))){
+    //     cout<<"Unable to allocate memory for end idx"<<endl;
+    // }
+    // unsigned int *d_unique_start, *d_unique_end;
     
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_unique_start, size*sizeof(unsigned int),stream1))){
-        cout<<"Unable to allocate memory for start unique"<<endl;
-    }
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_unique_start, size*sizeof(unsigned int),stream1))){
+    //     cout<<"Unable to allocate memory for start unique"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaMallocAsync((void**)&d_unique_end, size*sizeof(unsigned int),stream2))){
-        cout<<"Unable to allocate memory for end unique"<<endl;
-    }
+    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_unique_end, size*sizeof(unsigned int),stream2))){
+    //     cout<<"Unable to allocate memory for end unique"<<endl;
+    // }
 
-    cudaFuncSetAttribute(gen_backward_start_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
-    cudaFuncSetAttribute(gen_backward_end_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
-    gen_backward_start_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream1>>>(d_edge,dev_fin_count,dev_fin_hist,d_strt_mask,size);
-    if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
-        cout<<"Unable to synchronize with host for start mask"<<endl;
-    }
+    // cudaFuncSetAttribute(gen_backward_start_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+    // cudaFuncSetAttribute(gen_backward_end_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+    // gen_backward_start_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream1>>>(d_edge,dev_fin_count,dev_fin_hist,d_strt_mask,size);
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
+    //     cout<<"Unable to synchronize with host for start mask"<<endl;
+    // }
 
-    gen_backward_end_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream2>>>(d_edge,dev_fin_count,dev_fin_hist,d_end_mask,size);
-    if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-        cout<<"Unable to synchronize with host for end mask"<<endl;
-    }
+    // gen_backward_end_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream2>>>(d_edge,dev_fin_count,dev_fin_hist,d_end_mask,size);
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
+    //     cout<<"Unable to synchronize with host for end mask"<<endl;
+    // }
 
-    scan_start_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream1>>>(d_strt_mask,d_scan_start,dev_fin_count,dev_fin_hist,size);
+    // scan_start_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream1>>>(d_strt_mask,d_scan_start,dev_fin_count,dev_fin_hist,size);
 
-    if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
-        cout<<"Unable to synchronize with host for start mask"<<endl;
-    }
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
+    //     cout<<"Unable to synchronize with host for start mask"<<endl;
+    // }
 
-    scan_end_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream2>>>(d_end_mask,d_scan_end,dev_fin_count,dev_fin_hist,size);
-    if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-        cout<<"Unable to synchronize with host for end mask"<<endl;
-    }
+    // scan_end_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream2>>>(d_end_mask,d_scan_end,dev_fin_count,dev_fin_hist,size);
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
+    //     cout<<"Unable to synchronize with host for end mask"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaFreeAsync(d_strt_mask,stream1))){
-        cout<<"Unable to free strt mask"<<endl;
-    }
+    // if(!HandleCUDAError(cudaFreeAsync(d_strt_mask,stream1))){
+    //     cout<<"Unable to free strt mask"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaFreeAsync(d_end_mask,stream2))){
-        cout<<"Unable to free end mask"<<endl;
-    }
-    //Now Perform prefix sums
-    Scanned_To_Compact<<<BLOCKS,tpb_2,0,stream1>>>(d_cmpt_start,d_scan_start,d_len_start,dev_fin_count,dev_fin_hist,size);
+    // if(!HandleCUDAError(cudaFreeAsync(d_end_mask,stream2))){
+    //     cout<<"Unable to free end mask"<<endl;
+    // }
+    // //Now Perform prefix sums
+    // Scanned_To_Compact<<<BLOCKS,tpb_2,0,stream1>>>(d_cmpt_start,d_scan_start,d_len_start,dev_fin_count,dev_fin_hist,size);
 
-    if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
-        cout<<"Unable to synchronize with host for start mask"<<endl;
-    }
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
+    //     cout<<"Unable to synchronize with host for start mask"<<endl;
+    // }
 
-    Scanned_To_Compact<<<BLOCKS,tpb_2,0,stream2>>>(d_cmpt_end,d_scan_end,d_len_end,dev_fin_count,dev_fin_hist,size);
-    if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-        cout<<"Unable to synchronize with host for end mask"<<endl;
-    }
+    // Scanned_To_Compact<<<BLOCKS,tpb_2,0,stream2>>>(d_cmpt_end,d_scan_end,d_len_end,dev_fin_count,dev_fin_hist,size);
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
+    //     cout<<"Unable to synchronize with host for end mask"<<endl;
+    // }
 
-    Final_Compression<<<BLOCKS,tpb_2,0,stream1>>>(d_cmpt_start,d_len_start,d_edge,d_idx_start,d_unique_start,1);
+    // Final_Compression<<<BLOCKS,tpb_2,0,stream1>>>(d_cmpt_start,d_len_start,d_edge,d_idx_start,d_unique_start,1);
 
-    if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
-        cout<<"Unable to synchronize with host for start mask"<<endl;
-    }
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
+    //     cout<<"Unable to synchronize with host for start mask"<<endl;
+    // }
 
-    Final_Compression<<<BLOCKS,tpb_2,0,stream2>>>(d_cmpt_end,d_len_end,d_edge,d_idx_end,d_unique_end,0);
-    if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-        cout<<"Unable to synchronize with host for end mask"<<endl;
-    }
-    HandleCUDAError(cudaFreeAsync(d_cmpt_start,stream1));
-    HandleCUDAError(cudaFreeAsync(d_scan_start,stream1));
-    HandleCUDAError(cudaFreeAsync(d_cmpt_end,stream2));
-    HandleCUDAError(cudaFreeAsync(d_scan_end,stream2));
+    // Final_Compression<<<BLOCKS,tpb_2,0,stream2>>>(d_cmpt_end,d_len_end,d_edge,d_idx_end,d_unique_end,0);
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
+    //     cout<<"Unable to synchronize with host for end mask"<<endl;
+    // }
+    // HandleCUDAError(cudaFreeAsync(d_cmpt_start,stream1));
+    // HandleCUDAError(cudaFreeAsync(d_scan_start,stream1));
+    // HandleCUDAError(cudaFreeAsync(d_cmpt_end,stream2));
+    // HandleCUDAError(cudaFreeAsync(d_scan_end,stream2));
 
-    /*Find the ptr values to the start and end arrays*/
-    /*Now, we need to find the new size of the unique value array
-    This will include performing an exclusive scan of both the end and start cluster, then 
-    merge the two. Secondly, we need to ensure there are not replicated values in the start and end
-    With the current implementation, this is probable. We may need to iterate through these values again*/
-    /*Then, we can generate a hash table corresponding to the global address of the value and commence
-    SUBLIME*/
+    // /*Find the ptr values to the start and end arrays*/
+    // /*Now, we need to find the new size of the unique value array
+    // This will include performing an exclusive scan of both the end and start cluster, then 
+    // merge the two. Secondly, we need to ensure there are not replicated values in the start and end
+    // With the current implementation, this is probable. We may need to iterate through these values again*/
+    // /*Then, we can generate a hash table corresponding to the global address of the value and commence
+    // SUBLIME*/
 
-    unq_exclusive_scan<<<1,BLOCKS,0,stream1>>>(d_len_start,d_len_ex_start);
+    // unq_exclusive_scan<<<1,BLOCKS,0,stream1>>>(d_len_start,d_len_ex_start);
 
-    if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
-        cout<<"Unable to synchronize with host for start mask"<<endl;
-    }
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
+    //     cout<<"Unable to synchronize with host for start mask"<<endl;
+    // }
 
-    unq_exclusive_scan<<<1,BLOCKS,0,stream2>>>(d_len_end,d_len_ex_end);
+    // unq_exclusive_scan<<<1,BLOCKS,0,stream2>>>(d_len_end,d_len_ex_end);
 
-    if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-        cout<<"Unable to synchronize with host for start mask"<<endl;
-    }
+    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
+    //     cout<<"Unable to synchronize with host for start mask"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaStreamDestroy(stream1))){
-        cout<<"Unable to destroy stream 1"<<endl;
-    }
+    // if(!HandleCUDAError(cudaStreamDestroy(stream1))){
+    //     cout<<"Unable to destroy stream 1"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaStreamDestroy(stream2))){
-        cout<<"Unable to destroy stream 1"<<endl;
-    }
+    // if(!HandleCUDAError(cudaStreamDestroy(stream2))){
+    //     cout<<"Unable to destroy stream 1"<<endl;
+    // }
 
 
-    unsigned int* init_unq_total_ptr;
-    if(!HandleCUDAError(cudaMalloc((void**)&init_unq_total_ptr, BLOCKS*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for init unq total ptr"<<endl;
-    }
-    unsigned int* d_unique_vect_len;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_unique_vect_len, sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for unique vect len"<<endl;
-    }
-    /*Now, we need to find the counts of everything in total*/
-    Total_Unq_Ptr<<<1,BLOCKS>>>(d_len_ex_start,d_len_ex_end,init_unq_total_ptr);
-    cudaDeviceSynchronize();
-    Find_Length_of_Unique<<<1,BLOCKS>>>(d_len_start,d_len_end,d_unique_vect_len);
-    /*We need to find the length of the vector now*/
-    unsigned int h_unique_vect_len=0;
-    if(!HandleCUDAError(cudaMemcpy(&h_unique_vect_len,d_unique_vect_len,sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy unique vect len"<<endl;
-    }
+    // unsigned int* init_unq_total_ptr;
+    // if(!HandleCUDAError(cudaMalloc((void**)&init_unq_total_ptr, BLOCKS*sizeof(unsigned int)))){
+    //     cout<<"Unable to allocate memory for init unq total ptr"<<endl;
+    // }
+    // unsigned int* d_unique_vect_len;
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_unique_vect_len, sizeof(unsigned int)))){
+    //     cout<<"Unable to allocate memory for unique vect len"<<endl;
+    // }
+    // /*Now, we need to find the counts of everything in total*/
+    // Total_Unq_Ptr<<<1,BLOCKS>>>(d_len_ex_start,d_len_ex_end,init_unq_total_ptr);
+    // cudaDeviceSynchronize();
+    // Find_Length_of_Unique<<<1,BLOCKS>>>(d_len_start,d_len_end,d_unique_vect_len);
+    // /*We need to find the length of the vector now*/
+    // unsigned int h_unique_vect_len=0;
+    // if(!HandleCUDAError(cudaMemcpy(&h_unique_vect_len,d_unique_vect_len,sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+    //     cout<<"Unable to copy unique vect len"<<endl;
+    // }
 
-    if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
-        cout<<"Unable to get memory info"<<endl;
-    }
+    // if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
+    //     cout<<"Unable to get memory info"<<endl;
+    // }
 
-    unsigned int* unique_vector;
-    if(!HandleCUDAError(cudaMalloc((void**)&unique_vector, h_unique_vect_len*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for unique vector"<<endl;
-    }
+    // unsigned int* unique_vector;
+    // if(!HandleCUDAError(cudaMalloc((void**)&unique_vector, h_unique_vect_len*sizeof(unsigned int)))){
+    //     cout<<"Unable to allocate memory for unique vector"<<endl;
+    // }
     free_db = (double)free_byte ;
     total_db = (double)total_byte ;
     used_db = total_db - free_db ;
