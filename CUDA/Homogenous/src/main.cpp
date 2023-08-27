@@ -15,12 +15,13 @@ int main()
     CSR_Graph(EDGE_PATH,nodes, edges, src_ptr,succ,deg);
     Check_Out_ptr(src_ptr, nodes+1);
     edge_list=(edge*)malloc(sizeof(edge)*edges);
+   unsigned int* replica = new unsigned int[edges];
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
     cout<<"Ending edge list function"<<endl;
     // graph* G = create_graph(edge_list);
     cout<<"Starting Helper Function"<<endl;
-    Org_Vertex_Helper(edge_list,src_ptr,succ,deg,edges,nodes);
+    Org_Vertex_Helper(edge_list,,deg,edges,nodes);
     // cpu_radixsort(edge_list,edges);
     cout<<"Ending Helper Function"<<endl;
     Check_Out_csv_edge(edge_list, edges);
@@ -29,8 +30,8 @@ int main()
     //     cout<<edge_list[i].cluster<<endl;
     // }
     free(edge_list);
-    free(src_ptr);
-    free(succ);
-    free(deg);
+    delete[] src_ptr;
+    delete[] succ;
+    delete[] deg;
     return 0;
 }

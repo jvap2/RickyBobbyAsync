@@ -981,7 +981,14 @@ __global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsign
     }
 }
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned int* h_succ, unsigned int* h_deg, unsigned int size, unsigned int node_size){
+__global__ void Collect_Num_Replicas(replica_tracker* rep, unsigned int* rep_counts, unsigned int size){
+    unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
+    if(idx<size){
+        rep_counts[idx]=rep[idx].num_replicas;
+    }
+}
+
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;
@@ -1075,6 +1082,20 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     Finalize_Replica_Tracker<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,node_size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Finalize_Replica_Tracker"<<endl;
+    }
+    unsigned int* d_replica_counts; //Get the number of replicas for graphs
+    if(!HandleCUDAError(cudaMalloc((void**)&d_replica_counts, node_size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for replica counts"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_replica_counts,0,node_size*sizeof(unsigned int)))){
+        cout<<"Unable to set replica counts to 0"<<endl;
+    }
+    Collect_Num_Replicas<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,d_replica_counts,node_size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Unable to synchronize with host with Collect_Num_Replicas"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(replica_count,d_replica_counts,node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy replica counts"<<endl;
     }
     Histogram_1<<<blocks_per_grid,threads_per_block>>>(d_edge,d_hist,size); 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
@@ -1199,6 +1220,10 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* h_src_ptr, unsigned 
     temp_Copy_Start_End<<<blocks_per_grid,threads_per_block>>>(d_edge,start,end,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Unable to synchronize with host for temp copy start end"<<endl;
+    }
+    Naive_Merge_Sort<<<BLOCKS,tpb_2>>>(start,end,dev_fin_count,dev_fin_hist,unq);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for merge sort"<<endl;
     }
     //Now we need to merge and sort the start and end lists
     //The edge list is sorted, let us now merge the start and end points
