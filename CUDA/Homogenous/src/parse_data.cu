@@ -68,7 +68,7 @@ __host__ void check_out_replicas(string path,unsigned int* replicas, unsigned in
     }
     rep_avg=total_rep/node_size;
     ofstream myfile;
-    myfile.open(path);
+    myfile.open(path, ios::app);
     myfile<< to_string(node_size);
     myfile<< ",";
     myfile<< to_string(total_rep);
