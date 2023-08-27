@@ -23,6 +23,7 @@ using namespace std;
 #define CLUSTER_PATH "../../Data/Homogenous/google/Cluster_Assignment.csv"
 #define PTR_PATH "../../Data/Homogenous/google/ptr_Assignment.csv"
 #define LIST_PATH "../../Data/Homogenous/google/list_check.csv"
+#define REPLICA_PATH "../../Data/Homogenous/replica_counts.csv"
 
 
 
@@ -55,6 +56,8 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
 __host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edges);
 
 __host__ void Check_Out_pref_sum(unsigned int* list_1, unsigned int* list_2, int size);
+
+__host__ void check_out_replicas(string path,unsigned int* replicas, unsigned int node_size);
 
 __host__ int getMax_cluster(edge* edge_list, int n);
 
