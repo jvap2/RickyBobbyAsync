@@ -1,7 +1,7 @@
 #include "../include/data.h"
 #include "../include/GPUErrors.h"
 
-#define BLOCKS 32
+#define BLOCKS 16
 #define TPB 256
 
 
@@ -635,22 +635,22 @@ unsigned int size, unsigned int iter){
 }
 
 
-__global__ void gen_backward_start_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* start_mask, unsigned int size){
+__global__ void gen_backward_mask(unsigned int* global_list, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* start_mask, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     extern __shared__ unsigned int start[];
     extern __shared__ unsigned int start_back_mask[];
     if(idx<size){
         //Check that the ctr table is doing what we want
-        for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
-            start[i]=edgelist[ptr_table[blockIdx.x]+i].start;
+        for(int i=tid; i<2*ctr_table[blockIdx.x];i+=blockDim.x){
+            start[i]=global_list[2*ptr_table[blockIdx.x]+i];
         }
     }
     __syncthreads();
     if(idx<size){
         /*Now, we need to generate the hash values*/
         /*We will utilize run length encoding to find the unique values*/
-        for(int i = tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
+        for(int i = tid; i<2*ctr_table[blockIdx.x];i+=blockDim.x){
             if(i==0){
                 start_back_mask[i]=1;
             }
@@ -666,48 +666,13 @@ __global__ void gen_backward_start_mask(edge* edgelist, unsigned int* ptr_table,
     }
     __syncthreads();
     /*We have the mask, now, we need to commit to global memory for next kernel*/
-    for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
-        start_back_mask[i]=start_mask[ptr_table[blockIdx.x]+i];
+    for(int i=tid; i<2*ctr_table[blockIdx.x];i+=blockDim.x){
+        start_mask[2*ptr_table[blockIdx.x]+i]=start_back_mask[i];
     }
 }
 
-__global__ void gen_backward_end_mask(edge* edgelist, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* end_mask, unsigned int size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    unsigned int tid = threadIdx.x;
-    extern __shared__ unsigned int end[];
-    extern __shared__ unsigned int end_back_mask[];
-    if(idx<size){
-        //Check that the ctr table is doing what we want
-        for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
-            end[i]=edgelist[ptr_table[blockIdx.x]+i].end;
-        }
-    }
-    __syncthreads();
-    if(idx<size){
-        /*Now, we need to generate the hash values*/
-        /*We will utilize run length encoding to find the unique values*/
-        for(int i = tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
-            if(i==0){
-                end_back_mask[i]=1;
-            }
-            else{
-                if(end[i]!=end[i-1]){
-                    end_back_mask[i]=1;
-                }
-                else{
-                    end_back_mask[i]=0;
-                }
-            }
-        }
-    }
-    __syncthreads();
-    /*We have the mask, now, we need to commit to global memory for next kernel*/
-    for(int i=tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
-        end_back_mask[i]=end_mask[ptr_table[blockIdx.x]+i];
-    }
-}
 
-__global__ void scan_start_mask(unsigned int* start_mask, unsigned* compct_start, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
+__global__ void scan_mask(unsigned int* start_mask, unsigned* compct_start, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     //We need to use global memory if we intend to use dynamic parallelism, so we need to copy the data over
@@ -740,39 +705,6 @@ __global__ void scan_start_mask(unsigned int* start_mask, unsigned* compct_start
     
 }
 
-__global__ void scan_end_mask(unsigned int* end_mask, unsigned* compct_end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    unsigned int tid = threadIdx.x;
-    //We need to use global memory if we intend to use dynamic parallelism, so we need to copy the data over
-    /*Now, we can execute the exclusive scan- issue will be that this will be larger than the size of a thread block
-    Can we use dynamic parallelism in order to compute partial sums to then acquire a final sum?*/
-    const int num_of_blocks = (ctr_table[blockIdx.x]/blockDim.x)+1;
-    if(tid<num_of_blocks){
-        int dym_size=(tid==num_of_blocks-1)?(ctr_table[blockIdx.x]-tid*blockDim.x):(blockDim.x);
-        Prefix_Scan_Cmpt<<<1,TPB>>>(end_mask+ptr_table[blockIdx.x]+tid*blockDim.x, compct_end+ptr_table[blockIdx.x]+tid*blockDim.x,dym_size,tid);
-    }
-    __syncthreads();
-    extern __shared__ unsigned int end_vals[];
-    /*Now, we have partial sums, we need to find the final value of each accumulated sum*/
-    /*How do we do this..... SUBLIME!*/
-    if(tid<num_of_blocks){
-        int loc = (tid==num_of_blocks-1)? (ptr_table[blockIdx.x+1]-1):(ptr_table[blockIdx.x]+(tid+1)*blockDim.x-1);
-        end_vals[tid]=compct_end[loc];
-    }
-    __syncthreads();
-    if(tid<num_of_blocks){
-        int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
-        //Check this
-        Prefix_Scan_Cmpt<<<1,num_of_blocks>>>(end_vals, end_vals,dym_size,0);
-    }
-    __syncthreads();
-    if(tid<num_of_blocks){
-        int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
-        final_scan_commit<<<1,TPB>>>(compct_end+ptr_table[blockIdx.x]+tid*blockDim.x,end_vals, dym_size);
-    }
-    ///Now, we should have the compacted start and end masks
-
-}
 
 __global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size, unsigned int block){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
@@ -1230,125 +1162,83 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
         used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
     //Now, we need to organize the vertex data
     int tpb_2 = 1024;
-    unsigned int *start, *end, *unq;
+    unsigned int *start, *end, *total;
     if(!HandleCUDAError(cudaMalloc((void**)&start, size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for start"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**)&end, size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for end"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&unq, 2*size*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&total, 2*size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for unq"<<endl;
     }
     temp_Copy_Start_End<<<blocks_per_grid,threads_per_block>>>(d_edge,start,end,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Unable to synchronize with host for temp copy start end"<<endl;
     }
-    Naive_Merge_Sort<<<BLOCKS,tpb_2>>>(start,end,dev_fin_count,dev_fin_hist,unq);
+    Naive_Merge_Sort<<<BLOCKS,tpb_2>>>(start,end,dev_fin_count,dev_fin_hist,total);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Unable to synchronize with host for merge sort"<<endl;
     }
     //Now we need to merge and sort the start and end lists
     //The edge list is sorted, let us now merge the start and end points
-    // cudaStream_t stream1, stream2;
-    // cudaStreamCreate(&stream1);
-    // cudaStreamCreate(&stream2);
-    // //How do we get the shared memory for the 
-    // unsigned int *d_strt_mask, *d_end_mask;
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_strt_mask, size*sizeof(unsigned int),stream1))){
+    //How do we get the shared memory for the 
+    // unsigned int *d_mask;
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_mask, 2*size*sizeof(unsigned int)))){
     //     cout<<"Unable to allocate memory for start mask"<<endl;
     // }
 
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_end_mask, size*sizeof(unsigned int),stream2))){
-    //     cout<<"Unable to allocate memory for end mask"<<endl;
-    // }
+    // unsigned int *d_cmpt;
 
-    // unsigned int *d_cmpt_start, *d_cmpt_end;
-
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_cmpt_start, size*sizeof(unsigned int),stream1))){
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt, size*sizeof(unsigned int)))){
     //     cout<<"Unable to allocate memory for start compt"<<endl;
     // }
 
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_cmpt_end, size*sizeof(unsigned int),stream2))){
-    //     cout<<"Unable to allocate memory for end compt"<<endl;
-    // }
+    // unsigned int *d_scan;
 
-    // unsigned int *d_scan_start, *d_scan_end;
-
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_scan_start, size*sizeof(unsigned int),stream1))){
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_scan, size*sizeof(unsigned int)))){
     //     cout<<"Unable to allocate memory for start scan"<<endl;
     // }
 
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_scan_end, size*sizeof(unsigned int),stream2))){
-    //     cout<<"Unable to allocate memory for end scan"<<endl;
-    // }
+    // unsigned int *d_len;
 
-    // unsigned int *d_len_start,*d_len_end;
-
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_start, BLOCKS*sizeof(unsigned int),stream1))){
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_len, BLOCKS*sizeof(unsigned int)))){
     //     cout<<"Unable to allocate memory for start len"<<endl;
     // }
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_end, BLOCKS*sizeof(unsigned int),stream2))){
-    //     cout<<"Unable to allocate memory for end mask"<<endl;
-    // }
 
-    // unsigned int* d_len_ex_start, *d_len_ex_end;
+    // unsigned int* d_len_ex;
 
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_ex_start, BLOCKS*sizeof(unsigned int),stream1))){
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_len_ex, BLOCKS*sizeof(unsigned int)))){
     //     cout<<"Unable to allocate memory for start len"<<endl;
     // }
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_len_ex_end, BLOCKS*sizeof(unsigned int),stream2))){
-    //     cout<<"Unable to allocate memory for end mask"<<endl;
-    // }
 
-    // unsigned int *d_idx_start, *d_idx_end;
+    // unsigned int *d_idx;
 
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_idx_start, size*sizeof(unsigned int),stream1))){
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_idx, 2*size*sizeof(unsigned int)))){
     //     cout<<"Unable to allocate memory for start idx"<<endl;
     // }
 
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_idx_end, size*sizeof(unsigned int),stream2))){
-    //     cout<<"Unable to allocate memory for end idx"<<endl;
-    // }
-    // unsigned int *d_unique_start, *d_unique_end;
+    // unsigned int *d_unique;
     
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_unique_start, size*sizeof(unsigned int),stream1))){
+    // if(!HandleCUDAError(cudaMalloc((void**)&d_unique, size*sizeof(unsigned int)))){
     //     cout<<"Unable to allocate memory for start unique"<<endl;
     // }
 
-    // if(!HandleCUDAError(cudaMallocAsync((void**)&d_unique_end, size*sizeof(unsigned int),stream2))){
-    //     cout<<"Unable to allocate memory for end unique"<<endl;
-    // }
-
-    // cudaFuncSetAttribute(gen_backward_start_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
-    // cudaFuncSetAttribute(gen_backward_end_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
-    // gen_backward_start_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream1>>>(d_edge,dev_fin_count,dev_fin_hist,d_strt_mask,size);
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
+    // cudaFuncSetAttribute(gen_backward_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+    // gen_backward_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(total,dev_fin_count,dev_fin_hist,d_mask,size);
+    // if(!HandleCUDAError(cudaDeviceSynchronize())){
     //     cout<<"Unable to synchronize with host for start mask"<<endl;
     // }
 
-    // gen_backward_end_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream2>>>(d_edge,dev_fin_count,dev_fin_hist,d_end_mask,size);
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-    //     cout<<"Unable to synchronize with host for end mask"<<endl;
-    // }
 
-    // scan_start_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream1>>>(d_strt_mask,d_scan_start,dev_fin_count,dev_fin_hist,size);
+    // scan_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(d_mask,d_scan,dev_fin_count,dev_fin_hist,size);
 
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
+    // if(!HandleCUDAError(cudaDeviceSynchronize())){
     //     cout<<"Unable to synchronize with host for start mask"<<endl;
     // }
 
-    // scan_end_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int),stream2>>>(d_end_mask,d_scan_end,dev_fin_count,dev_fin_hist,size);
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-    //     cout<<"Unable to synchronize with host for end mask"<<endl;
-    // }
-
-    // if(!HandleCUDAError(cudaFreeAsync(d_strt_mask,stream1))){
+    // if(!HandleCUDAError(cudaFree(d_mask))){
     //     cout<<"Unable to free strt mask"<<endl;
-    // }
-
-    // if(!HandleCUDAError(cudaFreeAsync(d_end_mask,stream2))){
-    //     cout<<"Unable to free end mask"<<endl;
     // }
     // //Now Perform prefix sums
     // Scanned_To_Compact<<<BLOCKS,tpb_2,0,stream1>>>(d_cmpt_start,d_scan_start,d_len_start,dev_fin_count,dev_fin_hist,size);
