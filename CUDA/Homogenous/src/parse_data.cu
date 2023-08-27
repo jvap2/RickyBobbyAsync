@@ -60,13 +60,14 @@ __host__ void Check_Out_pref_sum(unsigned int* list_1, unsigned int* list_2, int
 
 
 __host__ void check_out_replicas(string path,unsigned int* replicas, unsigned int node_size){
-    unsigned int total_rep, rep_avg;
+    unsigned int total_rep;
+    float rep_avg;
     total_rep=0;
     rep_avg=0;
     for(int i=0; i<node_size;i++){
         total_rep+=replicas[i];
     }
-    rep_avg=total_rep/node_size;
+    rep_avg=1.0f*total_rep/(1.0f*node_size);
     ofstream myfile;
     myfile.open(path, ios::app);
     myfile<< to_string(node_size);
@@ -74,6 +75,8 @@ __host__ void check_out_replicas(string path,unsigned int* replicas, unsigned in
     myfile<< to_string(total_rep);
     myfile<< ",";
     myfile<< to_string(rep_avg);
+    myfile<< ",";
+    myfile<< to_string(BLOCKS);
     myfile<< "\n";
     myfile.close();
 }
