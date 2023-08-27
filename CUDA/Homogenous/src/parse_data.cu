@@ -764,21 +764,13 @@ __global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, un
     }
 }
 
-__global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, edge* edge_list, unsigned int* new_idx, unsigned int* out, int type){
+__global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, unsigned int* in, unsigned int* new_idx, unsigned int* out){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    if (type){
-        for(int i=tid; i<(*new_size+blockIdx.x);i+=blockDim.x){
-            out[i]=edge_list[cmpt[i]].start;
-            new_idx[i]=cmpt[i+1]-cmpt[i];
-        } 
-    }
-    else{
-        for(int i = tid; i<(*new_size+blockIdx.x);i+=blockDim.x){
-            out[i]=edge_list[cmpt[i]].end;
-            new_idx[i]=cmpt[i+1]-cmpt[i];
-        }
-    }  
+    for(int i = tid; i<(*new_size+blockIdx.x);i+=blockDim.x){
+        out[i]=in[cmpt[i]];
+        new_idx[i]=cmpt[i+1]-cmpt[i];
+    } 
 }
 
 
@@ -879,28 +871,6 @@ __global__ void unq_exclusive_scan(unsigned int* len, unsigned int* unq_ptr){
     __syncthreads();
 }
 
-__global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr){
-    unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
-    unsigned int tid = threadIdx.x;
-    if(idx<BLOCKS){
-        fin_ptr[idx]=start_ptr[idx]+end_ptr[idx];
-    }
-    for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
-        __syncthreads();
-        unsigned int temp;
-        if(tid>=stride){
-            temp=fin_ptr[tid]+fin_ptr[tid-stride];
-        }
-        __syncthreads();
-        if(tid>=stride){
-            fin_ptr[tid]=temp;
-        }
-    }
-    if(idx==blockDim.x-1){
-        *fin_ptr=fin_ptr[tid];
-    }
-    __syncthreads();
-}
 
 __global__ void Find_Length_of_Unique(unsigned int* start_len, unsigned int* end_len, unsigned int* vector_length){
     unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
@@ -1183,89 +1153,76 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     //Now we need to merge and sort the start and end lists
     //The edge list is sorted, let us now merge the start and end points
     //How do we get the shared memory for the 
-    // unsigned int *d_mask;
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_mask, 2*size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start mask"<<endl;
-    // }
+    unsigned int *d_mask;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_mask, 2*size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start mask"<<endl;
+    }
 
-    // unsigned int *d_cmpt;
+    unsigned int *d_cmpt;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt, size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start compt"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start compt"<<endl;
+    }
 
-    // unsigned int *d_scan;
+    unsigned int *d_scan;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_scan, size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start scan"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_scan, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start scan"<<endl;
+    }
 
-    // unsigned int *d_len;
+    unsigned int *d_len;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_len, BLOCKS*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start len"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_len, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start len"<<endl;
+    }
 
-    // unsigned int* d_len_ex;
+    unsigned int* d_len_ex;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_len_ex, BLOCKS*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start len"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_len_ex, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start len"<<endl;
+    }
 
-    // unsigned int *d_idx;
+    unsigned int *d_idx;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_idx, 2*size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start idx"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_idx, 2*size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start idx"<<endl;
+    }
 
-    // unsigned int *d_unique;
+    unsigned int *d_unique;
     
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_unique, size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start unique"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_unique, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start unique"<<endl;
+    }
 
-    // cudaFuncSetAttribute(gen_backward_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
-    // gen_backward_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(total,dev_fin_count,dev_fin_hist,d_mask,size);
-    // if(!HandleCUDAError(cudaDeviceSynchronize())){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
+    cudaFuncSetAttribute(gen_backward_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+    gen_backward_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(total,dev_fin_count,dev_fin_hist,d_mask,size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
 
 
-    // scan_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(d_mask,d_scan,dev_fin_count,dev_fin_hist,size);
+    scan_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(d_mask,d_scan,dev_fin_count,dev_fin_hist,size);
 
-    // if(!HandleCUDAError(cudaDeviceSynchronize())){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
 
-    // if(!HandleCUDAError(cudaFree(d_mask))){
-    //     cout<<"Unable to free strt mask"<<endl;
-    // }
+    if(!HandleCUDAError(cudaFree(d_mask))){
+        cout<<"Unable to free strt mask"<<endl;
+    }
     // //Now Perform prefix sums
-    // Scanned_To_Compact<<<BLOCKS,tpb_2,0,stream1>>>(d_cmpt_start,d_scan_start,d_len_start,dev_fin_count,dev_fin_hist,size);
+    Scanned_To_Compact<<<BLOCKS,tpb_2>>>(d_cmpt,d_scan,d_len,dev_fin_count,dev_fin_hist,size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for Scanned to Compact"<<endl;
+    }
 
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
+    Final_Compression<<<BLOCKS,tpb_2>>>(d_cmpt,d_len,total,d_idx,d_unique);
 
-    // Scanned_To_Compact<<<BLOCKS,tpb_2,0,stream2>>>(d_cmpt_end,d_scan_end,d_len_end,dev_fin_count,dev_fin_hist,size);
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-    //     cout<<"Unable to synchronize with host for end mask"<<endl;
-    // }
-
-    // Final_Compression<<<BLOCKS,tpb_2,0,stream1>>>(d_cmpt_start,d_len_start,d_edge,d_idx_start,d_unique_start,1);
-
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
-
-    // Final_Compression<<<BLOCKS,tpb_2,0,stream2>>>(d_cmpt_end,d_len_end,d_edge,d_idx_end,d_unique_end,0);
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-    //     cout<<"Unable to synchronize with host for end mask"<<endl;
-    // }
-    // HandleCUDAError(cudaFreeAsync(d_cmpt_start,stream1));
-    // HandleCUDAError(cudaFreeAsync(d_scan_start,stream1));
-    // HandleCUDAError(cudaFreeAsync(d_cmpt_end,stream2));
-    // HandleCUDAError(cudaFreeAsync(d_scan_end,stream2));
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
+    HandleCUDAError(cudaFree(d_cmpt));
+    HandleCUDAError(cudaFree(d_scan));
 
     // /*Find the ptr values to the start and end arrays*/
     // /*Now, we need to find the new size of the unique value array
@@ -1275,53 +1232,15 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     // /*Then, we can generate a hash table corresponding to the global address of the value and commence
     // SUBLIME*/
 
-    // unq_exclusive_scan<<<1,BLOCKS,0,stream1>>>(d_len_start,d_len_ex_start);
+    unq_exclusive_scan<<<1,BLOCKS>>>(d_len,d_len_ex);
 
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream1))){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
 
-    // unq_exclusive_scan<<<1,BLOCKS,0,stream2>>>(d_len_end,d_len_ex_end);
-
-    // if(!HandleCUDAError(cudaStreamSynchronize(stream2))){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
-
-    // if(!HandleCUDAError(cudaStreamDestroy(stream1))){
-    //     cout<<"Unable to destroy stream 1"<<endl;
-    // }
-
-    // if(!HandleCUDAError(cudaStreamDestroy(stream2))){
-    //     cout<<"Unable to destroy stream 1"<<endl;
-    // }
-
-
-    // unsigned int* init_unq_total_ptr;
-    // if(!HandleCUDAError(cudaMalloc((void**)&init_unq_total_ptr, BLOCKS*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for init unq total ptr"<<endl;
-    // }
-    // unsigned int* d_unique_vect_len;
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_unique_vect_len, sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for unique vect len"<<endl;
-    // }
-    // /*Now, we need to find the counts of everything in total*/
-    // Total_Unq_Ptr<<<1,BLOCKS>>>(d_len_ex_start,d_len_ex_end,init_unq_total_ptr);
-    // cudaDeviceSynchronize();
-    // Find_Length_of_Unique<<<1,BLOCKS>>>(d_len_start,d_len_end,d_unique_vect_len);
-    // /*We need to find the length of the vector now*/
-    // unsigned int h_unique_vect_len=0;
-    // if(!HandleCUDAError(cudaMemcpy(&h_unique_vect_len,d_unique_vect_len,sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-    //     cout<<"Unable to copy unique vect len"<<endl;
-    // }
-
-    // if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
-    //     cout<<"Unable to get memory info"<<endl;
-    // }
-
-    // unsigned int* unique_vector;
-    // if(!HandleCUDAError(cudaMalloc((void**)&unique_vector, h_unique_vect_len*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for unique vector"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
+        cout<<"Unable to get memory info"<<endl;
+    }
     free_db = (double)free_byte ;
     total_db = (double)total_byte ;
     used_db = total_db - free_db ;
