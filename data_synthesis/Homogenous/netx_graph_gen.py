@@ -13,4 +13,4 @@ p = float(sys.argv[3])
 seed = int(sys.argv[4])
 
 G=nx.powerlaw_cluster_graph(num_node, m, p, seed=seed)
-nx.write_edgelist(G, os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/power_rand_net.csv"), delimiter=",", data=False)
+nx.write_edgelist(G, os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/power_rand_net.csv"), delimiter=",", data=["from","to"])

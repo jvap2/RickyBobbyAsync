@@ -1,9 +1,8 @@
 #!/bin/bash
 
-nodes=50000000
+nodes=10000
 m=250
 p=.5
 seed=42
 
-python3 gen_homo_graph_1.py $nodes $m $p $seed 
-
+python3 netx_graph_gen.py $nodes $m $p $seed 

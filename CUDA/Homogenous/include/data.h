@@ -11,7 +11,12 @@ using namespace std;
 #include <curand_kernel.h>
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 16
+#define BLOCKS 12
+#if BLOCKS==64
+#define TPB 128
+#else
+#define TPB 256
+#endif
 // #define EDGES 5105039
 // #define NODES 875713
 #define MAX_NEIGHBORS 20
@@ -119,7 +124,7 @@ __global__ void Find_Max_Cluster(unsigned int* ctr_table, unsigned int* max_val)
 
 __global__ void unq_exclusive_scan(unsigned int* len, unsigned int* unq_ptr);
 
-__global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr);
+// __global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr);
 
 __global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsigned int* end, unsigned int edge_size);
 
