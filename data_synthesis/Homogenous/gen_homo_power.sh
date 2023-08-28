@@ -1,7 +1,7 @@
 #!/bin/bash
 
-nodes=10000
-m=250
+nodes=100000
+m=50
 p=.5
 seed=42
 

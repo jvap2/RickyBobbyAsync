@@ -88,12 +88,13 @@ __host__ void check_out_replicas(string path,unsigned int* replicas, unsigned in
 
 
 __host__ void return_edge_list(string path, edge* arr){
+    cout<<"Getting edge list"<<endl;
     ifstream data;
     data.open(path);
     string line,word;
     unsigned int count=0;
     unsigned int column=0;
-    cout<<data.is_open()<<endl;
+    cout<<"Data is open "<<data.is_open()<<endl;
     if(data.is_open()){
         //Check if data is open
         while(getline(data,line)){
@@ -179,6 +180,7 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
 }
 
 __host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edges){
+    cout<<"Getting graph info"<<endl;
     ifstream data;
     data.open(path);
     string line,word;

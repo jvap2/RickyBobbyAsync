@@ -11,8 +11,8 @@ using namespace std;
 #include <curand_kernel.h>
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 12
-#if BLOCKS==64
+#define BLOCKS 48
+#if BLOCKS>=48
 #define TPB 128
 #else
 #define TPB 256
@@ -29,6 +29,10 @@ using namespace std;
 #define PTR_PATH "../../Data/Homogenous/google/ptr_Assignment.csv"
 #define LIST_PATH "../../Data/Homogenous/google/list_check.csv"
 #define REPLICA_PATH "../../Data/Homogenous/replica_counts.csv"
+#define POWER_GRAPH_EDGE_PATH "../../Data/Homogenous/rand/power_rand_net.csv"
+#define POWER_GRAPH_CLUSTER_PATH "../../Data/Homogenous/rand/power_Cluster_Assignment.csv"
+#define POWER_GRAPH_DATA_PATH "../../Data/Homogenous/rand/power_rand_net_info.csv"
+#define POWER_REPLICA_PATH "../../Data/Homogenous/rep_power_counts.csv"
 
 
 
