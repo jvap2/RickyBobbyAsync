@@ -25,7 +25,7 @@ using namespace std;
 
 #define EDGE_PATH "../../Data/Homogenous/rand/rand_net.csv"
 #define GRAPH_DATA_PATH "../../Data/Homogenous/rand/rand_net_info.csv"
-#define CLUSTER_PATH "../../Data/Homogenous/google/Cluster_Assignment.csv"
+#define CLUSTER_PATH "../../Data/Homogenous/rand/Cluster_Assignment_Norm.csv"
 #define PTR_PATH "../../Data/Homogenous/google/ptr_Assignment.csv"
 #define LIST_PATH "../../Data/Homogenous/google/list_check.csv"
 #define REPLICA_PATH "../../Data/Homogenous/replica_counts.csv"
@@ -75,6 +75,8 @@ __host__ void cpu_countSort(edge* arr, int n, int exp);
 __host__ void cpu_radixsort(edge* arr, int n);
 
 __host__ void Check_Out_ptr(unsigned int* edge_list, int size);
+
+__host__ void Capture_Node_Degree(edge* edge_list, unsigned int* deg_arr, unsigned int size);
 
 /*HELPER FUNCTION AND KERNELS*/
 

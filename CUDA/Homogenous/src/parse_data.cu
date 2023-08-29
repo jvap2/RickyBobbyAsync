@@ -143,6 +143,7 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
                 else{
                     if(column==0){
                         src_ptr[stoi(word)]++; //Create a histogram of values
+                        deg_arr[stoi(word)]++;
                         column++;
                     }
                     else{
@@ -172,6 +173,12 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
     }
     cout<<count<<endl;
     data.close();
+}
+
+__host__ void Capture_Node_Degree(edge* edge_list, unsigned int* deg_arr, unsigned int size){
+    for(unsigned int i=0; i<size;i++){
+        deg_arr[edge_list[i].start]++;
+    }
 }
 
 __host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edges){
@@ -469,7 +476,7 @@ __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, doubl
         unsigned int v_hash = (deg_start>deg_end)?start:end;
         double intpart;
         double mod_part = modf(v_hash*rand_num, &intpart);
-        unsigned int hash = (unsigned int)(BLOCKS*mod_part);
+        unsigned int hash = (unsigned int)floor(BLOCKS*mod_part);
         edges[idx].cluster=hash;
         //Now, we need to update the replica tracker
         /*We are going to need to use some atomic form to be able to write correctly*/
