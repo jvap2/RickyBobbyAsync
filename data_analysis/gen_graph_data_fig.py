@@ -33,3 +33,16 @@ for i in range(-2,3):
 plt.legend()
 plt.savefig(os.path.join(os.path.dirname(folder),"Figures/avg_replicas.png"))
 plt.show()
+
+avg_rep_cluster= np.mean(avg_rep,axis=1)
+print(avg_rep_cluster)  
+fig, (ax1)= plt.subplots(1,1)
+fig.suptitle("Average Replicas vs. No. Clusters")
+ax1.set_xlabel("No. Clusters")
+ax1.set_ylabel("Average Replicas")
+ax1.plot(clusters,avg_rep_cluster)
+ax1.set_xscale("log")
+ax1.set_yscale("log")
+plt.savefig(os.path.join(os.path.dirname(folder),"Figures/avg_replicas_cluster.png"))
+plt.show()
+
