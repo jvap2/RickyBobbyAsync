@@ -477,6 +477,7 @@ __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, doubl
         double intpart;
         double mod_part = modf(v_hash*rand_num, &intpart);
         unsigned int hash = (unsigned int)floor(BLOCKS*mod_part);
+        // int hash = v_hash%BLOCKS;
         edges[idx].cluster=hash;
         //Now, we need to update the replica tracker
         /*We are going to need to use some atomic form to be able to write correctly*/
@@ -537,7 +538,12 @@ __global__ void Kogge_Stone_Hist_Reduct(unsigned int* hist_bin, unsigned int* fi
     unsigned int idx = threadIdx.x + blockIdx.x*blockDim.x;
     unsigned int tid = threadIdx.x;
     extern __shared__ unsigned int clust_val[];
-    if(idx<size){
+    if(idx<size){        // double intpart;
+        // double mod_part = modf(v_hash*rand_num, &intpart);
+        // unsigned int hash = (unsigned int)floor(BLOCKS*mod_part);
+        // if(hash==0){
+        //     printf("Mod part %lf\n", mod_part);
+        // }
         clust_val[tid]=hist_bin[tid*BLOCKS+blockIdx.x];
     }
     else{
@@ -1012,12 +1018,17 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     if(!HandleCUDAError(cudaMemcpy(d_degree,h_deg,node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Unable to copy degree data"<<endl;
     }
-    double r = ((double) rand() / (RAND_MAX));
+    double r = ( ((double)rand())/(RAND_MAX));
+    cout<<"The random number is "<<r<<endl;
     cout<<"Starting random edge placement"<<endl;
     Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_degree,r,d_tracker,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     }
+    // Random_Edge_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,r,size);
+    // if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //         cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
+    // }
     cudaFuncSetAttribute(Finalize_Replica_Tracker, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
     Finalize_Replica_Tracker<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,node_size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
@@ -1304,7 +1315,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     // int s_mem_size=0;
 
 
-
+    if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back edge data"<<endl;
+    }
     HandleCUDAError(cudaFree(d_edge));
     // HandleCUDAError(cudaFree(d_frog_init));
     // HandleCUDAError(cudaFree(d_frogs));

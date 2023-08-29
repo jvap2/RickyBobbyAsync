@@ -24,17 +24,12 @@ int main()
         cout<<deg[i]<<endl;
     }
     cout<<"Ending edge list function"<<endl;
-    // graph* G = create_graph(edge_list);
     cout<<"Starting Helper Function"<<endl;
     Org_Vertex_Helper(edge_list,replica,deg,edges,nodes);
     // cpu_radixsort(edge_list,edges);
     cout<<"Ending Helper Function"<<endl;
     Check_Out_csv_edge(edge_list, edges);
     // check_out_replicas(POWER_REPLICA_PATH,replica,nodes);
-
-    // for (int i = 0; i < 512 ; i++){
-    //     cout<<edge_list[i].cluster<<endl;
-    // }
     free(edge_list);
     delete[] src_ptr;
     delete[] succ;
