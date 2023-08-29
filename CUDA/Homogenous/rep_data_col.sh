@@ -3,4 +3,5 @@
 cd ../../data_synthesis/Homogenous
 sh gen_homo_graph_1.sh
 cd ../../CUDA/Homogenous
+make frog
 ./bin/Frog

@@ -11,7 +11,7 @@ using namespace std;
 #include <curand_kernel.h>
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 48
+#define BLOCKS 12
 #if BLOCKS>=48
 #define TPB 128
 #else

@@ -1,12 +1,7 @@
 #include "../include/data.h"
 #include "../include/GPUErrors.h"
 
-// #define BLOCKS 12
-// #if BLOCKS==64
-// #define TPB 128
-// #else
-// #define TPB 256
-// #endif
+
 
 
 
