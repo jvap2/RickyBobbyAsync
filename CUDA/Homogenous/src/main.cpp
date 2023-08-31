@@ -20,16 +20,23 @@ int main()
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
     Capture_Node_Degree(edge_list,deg,edges);
+    unsigned int *h_ctr, *h_ptr;
+    h_ctr = new unsigned int[BLOCKS];
+    h_ptr = new unsigned int[BLOCKS];
+    unsigned int *h_unq;
+    h_unq = new unsigned int[edges];
     for(int i=0; i<50; i++){
         cout<<deg[i]<<endl;
     }
     cout<<"Ending edge list function"<<endl;
     cout<<"Starting Helper Function"<<endl;
-    Org_Vertex_Helper(edge_list,replica,deg,edges,nodes);
+    Org_Vertex_Helper(edge_list,replica,deg,h_ctr, h_ptr,h_unq,edges,nodes);
     // cpu_radixsort(edge_list,edges);
     cout<<"Ending Helper Function"<<endl;
     Check_Out_csv_edge(edge_list, edges);
-    // check_out_replicas(POWER_REPLICA_PATH,replica,nodes);
+    check_out_replicas(REPLICA_PATH,replica,nodes);
+    Check_Out_Ptr_Ctr(h_ctr, h_ptr,BLOCKS);
+    Check_Out_Unq(h_unq,edges);
     free(edge_list);
     delete[] src_ptr;
     delete[] succ;

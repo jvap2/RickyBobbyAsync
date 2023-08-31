@@ -20,6 +20,30 @@ __host__ void Check_Out_csv_edge(edge* edge_list, int size){
     myfile.close();
 }
 
+__host__ void Check_Out_Ptr_Ctr(unsigned int* h_ctr, unsigned int* h_ptr, int size){
+    ofstream myfile;
+    myfile.open(PTR_CTR_PATH);
+    myfile <<"ptr,ctr\n";
+    for(int i=0; i<size;i++){
+        myfile<< to_string(h_ptr[i]);
+        myfile<< ",";
+        myfile<< to_string(h_ctr[i]);
+        myfile<< "\n";
+    }
+    myfile.close();
+}
+
+__host__ void Check_Out_Unq(unsigned int* h_unq, int size){
+    ofstream myfile;
+    myfile.open(UNQ_PATH);
+    myfile <<"unq\n";
+    for(int i=0; i<size;i++){
+        myfile<< to_string(h_unq[i]);
+        myfile<< "\n";
+    }
+    myfile.close();
+}
+
 __host__ void Check_Out_ptr(unsigned int* edge_list, int size){
     ofstream myfile;
     myfile.open(PTR_PATH);
@@ -538,12 +562,7 @@ __global__ void Kogge_Stone_Hist_Reduct(unsigned int* hist_bin, unsigned int* fi
     unsigned int idx = threadIdx.x + blockIdx.x*blockDim.x;
     unsigned int tid = threadIdx.x;
     extern __shared__ unsigned int clust_val[];
-    if(idx<size){        // double intpart;
-        // double mod_part = modf(v_hash*rand_num, &intpart);
-        // unsigned int hash = (unsigned int)floor(BLOCKS*mod_part);
-        // if(hash==0){
-        //     printf("Mod part %lf\n", mod_part);
-        // }
+    if(idx<size){ 
         clust_val[tid]=hist_bin[tid*BLOCKS+blockIdx.x];
     }
     else{
@@ -560,10 +579,10 @@ __global__ void Kogge_Stone_Hist_Reduct(unsigned int* hist_bin, unsigned int* fi
             clust_val[tid]=temp;
         }
     }
+    __syncthreads();
     if(tid==blockDim.x){
         fin_bin[blockIdx.x]=clust_val[tid];
     }
-    __syncthreads();
 }
 
 __global__ void Hist_Prefix_Sum(unsigned int* fin_bin, unsigned int* fin_bin_2){
@@ -933,7 +952,7 @@ __global__ void Collect_Num_Replicas(replica_tracker* rep, unsigned int* rep_cou
     }
 }
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int size, unsigned int node_size){
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr, unsigned int* h_unq, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;
@@ -1043,26 +1062,26 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     }
     Collect_Num_Replicas<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,d_replica_counts,node_size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host with Collect_Num_Replicas"<<endl;
+        cout<<"Unable to synchronize with host with Collect_Num_Replicas"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(replica_count,d_replica_counts,node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy replica counts"<<endl;
     }
     Histogram_1<<<blocks_per_grid,threads_per_block>>>(d_edge,d_hist,size); 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host with Hist_1"<<endl;
+        cout<<"Unable to synchronize with host with Hist_1"<<endl;
     }
     Kogge_Stone_Hist_Reduct<<<BLOCKS,blocks_per_grid, blocks_per_grid*sizeof(unsigned int)>>>(d_hist,dev_fin_hist,BLOCKS*blocks_per_grid);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host for reduce"<<endl;
+        cout<<"Unable to synchronize with host for reduce"<<endl;
     }
     Hist_Prefix_Sum<<<1,BLOCKS>>>(dev_fin_hist, dev_fin_count);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host for reduce"<<endl;
+        cout<<"Unable to synchronize with host for reduce"<<endl;
     }
     Find_Max_Cluster<<<1,BLOCKS>>>(dev_fin_hist, max_val);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host for finding the max num of clusters"<<endl;
+        cout<<"Unable to synchronize with host for finding the max num of clusters"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(&h_max_val,max_val,sizeof(unsigned int), cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy max val"<<endl;
@@ -1147,17 +1166,17 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     HandleCUDAError(cudaFree(d_table_2));
     HandleCUDAError(cudaFree(d_table_3));
     
-    // size_t free_byte ;
-    // size_t total_byte ;
-    // if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
-    //     cout<<"Unable to get memory info"<<endl;
-    // }
-    // double free_db = (double)free_byte ;
-    // double total_db = (double)total_byte ;
-    // double used_db = total_db - free_db ;
-    // printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
-    //     used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
-    // //Now, we need to organize the vertex data
+    size_t free_byte ;
+    size_t total_byte ;
+    if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
+        cout<<"Unable to get memory info"<<endl;
+    }
+    double free_db = (double)free_byte ;
+    double total_db = (double)total_byte ;
+    double used_db = total_db - free_db ;
+    printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
+        used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+    //Now, we need to organize the vertex data
     int tpb_2 = 1024;
     unsigned int *start, *end, *total;
     if(!HandleCUDAError(cudaMalloc((void**)&start, size*sizeof(unsigned int)))){
@@ -1178,102 +1197,111 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Unable to synchronize with host for merge sort"<<endl;
     }
-    // //Now we need to merge and sort the start and end lists
-    // //The edge list is sorted, let us now merge the start and end points
-    // //How do we get the shared memory for the 
-    // unsigned int *d_mask;
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_mask, 2*size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start mask"<<endl;
-    // }
+    //Now we need to merge and sort the start and end lists
+    //The edge list is sorted, let us now merge the start and end points
+    //How do we get the shared memory for the 
+    unsigned int *d_mask;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_mask, 2*size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start mask"<<endl;
+    }
 
-    // unsigned int *d_cmpt;
+    unsigned int *d_cmpt;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt, size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start compt"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start compt"<<endl;
+    }
 
-    // unsigned int *d_scan;
+    unsigned int *d_scan;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_scan, size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start scan"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_scan, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start scan"<<endl;
+    }
 
-    // unsigned int *d_len;
+    unsigned int *d_len;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_len, BLOCKS*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start len"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_len, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start len"<<endl;
+    }
 
-    // unsigned int* d_len_ex;
+    unsigned int* d_len_ex;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_len_ex, BLOCKS*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start len"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_len_ex, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start len"<<endl;
+    }
 
-    // unsigned int *d_idx;
+    unsigned int *d_idx;
 
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_idx, 2*size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start idx"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_idx, 2*size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start idx"<<endl;
+    }
 
-    // unsigned int *d_unique;
+    unsigned int *d_unique;
     
-    // if(!HandleCUDAError(cudaMalloc((void**)&d_unique, size*sizeof(unsigned int)))){
-    //     cout<<"Unable to allocate memory for start unique"<<endl;
-    // }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_unique, size*sizeof(unsigned int)))){
+        cout<<"Unable to allocate memory for start unique"<<endl;
+    }
 
-    // cudaFuncSetAttribute(gen_backward_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
-    // gen_backward_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(total,dev_fin_count,dev_fin_hist,d_mask,size);
-    // if(!HandleCUDAError(cudaDeviceSynchronize())){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
+    cudaFuncSetAttribute(gen_backward_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+    gen_backward_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(total,dev_fin_count,dev_fin_hist,d_mask,size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
 
 
-    // scan_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(d_mask,d_scan,dev_fin_count,dev_fin_hist,size);
+    scan_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(d_mask,d_scan,dev_fin_count,dev_fin_hist,size);
 
-    // if(!HandleCUDAError(cudaDeviceSynchronize())){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
 
-    // if(!HandleCUDAError(cudaFree(d_mask))){
-    //     cout<<"Unable to free strt mask"<<endl;
-    // }
-    // // //Now Perform prefix sums
-    // Scanned_To_Compact<<<BLOCKS,tpb_2>>>(d_cmpt,d_scan,d_len,dev_fin_count,dev_fin_hist,size);
-    // if(!HandleCUDAError(cudaDeviceSynchronize())){
-    //     cout<<"Unable to synchronize with host for Scanned to Compact"<<endl;
-    // }
+    if(!HandleCUDAError(cudaFree(d_mask))){
+        cout<<"Unable to free strt mask"<<endl;
+    }
+    // //Now Perform prefix sums
+    Scanned_To_Compact<<<BLOCKS,tpb_2>>>(d_cmpt,d_scan,d_len,dev_fin_count,dev_fin_hist,size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for Scanned to Compact"<<endl;
+    }
 
-    // Final_Compression<<<BLOCKS,tpb_2>>>(d_cmpt,d_len,total,d_idx,d_unique);
+    Final_Compression<<<BLOCKS,tpb_2>>>(d_cmpt,d_len,total,d_idx,d_unique);
 
-    // if(!HandleCUDAError(cudaDeviceSynchronize())){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
-    // HandleCUDAError(cudaFree(d_cmpt));
-    // HandleCUDAError(cudaFree(d_scan));
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
+    HandleCUDAError(cudaFree(d_cmpt));
+    HandleCUDAError(cudaFree(d_scan));
 
-    // // /*Find the ptr values to the start and end arrays*/
-    // // /*Now, we need to find the new size of the unique value array
-    // // This will include performing an exclusive scan of both the end and start cluster, then 
-    // // merge the two. Secondly, we need to ensure there are not replicated values in the start and end
-    // // With the current implementation, this is probable. We may need to iterate through these values again*/
-    // // /*Then, we can generate a hash table corresponding to the global address of the value and commence
-    // // SUBLIME*/
+    if(!HandleCUDAError(cudaMemcpy(h_ctr,dev_fin_hist,BLOCKS*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back ctr"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(h_ptr,dev_fin_count,BLOCKS*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back ctr"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(h_unq,d_unique,size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back ctr"<<endl;
+    }
+    // /*Find the ptr values to the start and end arrays*/
+    // /*Now, we need to find the new size of the unique value array
+    // This will include performing an exclusive scan of both the end and start cluster, then 
+    // merge the two. Secondly, we need to ensure there are not replicated values in the start and end
+    // With the current implementation, this is probable. We may need to iterate through these values again*/
+    // /*Then, we can generate a hash table corresponding to the global address of the value and commence
+    // SUBLIME*/
 
-    // unq_exclusive_scan<<<1,BLOCKS>>>(d_len,d_len_ex);
+    unq_exclusive_scan<<<1,BLOCKS>>>(d_len,d_len_ex);
 
-    // if(!HandleCUDAError(cudaDeviceSynchronize())){
-    //     cout<<"Unable to synchronize with host for start mask"<<endl;
-    // }
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Unable to synchronize with host for start mask"<<endl;
+    }
 
-    // if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
-    //     cout<<"Unable to get memory info"<<endl;
-    // }
-    // free_db = (double)free_byte ;
-    // total_db = (double)total_byte ;
-    // used_db = total_db - free_db ;
-    // printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
-    //     used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+    if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
+        cout<<"Unable to get memory info"<<endl;
+    }
+    free_db = (double)free_byte ;
+    total_db = (double)total_byte ;
+    used_db = total_db - free_db ;
+    printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
+        used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 
 
     /*For the next step, this could be done quickly with a sort, then a comparision, that does not seem wise

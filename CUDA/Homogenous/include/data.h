@@ -33,6 +33,8 @@ using namespace std;
 #define POWER_GRAPH_CLUSTER_PATH "../../Data/Homogenous/rand/power_Cluster_Assignment.csv"
 #define POWER_GRAPH_DATA_PATH "../../Data/Homogenous/rand/power_rand_net_info.csv"
 #define POWER_REPLICA_PATH "../../Data/Homogenous/rep_power_counts.csv"
+#define PTR_CTR_PATH "../../Data/Homogenous/rand/ptr_ctr_Assignment.csv"
+#define UNQ_PATH "../../Data/Homogenous/rand/unq_Assignment.csv"
 
 
 
@@ -78,13 +80,17 @@ __host__ void Check_Out_ptr(unsigned int* edge_list, int size);
 
 __host__ void Capture_Node_Degree(edge* edge_list, unsigned int* deg_arr, unsigned int size);
 
+__host__ void Check_Out_Unq(unsigned int* h_unq, int size);
+
+__host__ void Check_Out_Ptr_Ctr(unsigned int* h_ctr, unsigned int* h_ptr, int size);
+
 /*HELPER FUNCTION AND KERNELS*/
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int size, unsigned int node_size);
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr, unsigned int* h_unq, unsigned int size, unsigned int node_size);
 
 __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, unsigned int* table_2, long int size, unsigned int iter);
 
