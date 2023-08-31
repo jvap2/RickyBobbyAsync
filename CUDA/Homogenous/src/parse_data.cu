@@ -721,17 +721,17 @@ __global__ void scan_mask(unsigned int* start_mask, unsigned* compct_start, unsi
     //We need to use global memory if we intend to use dynamic parallelism, so we need to copy the data over
     /*Now, we can execute the exclusive scan- issue will be that this will be larger than the size of a thread block
     Can we use dynamic parallelism in order to compute partial sums to then acquire a final sum?*/
-    int num_of_blocks = (ctr_table[blockIdx.x]/blockDim.x)+1;
+    int num_of_blocks = (2*ctr_table[blockIdx.x]/blockDim.x)+1;
     if(tid<num_of_blocks){
-        int dym_size=(tid==num_of_blocks-1)?(ctr_table[blockIdx.x]-tid*blockDim.x):(blockDim.x);
-        Prefix_Scan_Cmpt<<<1,TPB>>>(start_mask+ptr_table[blockIdx.x]+tid*blockDim.x, compct_start+ptr_table[blockIdx.x]+tid*blockDim.x,dym_size,tid);
+        int dym_size=(tid==num_of_blocks-1)?(2*ctr_table[blockIdx.x]-tid*blockDim.x):(blockDim.x);
+        Prefix_Scan_Cmpt<<<1,TPB>>>(start_mask+2*ptr_table[blockIdx.x]+tid*blockDim.x, compct_start+2*ptr_table[blockIdx.x]+tid*blockDim.x,dym_size,tid);
     }
     __syncthreads();
     extern __shared__ unsigned int end_vals[];
     /*Now, we have partial sums, we need to find the final value of each accumulated sum*/
     /*How do we do this..... SUBLIME!*/
     if(tid<num_of_blocks){
-        int loc = (tid==num_of_blocks-1)? (ptr_table[blockIdx.x+1]-1):(ptr_table[blockIdx.x]+(tid+1)*blockDim.x-1);
+        int loc = (tid==num_of_blocks-1)? (2*ptr_table[blockIdx.x+1]-1):(2*ptr_table[blockIdx.x]+(tid+1)*blockDim.x-1);
         end_vals[tid]=compct_start[loc];
     }
     __syncthreads();
@@ -743,7 +743,7 @@ __global__ void scan_mask(unsigned int* start_mask, unsigned* compct_start, unsi
     __syncthreads();
     if(tid<num_of_blocks){
         int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
-        final_scan_commit<<<1,TPB>>>(compct_start+ptr_table[blockIdx.x]+tid*blockDim.x,end_vals, dym_size);
+        final_scan_commit<<<1,TPB>>>(compct_start+2*ptr_table[blockIdx.x]+tid*blockDim.x,end_vals, dym_size);
     }
     
 }
@@ -792,16 +792,16 @@ __global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, un
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     if(idx<size){
-        for(int i = tid; i<ctr_table[blockIdx.x];i+=blockDim.x){
+        for(int i = tid; i<2*ctr_table[blockIdx.x];i+=blockDim.x){
             if(i==0){
-                cmpt[ptr_table[blockIdx.x]+i]=0;
+                cmpt[2*ptr_table[blockIdx.x]+i]=0;
             }
             if(i==size-1){
-                cmpt[ptr_table[blockIdx.x]+scanned[ptr_table[blockIdx.x]+i]]=i+1;
-                *(new_size+blockIdx.x)=scanned[ptr_table[blockIdx.x]+i];
+                cmpt[2*ptr_table[blockIdx.x]+scanned[2*ptr_table[blockIdx.x]+i]]=i+1;
+                *(new_size+blockIdx.x)=scanned[2*ptr_table[blockIdx.x]+i];
             }
-            else if(scanned[ptr_table[blockIdx.x]+i]!=scanned[ptr_table[blockIdx.x]+i-1]){
-                cmpt[scanned[ptr_table[blockIdx.x]+i]]=i;
+            else if(scanned[2*ptr_table[blockIdx.x]+i]!=scanned[2*ptr_table[blockIdx.x]+i-1]){
+                cmpt[scanned[2*ptr_table[blockIdx.x]+i]]=i;
             }
         }
     }
@@ -934,9 +934,9 @@ __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigne
     unsigned int* local_start=start+ptr_table[blockIdx.x];
     unsigned int* local_end=end+ptr_table[blockIdx.x];
     unsigned int* local_unq=unq+2*ptr_table[blockIdx.x];
-    unsigned int elem_per_thread = (2*ctr_table[blockIdx.x]/blockDim.x)+1;
+    unsigned int elem_per_thread = (ctr_table[blockIdx.x]/blockDim.x)+1;
     unsigned int k_curr = tid*elem_per_thread; //Check that this makes sense
-    unsigned int k_next = (tid+1)*elem_per_thread<=2*ctr_table[blockIdx.x]?(tid+1)*elem_per_thread:2*ctr_table[blockIdx.x];
+    unsigned int k_next = (tid+1)*elem_per_thread<=ctr_table[blockIdx.x]?(tid+1)*elem_per_thread:ctr_table[blockIdx.x];
     unsigned int i_curr =co_rank(local_start, local_end,ctr_table[blockIdx.x],ctr_table[blockIdx.x],k_curr);
     unsigned int i_next =co_rank(local_start, local_end,ctr_table[blockIdx.x],ctr_table[blockIdx.x],k_next);
     int j_curr = k_curr-i_curr;
@@ -1232,13 +1232,13 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
 
     unsigned int *d_cmpt;
 
-    if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt, size*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_cmpt, 2*size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for start compt"<<endl;
     }
 
     unsigned int *d_scan;
 
-    if(!HandleCUDAError(cudaMalloc((void**)&d_scan, size*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_scan, 2*size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for start scan"<<endl;
     }
 
@@ -1262,28 +1262,28 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
 
     unsigned int *d_unique;
     
-    if(!HandleCUDAError(cudaMalloc((void**)&d_unique, size*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_unique, 2*size*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for start unique"<<endl;
     }
 
     cudaFuncSetAttribute(gen_backward_mask, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
-    gen_backward_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(total,dev_fin_count,dev_fin_hist,d_mask,size);
+    gen_backward_mask<<<BLOCKS,tpb_2,(2*h_max_val)*sizeof(unsigned int)>>>(total,dev_fin_count,dev_fin_hist,d_mask,BLOCKS*tpb_2);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-        cout<<"Unable to synchronize with host for start mask"<<endl;
+        cout<<"Unable to synchronize with host for gen_backward_mask"<<endl;
     }
 
 
-    scan_mask<<<BLOCKS,tpb_2,(h_max_val)*sizeof(unsigned int)>>>(d_mask,d_scan,dev_fin_count,dev_fin_hist,size);
+    scan_mask<<<BLOCKS,tpb_2,(2*h_max_val)*sizeof(unsigned int)>>>(d_mask,d_scan,dev_fin_count,dev_fin_hist,BLOCKS*tpb_2);
 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-        cout<<"Unable to synchronize with host for start mask"<<endl;
+        cout<<"Unable to synchronize with host for gen_mask"<<endl;
     }
 
     if(!HandleCUDAError(cudaFree(d_mask))){
         cout<<"Unable to free strt mask"<<endl;
     }
     // //Now Perform prefix sums
-    Scanned_To_Compact<<<BLOCKS,tpb_2>>>(d_cmpt,d_scan,d_len,dev_fin_count,dev_fin_hist,size);
+    Scanned_To_Compact<<<BLOCKS,tpb_2>>>(d_cmpt,d_scan,d_len,dev_fin_count,dev_fin_hist,BLOCKS*tpb_2);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Unable to synchronize with host for Scanned to Compact"<<endl;
     }
@@ -1291,7 +1291,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     Final_Compression<<<BLOCKS,tpb_2>>>(d_cmpt,d_len,total,d_idx,d_unique);
 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-        cout<<"Unable to synchronize with host for start mask"<<endl;
+        cout<<"Unable to synchronize with host for Final Compression"<<endl;
     }
     HandleCUDAError(cudaFree(d_cmpt));
     HandleCUDAError(cudaFree(d_scan));
