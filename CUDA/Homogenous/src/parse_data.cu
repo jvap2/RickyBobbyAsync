@@ -549,12 +549,15 @@ __global__ void Histogram_1(edge* edgelist, unsigned int* hist_bin, unsigned int
     }
     __syncthreads();
     if(idx<size){
-        atomicAdd(&s_hist[s_edge_list[tid]],1);
+        atomicAdd(s_hist+s_edge_list[tid],1);
+        //Increment the histogram based on the cluster value in s_edge_list
     }
     __syncthreads();
     if(tid<BLOCKS){
-        hist_bin[BLOCKS*blockIdx.x+tid]=s_hist[tid];
+        hist_bin[gridDim.x*tid+blockIdx.x]=s_hist[tid];
+        //Store values for cluster x in block x
     }
+    __syncthreads();
     //Now, all the data is stored locally on a blocks/grid by BLOCKS array which we need to reduce
 }
 
@@ -563,7 +566,7 @@ __global__ void Kogge_Stone_Hist_Reduct(unsigned int* hist_bin, unsigned int* fi
     unsigned int tid = threadIdx.x;
     extern __shared__ unsigned int clust_val[];
     if(idx<size){ 
-        clust_val[tid]=hist_bin[tid*BLOCKS+blockIdx.x];
+        clust_val[tid]=hist_bin[idx];
     }
     else{
         clust_val[tid]=0;
@@ -580,9 +583,10 @@ __global__ void Kogge_Stone_Hist_Reduct(unsigned int* hist_bin, unsigned int* fi
         }
     }
     __syncthreads();
-    if(tid==blockDim.x){
+    if(tid==blockDim.x-1){
         fin_bin[blockIdx.x]=clust_val[tid];
     }
+    __syncthreads();
 }
 
 __global__ void Hist_Prefix_Sum(unsigned int* fin_bin, unsigned int* fin_bin_2){
@@ -847,9 +851,10 @@ __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc){
         __syncthreads();
         unsigned int temp;
         if(tid>=stride){
-            temp=table[tid]+table[tid-stride];
-        }
-        __syncthreads();
+            temp=table[tid]+table[tid-stride];    
+        //Copy TPB cluster values over
+    }
+    __syncthreads();
         if(tid>=stride){
             table[tid]=temp;
         }
@@ -922,8 +927,10 @@ __global__ void Find_Length_of_Unique(unsigned int* start_len, unsigned int* end
 
 
 __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* unq){
+    //Get the index values for each thread
     unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
     unsigned int tid = threadIdx.x;
+    //Find the local start and end values
     unsigned int* local_start=start+ptr_table[blockIdx.x];
     unsigned int* local_end=end+ptr_table[blockIdx.x];
     unsigned int* local_unq=unq+2*ptr_table[blockIdx.x];
@@ -952,7 +959,7 @@ __global__ void Collect_Num_Replicas(replica_tracker* rep, unsigned int* rep_cou
     }
 }
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr, unsigned int* h_unq, unsigned int size, unsigned int node_size){
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;
@@ -1022,6 +1029,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     if(!HandleCUDAError(cudaMalloc((void**)&d_hist, BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for histogram"<<endl;
     }
+    if(!HandleCUDAError(cudaMemset(d_hist,0,BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
+        cout<<"Unable to set histogram to 0"<<endl;
+    }
     if(!HandleCUDAError(cudaMalloc((void**)&max_val, sizeof(unsigned int)))){
         cout<<"Unable to allocate memory for histogram"<<endl;
     }
@@ -1086,6 +1096,21 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     if(!HandleCUDAError(cudaMemcpy(&h_max_val,max_val,sizeof(unsigned int), cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy max val"<<endl;
     }
+    unsigned int* h_hist_bin;
+    h_hist_bin = new unsigned int [BLOCKS*blocks_per_grid];
+    if(!HandleCUDAError(cudaMemcpy(h_hist_bin,d_hist,BLOCKS*blocks_per_grid*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back ctr"<<endl;
+    }
+    ofstream myfile;
+    myfile.open(HIST_PATH);
+    myfile <<"i,hist_val\n";
+    for(int i=0; i<BLOCKS*blocks_per_grid;i++){
+        myfile<< to_string(i);
+        myfile<< ",";
+        myfile<< to_string(h_hist_bin[i]);
+        myfile<<"\n";
+    }
+    myfile.close();
     HandleCUDAError(cudaFree(max_val));
     HandleCUDAError(cudaFree(d_hist));
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge_2, size*sizeof(edge)))){
@@ -1271,15 +1296,23 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     HandleCUDAError(cudaFree(d_cmpt));
     HandleCUDAError(cudaFree(d_scan));
 
+    unsigned int* h_ctr;
+    unsigned int* h_ptr;
+    unsigned int* h_unq;
+    h_ctr = new unsigned int [BLOCKS];
+    h_ptr = new unsigned int [BLOCKS];
+    h_unq = new unsigned int [2*size];
     if(!HandleCUDAError(cudaMemcpy(h_ctr,dev_fin_hist,BLOCKS*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy back ctr"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(h_ptr,dev_fin_count,BLOCKS*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy back ctr"<<endl;
+        cout<<"Unable to copy back ptr"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(h_unq,d_unique,size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy back ctr"<<endl;
+    if(!HandleCUDAError(cudaMemcpy(h_unq,d_unique,2*size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy back unq"<<endl;
     }
+    Check_Out_Ptr_Ctr(h_ctr, h_ptr,BLOCKS);
+    Check_Out_Unq(h_unq,2*size);
     // /*Find the ptr values to the start and end arrays*/
     // /*Now, we need to find the new size of the unique value array
     // This will include performing an exclusive scan of both the end and start cluster, then 
@@ -1352,6 +1385,18 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     // HandleCUDAError(cudaFree(d_src_ptr));
     // HandleCUDAError(cudaFree(d_succ));
     // HandleCUDAError(cudaFree(d_c));
+    HandleCUDAError(cudaFree(d_degree));
+    HandleCUDAError(cudaFree(d_tracker));
+    HandleCUDAError(cudaFree(d_replica_counts));
+    HandleCUDAError(cudaFree(start));
+    HandleCUDAError(cudaFree(end));
+    HandleCUDAError(cudaFree(total));
+    HandleCUDAError(cudaFree(d_len));
+    HandleCUDAError(cudaFree(d_len_ex));
+    HandleCUDAError(cudaFree(d_idx));
+    HandleCUDAError(cudaFree(d_unique));
+    HandleCUDAError(cudaFree(dev_fin_hist));
+    HandleCUDAError(cudaFree(dev_fin_count));
     HandleCUDAError(cudaDeviceReset());   
 }
 
