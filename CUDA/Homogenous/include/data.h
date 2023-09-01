@@ -103,6 +103,8 @@ __global__ void Finalize_Replica_Tracker(replica_tracker* d_rep, unsigned int no
 
 __global__ void fin_exclusive_scan(unsigned int* bits_3, unsigned int size);
 
+__global__ void final_scan_commit_scan(unsigned int* list, unsigned int* end_vals, unsigned int ptr, unsigned int size);
+
 __global__ void copy_edge_list(edge* edge_1, edge* edge_2, unsigned int size);
 
 __global__ void Histogram_1(edge* edgelist, unsigned int* hist_bin, unsigned int size);
@@ -127,7 +129,7 @@ __global__ void gen_backward_mask(unsigned int* global_list, unsigned int* ptr_t
 
 __global__ void scan_mask(unsigned int* start_mask, unsigned* compct_start, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
 
-__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size, unsigned int block);
+__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size);
 
 __global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, unsigned int* new_size, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
 

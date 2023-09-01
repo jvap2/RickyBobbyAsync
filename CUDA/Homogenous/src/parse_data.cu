@@ -462,6 +462,14 @@ __global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, un
     }
 }
 
+__global__ void final_scan_commit_scan(unsigned int* list, unsigned int* end_vals, unsigned int ptr, unsigned int size){
+    unsigned int bid = blockIdx.x+ptr;
+    unsigned int idx = threadIdx.x + (blockIdx.x*blockDim.x);
+    if(idx<size && bid>0){
+        list[idx]+=end_vals[bid-1];
+    }
+}
+
 
 //d_table_2 contains the prefix sum
 //d_table contains the counts
@@ -724,7 +732,7 @@ __global__ void scan_mask(unsigned int* start_mask, unsigned* compct_start, unsi
     int num_of_blocks = (2*ctr_table[blockIdx.x]/blockDim.x)+1;
     if(tid<num_of_blocks){
         int dym_size=(tid==num_of_blocks-1)?(2*ctr_table[blockIdx.x]-tid*blockDim.x):(blockDim.x);
-        Prefix_Scan_Cmpt<<<1,TPB>>>(start_mask+2*ptr_table[blockIdx.x]+tid*blockDim.x, compct_start+2*ptr_table[blockIdx.x]+tid*blockDim.x,dym_size,tid);
+        Prefix_Scan_Cmpt<<<1,blockDim.x,dym_size*sizeof(unsigned int)>>>(start_mask+2*ptr_table[blockIdx.x]+tid*blockDim.x, compct_start+2*ptr_table[blockIdx.x]+tid*blockDim.x,dym_size);
     }
     __syncthreads();
     extern __shared__ unsigned int end_vals[];
@@ -736,36 +744,25 @@ __global__ void scan_mask(unsigned int* start_mask, unsigned* compct_start, unsi
     }
     __syncthreads();
     if(tid<num_of_blocks){
-        int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
+        int dym_size=num_of_blocks;
         //Check this
-        Prefix_Scan_Cmpt<<<1,num_of_blocks>>>(end_vals, end_vals,dym_size,0);
+        Prefix_Scan_Cmpt<<<1,num_of_blocks, dym_size*sizeof(unsigned int)>>>(end_vals, end_vals,dym_size);
     }
     __syncthreads();
     if(tid<num_of_blocks){
-        int dym_size=(tid==num_of_blocks-1)?(num_of_blocks-tid):(num_of_blocks);
-        final_scan_commit<<<1,TPB>>>(compct_start+2*ptr_table[blockIdx.x]+tid*blockDim.x,end_vals, dym_size);
+        int dym_size=(tid==num_of_blocks-1)?(2*ctr_table[blockIdx.x]-tid*blockDim.x):(blockDim.x);
+        final_scan_commit_scan<<<1,blockDim.x>>>(compct_start+2*ptr_table[blockIdx.x]+tid*blockDim.x,end_vals, tid, dym_size);
     }
     
 }
 
 
-__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size, unsigned int block){
+__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     __shared__ unsigned int local_cmpt[TPB];
-    if(block==0){
-        if(tid<size && tid!=0){
-            local_cmpt[tid]=mask[tid-1];
-        }
-        else{
-            local_cmpt[tid]=0;
-        }
-    }
-    else{
-        if(tid<size){
-            local_cmpt[tid]=mask[tid];
-        }
-
+    if(tid<size){
+        local_cmpt[tid]=mask[tid];
     }
     __syncthreads();
     for(unsigned int stride = 1; stride<blockDim.x;stride*=2){
@@ -796,23 +793,23 @@ __global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, un
             if(i==0){
                 cmpt[2*ptr_table[blockIdx.x]+i]=0;
             }
-            if(i==size-1){
+            if(i==2*ctr_table[blockIdx.x]-1){
                 cmpt[2*ptr_table[blockIdx.x]+scanned[2*ptr_table[blockIdx.x]+i]]=i+1;
                 *(new_size+blockIdx.x)=scanned[2*ptr_table[blockIdx.x]+i];
             }
             else if(scanned[2*ptr_table[blockIdx.x]+i]!=scanned[2*ptr_table[blockIdx.x]+i-1]){
-                cmpt[scanned[2*ptr_table[blockIdx.x]+i]]=i;
+                cmpt[scanned[2*ptr_table[blockIdx.x]+i]-1]=i;
             }
         }
     }
 }
 
-__global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, unsigned int* in, unsigned int* new_idx, unsigned int* out){
+__global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, unsigned int* in, unsigned int* new_idx, unsigned int* out, unsigned int* ptr){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     for(int i = tid; i<(*new_size+blockIdx.x);i+=blockDim.x){
-        out[i]=in[cmpt[i]];
-        new_idx[i]=cmpt[i+1]-cmpt[i];
+        out[i+2*ptr[blockIdx.x]]=in[cmpt[i+2*ptr[blockIdx.x]]];
+        new_idx[i+2*ptr[blockIdx.x]]=cmpt[i+1+2*ptr[blockIdx.x]]-cmpt[i+2*ptr[blockIdx.x]];
     } 
 }
 
