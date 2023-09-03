@@ -78,9 +78,12 @@ int main()
     unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]];
     edge* edge_list_2;
     edge_list_2=(edge*)malloc(sizeof(edge)*edges);
+    for(int i = 0; i<BLOCKS;i++){
+        cout<<unq_ptr[i]<<endl;
+    }
     Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
     Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
-    Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
+    // Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
     delete[] h_temp_src;
     unsigned int* K= new unsigned int[nodes]{0};
     unsigned int* C = new unsigned int[nodes]{0};
