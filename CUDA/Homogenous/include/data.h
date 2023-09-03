@@ -86,6 +86,11 @@ __host__ void Check_Out_Unq(unsigned int* h_unq, int size);
 __host__ void Check_Out_Ptr_Ctr(unsigned int* h_ctr, unsigned int* h_ptr, int size);
 
 __host__ void Check_Repeats(edge* edge_list, unsigned int size);
+
+__host__ void Gen_Local_Src(edge* edge_list, unsigned int* src_ptr,unsigned int* temp_src, unsigned int* unq, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr,
+unsigned int* h_ctr, unsigned int* h_ptr);
+
+__host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsigned int* unq, unsigned int* h_ptr, unsigned int* h_ctr, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr);
 /*HELPER FUNCTION AND KERNELS*/
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);

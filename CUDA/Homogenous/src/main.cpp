@@ -41,7 +41,7 @@ int main()
     unsigned int* h_end = new unsigned int[edges];
     unsigned int* h_unique_merge = new unsigned int[2*edges];
     unsigned int* unq_ctr = new unsigned int[BLOCKS];
-    unsigned int* unq_ptr = new unsigned int[BLOCKS];
+    unsigned int* unq_ptr = new unsigned int[BLOCKS+1];
     unsigned int** unq_fin = new unsigned int*[BLOCKS];
 
     cout<<"Copying the edge list"<<endl;
@@ -56,17 +56,43 @@ int main()
         merge_sequential(h_start+h_ptr[i],h_end+h_ptr[i],h_ctr[i],h_ctr[i],h_unique_merge+2*h_ptr[i]);
         auto ip=unique(h_unique_merge+2*h_ptr[i],h_unique_merge+2*h_ptr[i]+2*h_ctr[i]);
         unq_ctr[i]=distance(h_unique_merge+2*h_ptr[i],ip);
+        cout<<unq_ctr[i]<<endl;
         unq_fin[i]=new unsigned int[unq_ctr[i]];
         copy(h_unique_merge+2*h_ptr[i],ip,unq_fin[i]);
     }
     cout<<"Ending the merge function"<<endl;
     unq_ptr[0]=0;
-    for(int i = 1; i<BLOCKS;i++){
+    for(int i = 1; i<=BLOCKS;i++){
         unq_ptr[i]=unq_ptr[i-1]+unq_ctr[i-1];
     }
-    
-    //Now, there needs to be a mapping
+    //No, we have new pointer to the unique array
+    unsigned int* h_unq_fin = new unsigned int[unq_ptr[BLOCKS]];
+    for(int i = 0; i<BLOCKS;i++){
+        for(int j = 0; j<unq_ctr[i];j++){
+            h_unq_fin[unq_ptr[i]+j]=unq_fin[i][j];
+        }
+    }
+    //Now, we have the unique array and the renumbering
+    unsigned int* h_local_src = new unsigned int[unq_ptr[BLOCKS]];
+    unsigned int* h_temp_src = new unsigned int[unq_ptr[BLOCKS]];
+    unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]];
+    edge* edge_list_2;
+    edge_list_2=(edge*)malloc(sizeof(edge)*edges);
+    Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
+    Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
+    for(int i=0; i<BLOCKS; i++){
+        cout<<"BLOCK "<<i<<endl;
+        for(int j = 0; j<unq_ctr[i];j++){
+            cout<<h_local_src[unq_ptr[i]+j]<<'\t';
+            if(j%10==0){
+                cout<<endl;
+            }
+        }
+        cout<<endl;
+    }
+    delete[] h_temp_src;
     free(edge_list);
+    free(edge_list_2);
     delete[] src_ptr;
     delete[] succ;
     delete[] deg;
@@ -77,5 +103,11 @@ int main()
     delete[] h_start;
     delete[] h_end;
     delete[] h_unique_merge;
+    delete[] unq_fin;
+    delete[] unq_ctr;
+    delete[] unq_ptr;
+    delete[] h_unq_fin;
+    delete[] h_local_src;
+    delete[] h_local_succ;
     return 0;
 }

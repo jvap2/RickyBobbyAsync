@@ -322,6 +322,53 @@ __host__ void cpu_radixsort(edge* arr, int n)
 }
 
 
+__host__ void Gen_Local_Src(edge* edge_list, unsigned int* src_ptr,unsigned int* temp_src, unsigned int* unq, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr,
+unsigned int* h_ctr, unsigned int* h_ptr){
+    for(int i = 0; i<BLOCKS; i++){
+        //Point to the start of the edge list
+        //iterate through the starts
+        for(int j=0; j<h_ctr[i];j++){
+            unsigned int start = edge_list[h_ptr[i]+j].start;
+            src_ptr[h_unq_ptr[i]+start]++;
+        }
+    }
+    //Now, we need to prefix sum the src_ptr
+    for(int i=0; i<BLOCKS; i++){
+        temp_src[h_unq_ptr[i]]=0;
+        for(int j=h_unq_ptr[i]+1; j<h_unq_ptr[i]+h_unq_ctr[i];j++){
+            temp_src[j]=src_ptr[j-1]+temp_src[j-1];
+        }
+    }
+    //Now, we need to copy the data back to src_ptr
+    for(int i=0; i<BLOCKS; i++){
+        for(int j=h_unq_ptr[i]; j<h_unq_ptr[i]+h_unq_ctr[i];j++){
+            src_ptr[j]=temp_src[j];
+        }
+    }
+}
+
+__host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsigned int* unq, unsigned int* h_ptr, unsigned int* h_ctr, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr){
+    for(int i = 0; i<BLOCKS; i++){
+        //Point to the start of the edge list
+        //iterate through the starts
+        for(int j=0; j<h_ctr[i];j++){
+            unsigned int start = edge_list[h_ptr[i]+j].start;
+            unsigned int end = edge_list[h_ptr[i]+j].end;
+            int start_idx = find(unq+h_unq_ptr[i], unq+h_unq_ptr[i]+h_unq_ctr[i], start)-(unq+h_unq_ptr[i]);
+            int end_idx = find(unq+h_unq_ptr[i], unq+h_unq_ptr[i]+h_unq_ctr[i], end)-(unq+h_unq_ptr[i]);
+            if(start_idx>=h_unq_ctr[i] || end_idx>=h_unq_ctr[i]){
+                cout<<"Error: "<<start_idx<<", "<<end_idx<<", "<<h_unq_ctr[i]<<endl;
+                return;
+            }
+            else{
+                edge_list_2[h_ptr[i]+j].start=start_idx;
+                edge_list_2[h_ptr[i]+j].end=end_idx;
+                edge_list_2[h_ptr[i]+j].cluster=edge_list[h_ptr[i]+j].cluster;
+            }
+        }
+    }
+}
+
 __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter){
     //Need to sort through the cluster data and organize it
     //organize into the data for each block of FrogWild

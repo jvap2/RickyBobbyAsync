@@ -57,3 +57,12 @@ for val in clusters:
 
 renum_src = [ [] for _ in range(len(clusters)) ]
 renum_succ = [ [] for _ in range(len(clusters)) ]
+
+for i in range(len(clusters)):
+    renum_src[i]=[None]*len(ren_unq[i])
+    print(len(merge_unq[i]))
+    renum_succ[i]=[None]*len(start_cluster[i])
+
+# for i,val in enumerate(clust):
+#     for j, s, e in zip(start_cluster[val], end_cluster[val]):
+#         renum_src[val][s==ren_unq[val]]+=1
