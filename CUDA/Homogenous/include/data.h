@@ -2,7 +2,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <sstream>
+#include <sstream>   
+#include<algorithm>
 using namespace std;
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -42,7 +43,6 @@ using namespace std;
 struct edge{
     unsigned int end, start;
     unsigned int cluster;
-    unsigned int local_end, local_start;
 };
 
 struct vert_hash_table{
@@ -85,13 +85,14 @@ __host__ void Check_Out_Unq(unsigned int* h_unq, int size);
 
 __host__ void Check_Out_Ptr_Ctr(unsigned int* h_ctr, unsigned int* h_ptr, int size);
 
+__host__ void Check_Repeats(edge* edge_list, unsigned int size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int size, unsigned int node_size);
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size);
 
 __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, unsigned int* table_2, long int size, unsigned int iter);
 
@@ -117,9 +118,7 @@ __global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, un
 
 __global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int node_size, unsigned int edge_size);
 
-__global__ void FrogWild(edge* edgelist, unsigned int* d_src, unsigned int* d_succ,
-unsigned int* d_c, unsigned int* d_frogs, unsigned int* edge_ptr,unsigned int* ctr_ptr,
-unsigned int size, unsigned int iter);
+__global__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, float ps, float pt);
 
 __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc);
 
@@ -150,4 +149,4 @@ __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigne
 
 __device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);
 
-__device__ void merge_sequential(unsigned int* start, unsigned int* end, int m, int n, unsigned int* unq);
+__device__ __host__ void merge_sequential(unsigned int* start, unsigned int* end, int m, int n, unsigned int* unq);
