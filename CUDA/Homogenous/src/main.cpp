@@ -10,11 +10,7 @@ int main()
     cout<<nodes<<endl;
     cout<<edges<<endl;
     edge* edge_list;
-    unsigned int* src_ptr = new unsigned int[nodes+1];
-    unsigned int* succ = new unsigned int[edges];
     unsigned int* deg = new unsigned int[nodes];
-    // CSR_Graph(GRAPH_DATA_PATH ,nodes, edges, src_ptr,succ,deg);
-    Check_Out_ptr(src_ptr, nodes+1);
     edge_list=(edge*)malloc(sizeof(edge)*edges);
     unsigned int* replica = new unsigned int[edges];
     cout<<"Starting the edge list function"<<endl;
@@ -89,8 +85,6 @@ int main()
     unsigned int* C = new unsigned int[nodes]{0};
     free(edge_list);
     free(edge_list_2);
-    delete[] src_ptr;
-    delete[] succ;
     delete[] deg;
     delete[] replica;
     delete[] h_ctr;

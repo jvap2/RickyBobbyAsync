@@ -335,7 +335,7 @@ unsigned int* h_ctr, unsigned int* h_ptr){
     //Now, we need to prefix sum the src_ptr
     for(int i=0; i<BLOCKS; i++){
         temp_src[h_unq_ptr[i]+i]=0;
-        for(int j=h_unq_ptr[i]+1+i; j<h_unq_ptr[i]+h_unq_ctr[i]+i;j++){
+        for(int j=h_unq_ptr[i]+1; j<h_unq_ptr[i]+h_unq_ctr[i];j++){
             temp_src[j]=src_ptr[j-1]+temp_src[j-1];
         }
     }
@@ -344,7 +344,7 @@ unsigned int* h_ctr, unsigned int* h_ptr){
         for(int j=h_unq_ptr[i]; j<h_unq_ptr[i]+h_unq_ctr[i];j++){
             src_ptr[j]=temp_src[j];
         }
-        src_ptr[h_unq_ptr[i]+h_unq_ctr[i]]=h_ctr[i];
+        src_ptr[h_unq_ptr[i]+h_unq_ctr[i]+i]=h_ctr[i];
         // cout<<h_ctr[i]<<endl;
         // cout<<src_ptr[h_unq_ptr[i]+h_unq_ctr[i]]<<endl;
     }
