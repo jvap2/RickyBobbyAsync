@@ -37,12 +37,12 @@ int main()
     Check_Repeats(edge_list,edges);
     check_out_replicas(REPLICA_PATH,replica,nodes);
     Check_Out_Ptr_Ctr(h_ctr,h_ptr,BLOCKS);
-    unsigned int* h_start = new unsigned int[edges];
-    unsigned int* h_end = new unsigned int[edges];
-    unsigned int* h_unique_merge = new unsigned int[2*edges];
-    unsigned int* unq_ctr = new unsigned int[BLOCKS];
-    unsigned int* unq_ptr = new unsigned int[BLOCKS+1];
-    unsigned int** unq_fin = new unsigned int*[BLOCKS];
+    unsigned int* h_start = new unsigned int[edges]{0};
+    unsigned int* h_end = new unsigned int[edges]{0};
+    unsigned int* h_unique_merge = new unsigned int[2*edges]{0};
+    unsigned int* unq_ctr = new unsigned int[BLOCKS]{0};
+    unsigned int* unq_ptr = new unsigned int[BLOCKS+1]{0};
+    unsigned int** unq_fin = new unsigned int*[BLOCKS]{0};
 
     cout<<"Copying the edge list"<<endl;
     for(int i=0;i<edges;i++){
@@ -73,24 +73,17 @@ int main()
         }
     }
     //Now, we have the unique array and the renumbering
-    unsigned int* h_local_src = new unsigned int[unq_ptr[BLOCKS]];
-    unsigned int* h_temp_src = new unsigned int[unq_ptr[BLOCKS]];
+    unsigned int* h_local_src = new unsigned int[unq_ptr[BLOCKS-1]+BLOCKS]{0};
+    unsigned int* h_temp_src = new unsigned int[unq_ptr[BLOCKS-1]+BLOCKS]{0};
     unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]];
     edge* edge_list_2;
     edge_list_2=(edge*)malloc(sizeof(edge)*edges);
     Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
     Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
-    for(int i=0; i<BLOCKS; i++){
-        cout<<"BLOCK "<<i<<endl;
-        for(int j = 0; j<unq_ctr[i];j++){
-            cout<<h_local_src[unq_ptr[i]+j]<<'\t';
-            if(j%10==0){
-                cout<<endl;
-            }
-        }
-        cout<<endl;
-    }
+    Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
     delete[] h_temp_src;
+    unsigned int* K= new unsigned int[nodes]{0};
+    unsigned int* C = new unsigned int[nodes]{0};
     free(edge_list);
     free(edge_list_2);
     delete[] src_ptr;
@@ -109,5 +102,7 @@ int main()
     delete[] h_unq_fin;
     delete[] h_local_src;
     delete[] h_local_succ;
+    delete[] K;
+    delete[] C;
     return 0;
 }

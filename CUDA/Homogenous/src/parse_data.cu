@@ -344,8 +344,23 @@ unsigned int* h_ctr, unsigned int* h_ptr){
         for(int j=h_unq_ptr[i]; j<h_unq_ptr[i]+h_unq_ctr[i];j++){
             src_ptr[j]=temp_src[j];
         }
+        src_ptr[h_unq_ptr[i]+h_unq_ctr[i]]=h_ctr[i];
+        // cout<<h_ctr[i]<<endl;
+        // cout<<src_ptr[h_unq_ptr[i]+h_unq_ctr[i]]<<endl;
     }
 }
+
+__host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr,
+unsigned int* h_ctr, unsigned int* h_ptr){
+    for(int i = 0; i<BLOCKS; i++){
+        //Point to the start of the edge list
+        //iterate through the starts
+        for(auto var=local_src+h_unq_ptr[i]; var<=local_src+h_unq_ptr[i]+h_unq_ctr[i];var++){
+            cout<<*var<<endl;
+        }
+    }
+}
+
 
 __host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsigned int* unq, unsigned int* h_ptr, unsigned int* h_ctr, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr){
     for(int i = 0; i<BLOCKS; i++){
