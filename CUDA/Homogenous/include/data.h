@@ -35,7 +35,7 @@ using namespace std;
 #define POWER_GRAPH_DATA_PATH "../../Data/Homogenous/rand/power_rand_net_info.csv"
 #define POWER_REPLICA_PATH "../../Data/Homogenous/rep_power_counts.csv"
 #define PTR_CTR_PATH "../../Data/Homogenous/rand/ptr_ctr_Assignment.csv"
-#define UNQ_PATH "../../Data/Homogenous/rand/check/Local_Unq_Assignment_C.csv"
+#define UNQ_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Unique_C.csv"
 #define HIST_PATH "../../Data/Homogenous/rand/hist_Assignment.csv"
 #define LOCAL_SRC_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Source_C.csv"
 #define LOCAL_SUCC_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Successor_C.csv"
