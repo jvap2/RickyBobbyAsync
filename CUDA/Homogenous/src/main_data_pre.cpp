@@ -84,13 +84,6 @@ int main()
     unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]]{0};
     Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
     Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,src_ctr,src_ptr,h_ctr,h_ptr);
-    // for(int i = 0; i<BLOCKS;i++){
-    //     cout<<"BLOCK "<<i<<endl;
-    //     for(int j=src_ptr[i];j<src_ptr[i]+src_ctr[i];j++){
-    //         cout<<h_local_src[j]<<"\t";
-    //     }
-    //     cout<<endl;
-    // }
     Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ,src_ctr,src_ptr,h_ptr);
     Export_Local_Src(h_local_src,src_ptr,src_ctr);
     Export_Local_Succ(h_local_succ,h_ptr,h_ctr);

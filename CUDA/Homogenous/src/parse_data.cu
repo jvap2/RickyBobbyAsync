@@ -250,7 +250,7 @@ __host__ void Export_Local_Src(unsigned int* local_src, unsigned int* h_ptr, uns
     myfile.open(LOCAL_SRC_PATH);
     myfile <<"cluster,src\n";
     for(int i = 0; i<BLOCKS; i++){
-        for(int j = h_ptr[i]; j<h_ptr[i]+h_ctr[j];j++){
+        for(int j = h_ptr[i]; j<h_ptr[i]+h_ctr[i];j++){
             myfile<< to_string(i);
             myfile<< ",";
             myfile<< to_string(local_src[j]);
@@ -265,7 +265,7 @@ __host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, u
     myfile.open(LOCAL_SUCC_PATH);
     myfile<<"cluster,succ\n";
     for(int i = 0 ; i< BLOCKS; i++){
-        for(int j = h_ptr[j]; i<h_ptr[j]+h_ctr[j];j++){
+        for(int j = h_ptr[i]; j<h_ptr[i]+h_ctr[i];j++){
             myfile<< to_string(i);
             myfile<< ",";
             myfile<< to_string(local_succ[j]);
