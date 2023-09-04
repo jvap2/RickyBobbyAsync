@@ -30,9 +30,7 @@ int main()
     }
     cpu_radixsort(edge_list,edges);
     Check_Out_csv_edge(edge_list, edges);
-    Check_Repeats(edge_list,edges);
     check_out_replicas(REPLICA_PATH,replica,nodes);
-    Check_Out_Ptr_Ctr(h_ctr,h_ptr,BLOCKS);
     unsigned int* h_start = new unsigned int[edges]{0};
     unsigned int* h_end = new unsigned int[edges]{0};
     unsigned int* h_unique_merge = new unsigned int[2*edges]{0};
@@ -88,6 +86,8 @@ int main()
     Export_Local_Src(h_local_src,src_ptr,src_ctr);
     Export_Local_Succ(h_local_succ,h_ptr,h_ctr);
     Export_Unq(h_unq_fin,unq_ptr,unq_ctr);
+    Export_Unq_Ctr_Ptr(unq_ptr,unq_ctr);
+    Export_Src_Ctr_Ptr(src_ptr,src_ctr);
     delete[] h_temp_src;
     free(edge_list);
     free(edge_list_2);

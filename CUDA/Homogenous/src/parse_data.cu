@@ -290,6 +290,36 @@ __host__ void Export_Unq(unsigned int* unq, unsigned int* h_unq_ptr, unsigned in
     myfile.close();
 }
 
+__host__ void Export_Unq_Ctr_Ptr(unsigned int* h_unq_ptr, unsigned int* h_unq_ctr){
+    ofstream myfile;
+    myfile.open(UNQ_CTR_PTR_PATH);
+    myfile<<"cluster,unq_ctr,unq_ptr\n";
+    for(int i = 0; i<BLOCKS; i++){
+        myfile<< to_string(i);
+        myfile<< ",";
+        myfile<< to_string(h_unq_ctr[i]);
+        myfile<< ",";
+        myfile<< to_string(h_unq_ptr[i]);
+        myfile<< "\n";
+    }
+    myfile.close();
+}
+
+__host__ void Export_Src_Ctr_Ptr(unsigned int* src_ctr, unsigned int* src_ptr){
+    ofstream myfile;
+    myfile.open(SRC_CTR_PTR_PATH);
+    myfile<<"cluster,src_ctr,src_ptr\n";
+    for(int i=0; i<BLOCKS; i++){
+        myfile<< to_string(i);
+        myfile<< ",";
+        myfile<< to_string(src_ctr[i]);
+        myfile<< ",";
+        myfile<< to_string(src_ptr[i]);
+        myfile<< "\n";
+    }
+    myfile.close();
+}
+
 
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size){
     for(unsigned int i=0; i<size;i++){
