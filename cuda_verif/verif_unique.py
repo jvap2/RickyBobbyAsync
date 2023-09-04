@@ -98,8 +98,12 @@ for i,val in enumerate(clust):
             renum_succ[val][k]=renum_end[val][k] 
 
 
-df_succ = pl.DataFrame({"cluster":clust, "succ":list(chain.from_iterable(renum_succ))})
-df_src = pl.DataFrame({"cluster":[], "src":[]})
+df_succ = pl.DataFrame({"cluster":clust, "succ":list(chain.from_iterable(renum_succ))}, schema={"cluster":pl.Int64, "succ":pl.Int64})
+df_src = pl.DataFrame({"cluster":[], "src":[]}, schema={"cluster":pl.Int64, "src":pl.Int64})
 
 for i,val in enumerate(clusters):
     df_src=df_src.extend(pl.DataFrame({"cluster":[val]*len(renum_src[val]), "src":renum_src[val]}))
+
+
+df_succ.write_csv(os.path.join(os.path.dirname(folder),"Data/Homogenous/rand/check/Local_Cluster_Successor_python.csv"))
+df_src.write_csv(os.path.join(os.path.dirname(folder),"Data/Homogenous/rand/check/Local_Cluster_Source_python.csv"))

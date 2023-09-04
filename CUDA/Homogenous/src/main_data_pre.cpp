@@ -92,16 +92,9 @@ int main()
     //     cout<<endl;
     // }
     Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ,src_ctr,src_ptr,h_ptr);
-    for(int i=0; i<BLOCKS;i++){
-        cout<<"BLOCK "<<i<<endl;    
-        for(int j=h_ptr[i];j<h_ptr[i]+h_ctr[i];j++){
-            cout<<h_local_succ[j]<<"\t";
-        }
-        cout<<endl;
-    }
+    Export_Local_Src(h_local_src,src_ptr,src_ctr);
+    Export_Local_Succ(h_local_succ,h_ptr,h_ctr);
     delete[] h_temp_src;
-    unsigned int* K= new unsigned int[nodes]{0};
-    unsigned int* C = new unsigned int[nodes]{0};
     free(edge_list);
     free(edge_list_2);
     delete[] deg;
@@ -118,7 +111,7 @@ int main()
     delete[] h_unq_fin;
     delete[] h_local_src;
     delete[] h_local_succ;
-    delete[] K;
-    delete[] C;
+    delete[] src_ptr;
+    delete[] src_ctr;
     return 0;
 }

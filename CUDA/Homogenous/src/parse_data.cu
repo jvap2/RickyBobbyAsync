@@ -245,6 +245,36 @@ __host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edg
 }
 
 
+__host__ void Export_Local_Src(unsigned int* local_src, unsigned int* h_ptr, unsigned int* h_ctr){
+    ofstream myfile;
+    myfile.open(LOCAL_SRC_PATH);
+    myfile <<"cluster,src\n";
+    for(int i = 0; i<BLOCKS; i++){
+        for(int j = h_ptr[i]; j<h_ptr[i]+h_ctr[j];j++){
+            myfile<< to_string(i);
+            myfile<< ",";
+            myfile<< to_string(local_src[j]);
+            myfile<< "\n";
+        }
+    }
+    myfile.close();
+}
+
+__host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, unsigned int* h_ctr){
+    ofstream myfile;
+    myfile.open(LOCAL_SUCC_PATH);
+    myfile<<"cluster,succ\n";
+    for(int i = 0 ; i< BLOCKS; i++){
+        for(int j = h_ptr[j]; i<h_ptr[j]+h_ctr[j];j++){
+            myfile<< to_string(i);
+            myfile<< ",";
+            myfile<< to_string(local_succ[j]);
+            myfile<< "\n";
+        }
+    }
+    myfile.close();
+}
+
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size){
     for(unsigned int i=0; i<size;i++){
         subarr_1[i]=arr[i][0];

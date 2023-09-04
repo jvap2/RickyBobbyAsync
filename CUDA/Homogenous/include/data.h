@@ -37,7 +37,8 @@ using namespace std;
 #define PTR_CTR_PATH "../../Data/Homogenous/rand/ptr_ctr_Assignment.csv"
 #define UNQ_PATH "../../Data/Homogenous/rand/unq_Assignment.csv"
 #define HIST_PATH "../../Data/Homogenous/rand/hist_Assignment.csv"
-
+#define LOCAL_SRC_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Source_C.csv"
+#define LOCAL_SUCC_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Successor_C.csv"
 
 
 struct edge{
@@ -93,6 +94,10 @@ unsigned int* h_ctr, unsigned int* h_ptr);
 __host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsigned int* unq, unsigned int* h_ptr, unsigned int* h_ctr, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr);
 
 __host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr, unsigned int* h_ptr);
+
+__host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, unsigned int* h_ctr);
+
+__host__ void Export_Local_Src(unsigned int* local_src, unsigned int* h_ptr, unsigned int* h_ctr);
 /*HELPER FUNCTION AND KERNELS*/
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
