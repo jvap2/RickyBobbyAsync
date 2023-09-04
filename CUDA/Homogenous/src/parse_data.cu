@@ -350,13 +350,14 @@ unsigned int* h_ctr, unsigned int* h_ptr){
     }
 }
 
-__host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr,
-unsigned int* h_ctr, unsigned int* h_ptr){
+__host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr, unsigned int* h_ptr){
     for(int i = 0; i<BLOCKS; i++){
         //Point to the start of the edge list
         //iterate through the starts
-        for(auto var=local_src+h_unq_ptr[i]; var<=local_src+h_unq_ptr[i]+h_unq_ctr[i];var++){
-            cout<<*var<<endl;
+        for(int j=0; j<h_unq_ctr[i]-1;j++){
+            for(int k=local_src[h_unq_ptr[i]+j]+h_ptr[i]; k<local_src[h_unq_ptr[i]+j+1]+h_ptr[i];k++){
+                local_succ[k]=edgelist[h_ptr[i]+j].end;
+            }
         }
     }
 }

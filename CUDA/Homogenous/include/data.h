@@ -92,8 +92,7 @@ unsigned int* h_ctr, unsigned int* h_ptr);
 
 __host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsigned int* unq, unsigned int* h_ptr, unsigned int* h_ctr, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr);
 
-__host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr,
-unsigned int* h_ctr, unsigned int* h_ptr);
+__host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr, unsigned int* h_ptr);
 /*HELPER FUNCTION AND KERNELS*/
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);

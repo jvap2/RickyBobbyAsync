@@ -81,6 +81,7 @@ int main()
     }
     unsigned int* h_local_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     unsigned int* h_temp_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
+    unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]]{0};
     Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
     Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,src_ctr,src_ptr,h_ctr,h_ptr);
     // for(int i = 0; i<BLOCKS;i++){
@@ -90,10 +91,17 @@ int main()
     //     }
     //     cout<<endl;
     // }
-    // Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
+    Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ,src_ctr,src_ptr,h_ptr);
+    for(int i=0; i<BLOCKS;i++){
+        cout<<"BLOCK "<<i<<endl;    
+        for(int j=h_ptr[i];j<h_ptr[i]+h_ctr[i];j++){
+            cout<<h_local_succ[j]<<"\t";
+        }
+        cout<<endl;
+    }
     delete[] h_temp_src;
-    // unsigned int* K= new unsigned int[nodes]{0};
-    // unsigned int* C = new unsigned int[nodes]{0};
+    unsigned int* K= new unsigned int[nodes]{0};
+    unsigned int* C = new unsigned int[nodes]{0};
     free(edge_list);
     free(edge_list_2);
     delete[] deg;
@@ -109,7 +117,8 @@ int main()
     delete[] unq_ptr;
     delete[] h_unq_fin;
     delete[] h_local_src;
-    // delete[] K;
-    // delete[] C;
+    delete[] h_local_succ;
+    delete[] K;
+    delete[] C;
     return 0;
 }
