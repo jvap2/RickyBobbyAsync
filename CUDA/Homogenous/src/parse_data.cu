@@ -402,7 +402,8 @@ __host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsig
         //iterate through the starts
         for(int j=0; j<h_unq_ctr[i]-1;j++){
             for(int k=local_src[h_unq_ptr[i]+j]+h_ptr[i]; k<local_src[h_unq_ptr[i]+j+1]+h_ptr[i];k++){
-                local_succ[k]=edgelist[h_ptr[i]+j].end;
+                cout<<k<<endl;
+                local_succ[k]=edgelist[k].end;
             }
         }
     }
