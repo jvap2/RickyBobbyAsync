@@ -52,7 +52,6 @@ int main()
         merge_sequential(h_start+h_ptr[i],h_end+h_ptr[i],h_ctr[i],h_ctr[i],h_unique_merge+2*h_ptr[i]);
         auto ip=unique(h_unique_merge+2*h_ptr[i],h_unique_merge+2*h_ptr[i]+2*h_ctr[i]);
         unq_ctr[i]=distance(h_unique_merge+2*h_ptr[i],ip);
-        cout<<unq_ctr[i]<<endl;
         unq_fin[i]=new unsigned int[unq_ctr[i]];
         copy(h_unique_merge+2*h_ptr[i],ip,unq_fin[i]);
     }
@@ -74,11 +73,24 @@ int main()
     unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]];
     edge* edge_list_2;
     edge_list_2=(edge*)malloc(sizeof(edge)*edges);
-    for(int i = 0; i<BLOCKS;i++){
-        cout<<unq_ptr[i]<<endl;
+    unsigned int* src_ptr = new unsigned int[BLOCKS]{0};
+    unsigned int* src_ctr = new unsigned int[BLOCKS]{0};
+    for(int i=0; i<BLOCKS;i++){
+        src_ctr[i]=unq_ctr[i]+1;
+    }
+    src_ptr[0]=0;
+    for(int i=1;i<BLOCKS;i++){
+        src_ptr[i]=src_ptr[i-1]+src_ctr[i-1];
     }
     Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
-    Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
+    Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,src_ctr,src_ptr,h_ctr,h_ptr);
+    for(int i = 0; i<BLOCKS;i++){
+        cout<<"BLOCK "<<i<<endl;
+        for(int j=src_ptr[i];j<src_ptr[i]+src_ctr[i];j++){
+            cout<<h_local_src[j]<<"\t";
+        }
+        cout<<endl;
+    }
     // Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
     delete[] h_temp_src;
     unsigned int* K= new unsigned int[nodes]{0};
