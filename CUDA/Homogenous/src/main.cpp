@@ -68,9 +68,6 @@ int main()
         }
     }
     //Now, we have the unique array and the renumbering
-    unsigned int* h_local_src = new unsigned int[unq_ptr[BLOCKS-1]+BLOCKS]{0};
-    unsigned int* h_temp_src = new unsigned int[unq_ptr[BLOCKS-1]+BLOCKS]{0};
-    unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]];
     edge* edge_list_2;
     edge_list_2=(edge*)malloc(sizeof(edge)*edges);
     unsigned int* src_ptr = new unsigned int[BLOCKS]{0};
@@ -82,19 +79,21 @@ int main()
     for(int i=1;i<BLOCKS;i++){
         src_ptr[i]=src_ptr[i-1]+src_ctr[i-1];
     }
+    unsigned int* h_local_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
+    unsigned int* h_temp_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
     Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,src_ctr,src_ptr,h_ctr,h_ptr);
-    for(int i = 0; i<BLOCKS;i++){
-        cout<<"BLOCK "<<i<<endl;
-        for(int j=src_ptr[i];j<src_ptr[i]+src_ctr[i];j++){
-            cout<<h_local_src[j]<<"\t";
-        }
-        cout<<endl;
-    }
+    // for(int i = 0; i<BLOCKS;i++){
+    //     cout<<"BLOCK "<<i<<endl;
+    //     for(int j=src_ptr[i];j<src_ptr[i]+src_ctr[i];j++){
+    //         cout<<h_local_src[j]<<"\t";
+    //     }
+    //     cout<<endl;
+    // }
     // Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
     delete[] h_temp_src;
-    unsigned int* K= new unsigned int[nodes]{0};
-    unsigned int* C = new unsigned int[nodes]{0};
+    // unsigned int* K= new unsigned int[nodes]{0};
+    // unsigned int* C = new unsigned int[nodes]{0};
     free(edge_list);
     free(edge_list_2);
     delete[] deg;
@@ -110,8 +109,7 @@ int main()
     delete[] unq_ptr;
     delete[] h_unq_fin;
     delete[] h_local_src;
-    delete[] h_local_succ;
-    delete[] K;
-    delete[] C;
+    // delete[] K;
+    // delete[] C;
     return 0;
 }
