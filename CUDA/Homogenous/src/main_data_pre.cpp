@@ -87,6 +87,7 @@ int main()
     Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ,src_ctr,src_ptr,h_ptr);
     Export_Local_Src(h_local_src,src_ptr,src_ctr);
     Export_Local_Succ(h_local_succ,h_ptr,h_ctr);
+    Export_Unq(h_unq_fin,unq_ptr,unq_ctr);
     delete[] h_temp_src;
     free(edge_list);
     free(edge_list_2);

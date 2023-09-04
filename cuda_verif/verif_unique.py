@@ -100,8 +100,10 @@ for i,val in enumerate(clust):
 
 df_succ = pl.DataFrame({"cluster":clust, "succ":list(chain.from_iterable(renum_succ))}, schema={"cluster":pl.Int64, "succ":pl.Int64})
 df_src = pl.DataFrame({"cluster":[], "src":[]}, schema={"cluster":pl.Int64, "src":pl.Int64})
+df_unq = pl.DataFram({"cluster":[], "unq":[]}, schema={"cluster":pl.Int64, "unq":pl.Int64})
 
 for i,val in enumerate(clusters):
+    df_unq=df_unq.extend(pl.DataFrame({"cluster":[val]*len(merge_unq[val]), "unq":merge_unq[val]}))
     df_src=df_src.extend(pl.DataFrame({"cluster":[val]*len(renum_src[val]), "src":renum_src[val]}))
 
 

@@ -275,6 +275,22 @@ __host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, u
     myfile.close();
 }
 
+__host__ void Export_Unq(unsigned int* unq, unsigned int* h_unq_ptr, unsigned int* h_unq_ctr){
+    ofstream myfile;
+    myfile.open(UNQ_PATH);
+    myfile<<"cluster,unq\n";
+    for(int i = 0; i<BLOCKS; i++){
+        for(int j = h_unq_ptr[i]; j<h_unq_ptr[i]+h_unq_ctr[i];j++){
+            myfile<< to_string(i);
+            myfile<< ",";
+            myfile<< to_string(unq[j]);
+            myfile<< "\n";
+        }
+    }
+    myfile.close();
+}
+
+
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size){
     for(unsigned int i=0; i<size;i++){
         subarr_1[i]=arr[i][0];
