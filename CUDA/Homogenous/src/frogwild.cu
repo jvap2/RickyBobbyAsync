@@ -71,7 +71,7 @@ __host__ void Import_Local_Succ(unsigned int* local_succ, unsigned int* succ_ptr
     }
 }
 
-__host__ void Import_Unique(unsigned int* unq, unsigned int* unq_ctr, unsigned int* unq_ptr){
+__host__ void Import_Unique(unsigned int* unq, unsigned int* unq_ptr, unsigned int* unq_ctr){
     ifstream myfile;
     myfile.open(UNQ_PATH);
     string line,word;
@@ -106,15 +106,40 @@ __host__ void Import_Unique(unsigned int* unq, unsigned int* unq_ctr, unsigned i
 }
 
 
-__host__ void Import_Unq_Ctr_Ptr(unsigned int* h_unq_ptr, unsigned int* h_unq_ctr){
-    ifstream myfile;
-    myfile.open(UNQ_CTR_PTR_PATH);
-    string line,word;
-    int count = 0;
-    
-}
 
 __host__ void Import_Src_Ctr_Ptr(unsigned int* src_ctr, unsigned int* src_ptr){
+    ifstream myfile;
+    myfile.open(SRC_CTR_PTR_PATH);
+    string line,word;
+    int count = 0;
+    int column = 0;
+    if(!myfile.is_open()){
+        cout << "Error opening file" << endl;
+        exit(1);
+    }
+    else{
+        while(getline(myfile,line)){
+            stringstream s(line);
+            while(getline(s,word,',')){
+                if(count==0){
+                    continue;
+                }
+                else{
+                    if(column==0){
+                        column++;
+                    }
+                    else if(column==1){
+                        src_ctr[count-1] = stoi(word);
+                    }
+                    else{
+                        src_ptr[count-1] = stoi(word);
+                    }
+                }
+            }
+            count++;
+            column = 0;
+        }
+    }
 
 }
 

@@ -329,6 +329,7 @@ __host__ void Export_H_Ctr_Ptr(unsigned int* h_ptr, unsigned int* h_ctr){
         myfile<< to_string(h_ctr[i]);
         myfile<< ",";
         myfile<< to_string(h_ptr[i]);
+        myfile<< "\n";
     }
 
 }
