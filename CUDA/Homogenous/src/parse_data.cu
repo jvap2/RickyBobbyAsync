@@ -257,7 +257,6 @@ __host__ void Export_Local_Src(unsigned int* local_src, unsigned int* h_ptr, uns
             myfile<< "\n";
         }
     }
-    myfile.close();
 }
 
 __host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, unsigned int* h_ctr){
@@ -305,7 +304,7 @@ __host__ void Export_Unq_Ctr_Ptr(unsigned int* h_unq_ptr, unsigned int* h_unq_ct
     myfile.close();
 }
 
-__host__ void Export_Src_Ctr_Ptr(unsigned int* src_ctr, unsigned int* src_ptr){
+__host__ void Export_Src_Ctr_Ptr(unsigned int* src_ptr, unsigned int* src_ctr){
     ofstream myfile;
     myfile.open(SRC_CTR_PTR_PATH);
     myfile<<"cluster,src_ctr,src_ptr\n";
@@ -318,6 +317,20 @@ __host__ void Export_Src_Ctr_Ptr(unsigned int* src_ctr, unsigned int* src_ptr){
         myfile<< "\n";
     }
     myfile.close();
+}
+
+__host__ void Export_H_Ctr_Ptr(unsigned int* h_ptr, unsigned int* h_ctr){
+    ofstream myfile;
+    myfile.open(H_CTR_PTR_PATH);
+    myfile<<"cluster,h_ctr,h_ptr\n";
+    for(int i=0; i<BLOCKS;i++){
+        myfile<< to_string(i);
+        myfile<< ",";
+        myfile<< to_string(h_ctr[i]);
+        myfile<< ",";
+        myfile<< to_string(h_ptr[i]);
+    }
+
 }
 
 

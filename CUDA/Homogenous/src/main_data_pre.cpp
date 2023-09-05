@@ -88,6 +88,7 @@ int main()
     Export_Unq(h_unq_fin,unq_ptr,unq_ctr);
     Export_Unq_Ctr_Ptr(unq_ptr,unq_ctr);
     Export_Src_Ctr_Ptr(src_ptr,src_ctr);
+    Export_H_Ctr_Ptr(h_ptr,h_ctr);
     delete[] h_temp_src;
     free(edge_list);
     free(edge_list_2);

@@ -106,11 +106,17 @@ __host__ void Import_Unique(unsigned int* unq, unsigned int* unq_ctr, unsigned i
 }
 
 
+__host__ void Import_Unq_Ctr_Ptr(unsigned int* h_unq_ptr, unsigned int* h_unq_ctr){
+    ifstream myfile;
+    myfile.open(UNQ_CTR_PTR_PATH);
+    string line,word;
+    int count = 0;
+    
+}
 
+__host__ void Import_Src_Ctr_Ptr(unsigned int* src_ctr, unsigned int* src_ptr){
 
-
-
-
+}
 
 
 

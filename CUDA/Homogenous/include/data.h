@@ -39,7 +39,9 @@ using namespace std;
 #define HIST_PATH "../../Data/Homogenous/rand/hist_Assignment.csv"
 #define LOCAL_SRC_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Source_C.csv"
 #define LOCAL_SUCC_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Successor_C.csv"
-
+#define SRC_CTR_PTR_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Source_Ptr_Ctr_C.csv"
+#define UNQ_CTR_PTR_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Unique_Ptr_Ctr_C.csv"
+#define H_CTR_PTR_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Hist_Ptr_Ctr_C.csv"
 
 struct edge{
     unsigned int end, start;
@@ -100,6 +102,10 @@ __host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, u
 __host__ void Export_Local_Src(unsigned int* local_src, unsigned int* h_ptr, unsigned int* h_ctr);
 
 __host__ void Export_Unq(unsigned int* unq, unsigned int* h_unq_ptr, unsigned int* h_unq_ctr);
+
+__host__ void Export_Src_Ctr_Ptr(unsigned int* src_ptr, unsigned int* src_ctr);
+
+__host__ void Export_Unq_Ctr_Ptr(unsigned int* h_unq_ptr, unsigned int* h_unq_ctr);
 /*HELPER FUNCTION AND KERNELS*/
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
