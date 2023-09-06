@@ -10,6 +10,7 @@ int main(int argc, char** argv){
     src_ctr = new unsigned int[BLOCKS];
     unq_ptr = new unsigned int[BLOCKS+1];
     unq_ctr = new unsigned int[BLOCKS];
+    Import_
     
 
     return 0;

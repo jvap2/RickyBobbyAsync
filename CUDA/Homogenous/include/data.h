@@ -108,6 +108,14 @@ __host__ void Export_Src_Ctr_Ptr(unsigned int* src_ptr, unsigned int* src_ctr);
 __host__ void Export_Unq_Ctr_Ptr(unsigned int* h_unq_ptr, unsigned int* h_unq_ctr);
 
 __host__ void Export_H_Ctr_Ptr(unsigned int* h_ptr, unsigned int* h_ctr);
+
+__host__ void Import_Local_Src(unsigned int* local_src, unsigned int* src_ptr, unsigned int* src_ctr);
+
+__host__ void Import_Local_Succ(unsigned int* local_succ, unsigned int* succ_ptr, unsigned int* succ_ctr);
+
+__host__ void Import_Unique(unsigned int* unq);
+
+__host__ void Import_Src_Ctr_Ptr(unsigned int* src_ctr, unsigned int* src_ptr);
 /*HELPER FUNCTION AND KERNELS*/
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
