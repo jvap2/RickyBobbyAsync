@@ -164,7 +164,7 @@ __global__ void Hist_Prefix_Sum(unsigned int* fin_bin, unsigned int* fin_bin_2);
 
 __global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
-__global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int node_size, unsigned int edge_size);
+__global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int node_size);
 
 __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc);
 

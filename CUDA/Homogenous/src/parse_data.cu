@@ -841,35 +841,6 @@ __global__ void Hist_Prefix_Sum(unsigned int* fin_bin, unsigned int* fin_bin_2){
     }
 }
 
-__global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int node_size, unsigned int edge_size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    unsigned int tid = threadIdx.x;
-    if(idx<node_size/20){
-        rand_frog[idx]=floorf(rand_frog[idx]*node_size);
-        atomicAdd(&d_frog[(int)rand_frog[idx]],1);
-    }
-}
-
-
-/*
-What we need for the iterations of pagerank:
-(1)Gather
-(2)Apply
-(3)Scatter
----------------------------------------------
-(1) Gather: 
--First time, initialize random frogs (done)
--Remaining iterations, we need to collect the frogs from the previous iteration sent to nodes from scatter
-
-(2) Apply:
--This function takes care for keeping track of the number of frogs that have stopped on each vertex
-
-(3)Scatter 
--This function takes care of sending the frogs to the next vertex
-
-Instead of dictating which block is the master of which vertex, we will have the global memory act as the sole master
-of the vertex. This will allow us to combine the functions into one and avoid passing of data, and ease the synchronization
-*/
 
 
 
