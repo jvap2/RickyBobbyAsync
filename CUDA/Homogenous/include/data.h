@@ -132,9 +132,8 @@ __host__ void Import_Degree(unsigned int* deg, unsigned int node_size);
 __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node_size);
 /*HELPER FUNCTION AND KERNELS*/
 
-__host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k,
-unsigned int* src_ctr, unsigned int* src_ptr, unsigned int* unq_ctr, unsigned int* unq_ptr, unsigned int* h_ctr, unsigned int* h_ptr, 
-unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int edge_size);
+__host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
+unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int edge_size);
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
@@ -164,7 +163,7 @@ __global__ void Hist_Prefix_Sum(unsigned int* fin_bin, unsigned int* fin_bin_2);
 
 __global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
-__global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int node_size);
+__global__ void First_Init(float* rand_frog, unsigned int* K, unsigned int node_size, unsigned int sublinear_size);
 
 __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc);
 

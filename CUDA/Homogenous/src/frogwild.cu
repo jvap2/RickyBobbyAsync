@@ -283,19 +283,17 @@ __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node
     }
 }
 
-__host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k,
-unsigned int* src_ctr, unsigned int* src_ptr, unsigned int* unq_ctr, unsigned int* unq_ptr, unsigned int* h_ctr, unsigned int* h_ptr, 
-unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int edge_size){
-
-    unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ctr, *d_src_ptr, *d_unq_ctr, *d_unq_ptr, *d_h_ctr, *d_h_ptr, *d_degree;
+__host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
+unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int edge_size){
+    unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree;
     replica_tracker *d_replica;
-    if(!HandleCUDAError(cudaMalloc((void**)&d_succ, (h_ctr[BLOCKS-1]+h_ptr[BLOCKS-1])*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_succ, (h_ptr[BLOCKS])*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_succ"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_src, (src_ctr[BLOCKS-1]+src_ptr[BLOCKS-1])*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_src, (src_ptr[BLOCKS])*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_src"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_unq, (unq_ctr[BLOCKS-1]+unq_ptr[BLOCKS-1])*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_unq, (unq_ptr[BLOCKS])*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_unq"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned int)))){
@@ -304,20 +302,11 @@ unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int ed
     if(!HandleCUDAError(cudaMalloc((void**)&d_k, node_size*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_k"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_src_ctr, BLOCKS*sizeof(unsigned int)))){
-        cout<<"Error allocating memory for d_src_ctr"<<endl;
-    }
     if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, BLOCKS*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_src_ptr"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_unq_ctr, BLOCKS*sizeof(unsigned int)))){
-        cout<<"Error allocating memory for d_unq_ctr"<<endl;
-    }
     if(!HandleCUDAError(cudaMalloc((void**)&d_unq_ptr, BLOCKS*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_unq_ptr"<<endl;
-    }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_h_ctr, BLOCKS*sizeof(unsigned int)))){
-        cout<<"Error allocating memory for d_h_ctr"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**)&d_h_ptr, BLOCKS*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_h_ptr"<<endl;
@@ -328,13 +317,13 @@ unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int ed
     if(!HandleCUDAError(cudaMalloc((void**)&d_replica, node_size*sizeof(replica_tracker)))){
         cout<<"Error allocating memory for d_replica"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_succ, local_succ, (h_ctr[BLOCKS-1]+h_ptr[BLOCKS-1])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_succ, local_succ, (h_ptr[BLOCKS])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_succ"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_src, local_src, (src_ctr[BLOCKS-1]+src_ptr[BLOCKS-1])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_src, local_src, (src_ptr[BLOCKS])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_src"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_unq, unq, (unq_ctr[BLOCKS-1]+unq_ptr[BLOCKS-1])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_unq, unq, (unq_ptr[BLOCKS])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_unq"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(d_c, c, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
@@ -343,20 +332,11 @@ unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int ed
     if(!HandleCUDAError(cudaMemcpy(d_k, k, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_k"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_src_ctr, src_ctr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
-        cout<<"Error copying memory to d_src_ctr"<<endl;
-    }
     if(!HandleCUDAError(cudaMemcpy(d_src_ptr, src_ptr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_src_ptr"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_unq_ctr, unq_ctr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
-        cout<<"Error copying memory to d_unq_ctr"<<endl;
-    }
     if(!HandleCUDAError(cudaMemcpy(d_unq_ptr, unq_ptr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_unq_ptr"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemcpy(d_h_ctr, h_ctr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
-        cout<<"Error copying memory to d_h_ctr"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(d_h_ptr, h_ptr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_h_ptr"<<endl;
@@ -383,17 +363,29 @@ unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int ed
     curandGenerateUniform(gen, rand_frog, sublinear_size);
     /*Now, we have the random numbers generated*/
     curandDestroyGenerator(gen);
+    unsigned int t_per_block = TPB;
+    unsigned int b_per_grid_int = (sublinear_size+TPB-1)/TPB;
+    First_Init<<<b_per_grid_int, t_per_block>>>(rand_frog, d_k, node_size, sublinear_size);
+    if(!HandleCUDAError(cudaDeviceSynchronize())){
+        cout<<"Error synchronizing device"<<endl;
+    }
+
 
 }
 
 
 
-__global__ void First_Init(float* rand_frog, unsigned int* K, unsigned int node_size){
+__global__ void First_Init(float* rand_frog, unsigned int* K, unsigned int node_size, unsigned int sublinear_size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    if(idx<node_size/20){
+    if(idx<sublinear_size){
         rand_frog[idx]=floorf(rand_frog[idx]*node_size);
-        atomicAdd(&K[(int)rand_frog[idx]],1);
+        if(rand_frog[idx]<node_size){
+            atomicAdd(&K[(unsigned int)rand_frog[idx]],1);
+        }
+        else{
+            atomicAdd(&K[(unsigned int)rand_frog[idx]%node_size],1);
+        }
     }
 }
 
@@ -417,3 +409,10 @@ What we need for the iterations of pagerank:
 Instead of dictating which block is the master of which vertex, we will have the global memory act as the sole master
 of the vertex. This will allow us to combine the functions into one and avoid passing of data, and ease the synchronization
 */
+
+__global__ void Apply(unsigned int* local_src, unsigned int* local_succ, unsigned int* src_ptr, unsigned int* succ_ptr,
+unsigned int* K, unsigned int* C,unsigned int iter, float p_t){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+
+}
