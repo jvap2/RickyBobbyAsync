@@ -111,12 +111,20 @@ __host__ void Export_H_Ctr_Ptr(unsigned int* h_ptr, unsigned int* h_ctr);
 
 __host__ void Import_Local_Src(unsigned int* local_src, unsigned int* src_ptr, unsigned int* src_ctr);
 
-__host__ void Import_Local_Succ(unsigned int* local_succ, unsigned int* succ_ptr, unsigned int* succ_ctr);
+__host__ void Import_Local_Succ(unsigned int* local_succ);
 
 __host__ void Import_Unique(unsigned int* unq);
 
+__host__ void Import_H_Ctr_Ptr(unsigned int* h_ctr, unsigned int* h_ptr);
+
 __host__ void Import_Src_Ctr_Ptr(unsigned int* src_ctr, unsigned int* src_ptr);
+
+__host__ void Import_Unq_Ptr_Ctr(unsigned int* unq_ptr, unsigned int* unq_ctr);
 /*HELPER FUNCTION AND KERNELS*/
+
+__host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k,
+unsigned int* src_ctr, unsigned int* src_ptr, unsigned int* unq_ctr, unsigned int* unq_ptr, unsigned int* h_ctr, unsigned int* h_ptr, 
+unsigned int node_size, unsigned int edge_size);
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
@@ -147,8 +155,6 @@ __global__ void Hist_Prefix_Sum(unsigned int* fin_bin, unsigned int* fin_bin_2);
 __global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
 __global__ void First_Init(float* rand_frog, unsigned int* d_frog, unsigned int node_size, unsigned int edge_size);
-
-__global__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, float ps, float pt);
 
 __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc);
 

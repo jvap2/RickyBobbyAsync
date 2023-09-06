@@ -301,6 +301,11 @@ __host__ void Export_Unq_Ctr_Ptr(unsigned int* h_unq_ptr, unsigned int* h_unq_ct
         myfile<< to_string(h_unq_ptr[i]);
         myfile<< "\n";
     }
+    myfile<< to_string(BLOCKS);
+    myfile<< ",";
+    myfile<< to_string(0);
+    myfile<< ",";
+    myfile<< to_string(h_unq_ptr[BLOCKS]);
     myfile.close();
 }
 
