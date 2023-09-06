@@ -339,6 +339,41 @@ __host__ void Export_H_Ctr_Ptr(unsigned int* h_ptr, unsigned int* h_ctr){
 
 }
 
+__host__ void Export_Degree(unsigned int* deg, unsigned int node_size){
+    ofstream myfile;
+    myfile.open(DEG_PATH);
+    myfile<<"node,deg\n";
+    for(int i=0; i<node_size;i++){
+        myfile<< to_string(i);
+        myfile<<",";
+        myfile<< to_string(deg[i]);
+        myfile<<"\n";
+    }
+    myfile.close();
+}
+
+
+__host__ void Export_Replica_Stats(replica_tracker* h_replica, unsigned int node_size){
+    ofstream myfile;
+    myfile.open(REPLICA_STAT_PATH);
+    myfile<<"node,num_replicas,";
+    for(int i=0; i<BLOCKS;i++){
+        myfile<<to_string(i);
+        myfile<<",";
+    }
+    myfile<<"\n";
+    for(int i=0; i<node_size;i++){
+        myfile<< to_string(i);
+        myfile<<",";
+        myfile<< to_string(h_replica[i].num_replicas);
+        myfile<<",";
+        for(int i=0; i<BLOCKS;i++){
+            myfile<< to_string(h_replica[i].clusters[i]);
+            myfile<<",";
+        }
+    }
+    myfile.close();
+}
 
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size){
     for(unsigned int i=0; i<size;i++){
@@ -1111,7 +1146,7 @@ __global__ void Collect_Num_Replicas(replica_tracker* rep, unsigned int* rep_cou
     }
 }
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size){
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;
@@ -1299,6 +1334,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsig
     Collect_Num_Replicas<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,d_replica_counts,node_size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Unable to synchronize with host with Collect_Num_Replicas"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(h_tracker,d_tracker,node_size*sizeof(replica_tracker), cudaMemcpyDeviceToHost))){
+        cout<<"Unable to copy tracker data"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(replica_count,d_replica_counts,node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy replica counts"<<endl;

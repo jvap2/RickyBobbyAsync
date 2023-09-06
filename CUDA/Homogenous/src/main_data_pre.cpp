@@ -12,6 +12,7 @@ int main()
     edge* edge_list;
     unsigned int* deg = new unsigned int[nodes];
     edge_list=(edge*)malloc(sizeof(edge)*edges);
+    replica_tracker* h_replica = (replica_tracker*)malloc(sizeof(replica_tracker)*nodes);
     unsigned int* replica = new unsigned int[edges];
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
@@ -23,7 +24,7 @@ int main()
     h_unq = new unsigned int[edges];
     cout<<"Ending edge list function"<<endl;
     cout<<"Starting Helper Function"<<endl;
-    Org_Vertex_Helper(edge_list,replica,deg,h_ctr,h_ptr,edges,nodes);
+    Org_Vertex_Helper(edge_list,replica,h_replica,deg,h_ctr,h_ptr,edges,nodes);
     cout<<"Ending Helper Function"<<endl;
     for(int i = 0; i<BLOCKS;i++){
         cout<<h_ctr[i]<<"\t"<<h_ctr[i]+h_ptr[i]<<endl;
@@ -89,7 +90,9 @@ int main()
     Export_Unq_Ctr_Ptr(unq_ptr,unq_ctr);
     Export_Src_Ctr_Ptr(src_ptr,src_ctr);
     Export_H_Ctr_Ptr(h_ptr,h_ctr);
+    Export_Replica_Stats(h_replica,nodes);
     delete[] h_temp_src;
+    free(h_replica);
     free(edge_list);
     free(edge_list_2);
     delete[] deg;

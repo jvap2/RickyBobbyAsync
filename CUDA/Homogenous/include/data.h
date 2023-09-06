@@ -42,6 +42,8 @@ using namespace std;
 #define SRC_CTR_PTR_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Source_Ptr_Ctr_C.csv"
 #define UNQ_CTR_PTR_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Unique_Ptr_Ctr_C.csv"
 #define H_CTR_PTR_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Hist_Ptr_Ctr_C.csv"
+#define DEG_PATH "../../Data/Homogenous/rand/check/Node_Degree_C.csv"
+#define REPLICA_STAT_PATH "../../Data/Homogenous/rand/check/Replica_Stat_C.csv"
 
 struct edge{
     unsigned int end, start;
@@ -109,6 +111,10 @@ __host__ void Export_Unq_Ctr_Ptr(unsigned int* h_unq_ptr, unsigned int* h_unq_ct
 
 __host__ void Export_H_Ctr_Ptr(unsigned int* h_ptr, unsigned int* h_ctr);
 
+__host__ void Export_Degree(unsigned int* deg, unsigned int node_size);
+
+__host__ void Export_Replica_Stats(replica_tracker* h_replica, unsigned int node_size);
+
 __host__ void Import_Local_Src(unsigned int* local_src, unsigned int* src_ptr, unsigned int* src_ctr);
 
 __host__ void Import_Local_Succ(unsigned int* local_succ);
@@ -130,7 +136,7 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, uns
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size);
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size);
 
 __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, unsigned int* table_2, long int size, unsigned int iter);
 
