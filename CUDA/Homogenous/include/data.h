@@ -126,6 +126,10 @@ __host__ void Import_H_Ctr_Ptr(unsigned int* h_ctr, unsigned int* h_ptr);
 __host__ void Import_Src_Ctr_Ptr(unsigned int* src_ctr, unsigned int* src_ptr);
 
 __host__ void Import_Unq_Ptr_Ctr(unsigned int* unq_ptr, unsigned int* unq_ctr);
+
+__host__ void Import_Degree(unsigned int* deg, unsigned int node_size);
+
+__host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node_size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k,
@@ -136,7 +140,7 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, uns
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size);
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, replica_tracker* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size);
 
 __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, unsigned int* table_2, long int size, unsigned int iter);
 

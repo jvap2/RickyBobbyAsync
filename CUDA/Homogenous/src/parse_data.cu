@@ -367,10 +367,11 @@ __host__ void Export_Replica_Stats(replica_tracker* h_replica, unsigned int node
         myfile<<",";
         myfile<< to_string(h_replica[i].num_replicas);
         myfile<<",";
-        for(int i=0; i<BLOCKS;i++){
-            myfile<< to_string(h_replica[i].clusters[i]);
+        for(int j=0; j<BLOCKS;j++){
+            myfile<< to_string(h_replica[i].clusters[j]);
             myfile<<",";
         }
+        myfile<<"\n";
     }
     myfile.close();
 }
@@ -1146,7 +1147,7 @@ __global__ void Collect_Num_Replicas(replica_tracker* rep, unsigned int* rep_cou
     }
 }
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, unsigned int* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size){
+__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, replica_tracker* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;

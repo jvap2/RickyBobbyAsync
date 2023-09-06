@@ -214,6 +214,79 @@ __host__ void Import_H_Ctr_Ptr(unsigned int* h_ctr, unsigned int* h_ptr){
 
 }
 
+
+__host__ void Import_Degree(unsigned int* deg, unsigned int node_size){
+    ifstream myfile;
+    myfile.open(DEG_PATH);
+    string line,word;
+    int count = 0;
+    int column = 0;
+    if(!myfile.is_open()){
+        cout << "Error opening file" << endl;
+        exit(1);
+    }
+    else{
+        while(getline(myfile,line)){
+            stringstream s(line);
+            while(getline(s,word,',')){
+                if(count==0){
+                    continue;
+                }
+                else{
+                    if(column==0){
+                        column++;
+                    }
+                    else{
+                        deg[count-1] = stoi(word);
+                    }
+                }
+            }
+            column = 0;
+            count++;
+        }
+    }
+}
+
+__host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node_size){
+    ifstream myfile;
+    myfile.open(REPLICA_STAT_PATH);
+    string line,word;
+    int count = 0;
+    int column = 0;
+    if(!myfile.is_open()){
+        cout << "Error opening file" << endl;
+        exit(1);
+    }
+    else{
+        while(getline(myfile,line)){
+            stringstream s(line);
+            while(getline(s,word,',')){
+                if(count==0){
+                    continue;
+                }
+                else{
+                    if(column==0){
+                        column++;
+                    }
+                    else if(column==1){
+                        h_replica[count-1].replica = stoi(word);
+                        column++;
+                    }
+                    else if(column==2){
+                        h_replica[count-1].count = stoi(word);
+                        column++;
+                    }
+                    else{
+                        h_replica[count-1].node = stoi(word);
+                    }
+                }
+            }
+            count++;
+            column = 0;
+        }
+    }
+}
+
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k,
 unsigned int* src_ctr, unsigned int* src_ptr, unsigned int* unq_ctr, unsigned int* unq_ptr, unsigned int* h_ctr, unsigned int* h_ptr, 
 unsigned int node_size, unsigned int edge_size){
