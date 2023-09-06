@@ -287,6 +287,11 @@ __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsign
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int edge_size){
     unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree;
     replica_tracker *d_replica;
+    float *p_t, *p_s;
+    *p_s=.15;
+    *p_t=.15;
+    unsigned int iter =10;
+    float* d_p_t, *d_p_s;
     if(!HandleCUDAError(cudaMalloc((void**)&d_succ, (h_ptr[BLOCKS])*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_succ"<<endl;
     }
@@ -316,6 +321,12 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     }
     if(!HandleCUDAError(cudaMalloc((void**)&d_replica, node_size*sizeof(replica_tracker)))){
         cout<<"Error allocating memory for d_replica"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_p_t, sizeof(float)))){
+        cout<<"Error allocating memory for d_p_t"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_p_s, sizeof(float)))){
+        cout<<"Error allocating memory for d_p_s"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(d_succ, local_succ, (h_ptr[BLOCKS])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_succ"<<endl;
@@ -347,6 +358,12 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaMemcpy(d_replica, h_replica, node_size*sizeof(replica_tracker), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_replica"<<endl;
     }
+    if(!HandleCUDAError(cudaMemcpy(d_p_t, p_t, sizeof(float), cudaMemcpyHostToDevice))){
+        cout<<"Error copying memory to d_p_t"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(d_p_s, p_s, sizeof(float), cudaMemcpyHostToDevice))){
+        cout<<"Error copying memory to d_p_s"<<endl;
+    }
     /*Now, all of the memory has been transferred and allocated*/
     /*Generate a float vector to hold the random numbers for this first intialization*/
     float* rand_frog;
@@ -369,7 +386,13 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device"<<endl;
     }
-
+    for(unsigned int i = 0; i<iter;i++){
+        //You will need to change the shared memory size to be the size of the unique nodes in the cluster
+        Apply<<<BLOCKS, TPB,0>>>(d_src, d_succ, d_unq, d_src_ptr, d_h_ptr, d_unq_ptr, d_k, d_c, i, *d_p_t);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Error synchronizing device"<<endl;
+        }
+    }
 
 }
 
@@ -410,9 +433,31 @@ Instead of dictating which block is the master of which vertex, we will have the
 of the vertex. This will allow us to combine the functions into one and avoid passing of data, and ease the synchronization
 */
 
-__global__ void Apply(unsigned int* local_src, unsigned int* local_succ, unsigned int* src_ptr, unsigned int* succ_ptr,
-unsigned int* K, unsigned int* C,unsigned int iter, float p_t){
+__global__ void Apply(unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* src_ptr, unsigned int* succ_ptr,
+unsigned int* unq_ptr, unsigned int* K, unsigned int* C,unsigned int iter, float p_t){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-
+    const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
+    const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
+    extern __shared__ unsigned int check_var[];
+    // unsigned int check_idx[len_nodes_clust/blockDim.x+1]{0};
+    for(unsigned int i=tid; i<unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x]; i+=blockDim.x){
+        if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
+            check_var[tid*c_v_len+i/blockDim.x]=K[unq[i+unq_ptr[blockIdx.x]]];
+        }
+        else{
+            check_var[tid*c_v_len+i/blockDim.x]=0;
+        }
+    }
+    //This tells which vertices have frogs that have stopped
+    __syncthreads();
+    for(unsigned int i=0; i<len_nodes_clust/blockDim.x+1; i++){
+        if(check_var[i+tid*c_v_len]>0){
+            for(unsigned int j=0; j<check_var[i+tid*c_v_len]; j++){
+                //This double indexing fetches the i values from prior loop
+                //This seems to work, but I am not sure if it is correct
+                atomicSub(&K[unq[unq_ptr[blockIdx.x]+i*blockDim.x+tid]],1);
+            }
+        }
+    }
 }

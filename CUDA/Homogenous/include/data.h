@@ -189,6 +189,9 @@ __global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsign
 
 __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* unq);
 
+__global__ void Apply(unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* src_ptr, unsigned int* succ_ptr,
+unsigned int* unq_ptr, unsigned int* K, unsigned int* C,unsigned int iter, float p_t);
+
 
 /*DEVICE FUNCTIONS*/
 
