@@ -115,7 +115,7 @@ __host__ void Export_Degree(unsigned int* deg, unsigned int node_size);
 
 __host__ void Export_Replica_Stats(replica_tracker* h_replica, unsigned int node_size);
 
-__host__ void Import_Local_Src(unsigned int* local_src, unsigned int* src_ptr, unsigned int* src_ctr);
+__host__ void Import_Local_Src(unsigned int* local_src);
 
 __host__ void Import_Local_Succ(unsigned int* local_succ);
 
@@ -134,7 +134,7 @@ __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k,
 unsigned int* src_ctr, unsigned int* src_ptr, unsigned int* unq_ctr, unsigned int* unq_ptr, unsigned int* h_ctr, unsigned int* h_ptr, 
-unsigned int node_size, unsigned int edge_size);
+unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int edge_size);
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 

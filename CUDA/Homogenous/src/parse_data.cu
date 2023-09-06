@@ -472,9 +472,6 @@ unsigned int* h_ctr, unsigned int* h_ptr){
     }
     //Now, we need to copy the data back to src_ptr
     for(int i=0; i<BLOCKS; i++){
-        if(i>0){
-            cout<<h_unq_ctr[i-1]+h_unq_ptr[i-1]-1<<'\t'<<h_unq_ptr[i]<<endl;
-        }
         for(int j=h_unq_ptr[i]; j<h_unq_ptr[i]+h_unq_ctr[i];j++){
             src_ptr[j]=temp_src[j];
         }
@@ -487,7 +484,6 @@ __host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsig
         //iterate through the starts
         for(int j=0; j<h_unq_ctr[i]-1;j++){
             for(int k=local_src[h_unq_ptr[i]+j]+h_ptr[i]; k<local_src[h_unq_ptr[i]+j+1]+h_ptr[i];k++){
-                cout<<k<<endl;
                 local_succ[k]=edgelist[k].end;
             }
         }

@@ -10,13 +10,17 @@ int main()
     cout<<nodes<<endl;
     cout<<edges<<endl;
     edge* edge_list;
-    unsigned int* deg = new unsigned int[nodes];
+    unsigned int* deg = new unsigned int[nodes]{0};
     edge_list=(edge*)malloc(sizeof(edge)*edges);
     replica_tracker* h_replica = (replica_tracker*)malloc(sizeof(replica_tracker)*nodes);
     unsigned int* replica = new unsigned int[edges];
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
     Capture_Node_Degree(edge_list,deg,edges);
+    for(int i=0; i<nodes;i++){
+        cout<<deg[i]<<endl;
+    }
+    Export_Degree(deg,nodes);
     unsigned int *h_ctr, *h_ptr;
     h_ctr = new unsigned int[BLOCKS];
     h_ptr = new unsigned int[BLOCKS];
@@ -26,9 +30,6 @@ int main()
     cout<<"Starting Helper Function"<<endl;
     Org_Vertex_Helper(edge_list,replica,h_replica,deg,h_ctr,h_ptr,edges,nodes);
     cout<<"Ending Helper Function"<<endl;
-    for(int i = 0; i<BLOCKS;i++){
-        cout<<h_ctr[i]<<"\t"<<h_ctr[i]+h_ptr[i]<<endl;
-    }
     cpu_radixsort(edge_list,edges);
     Check_Out_csv_edge(edge_list, edges);
     check_out_replicas(REPLICA_PATH,replica,nodes);

@@ -2,7 +2,7 @@
 #include "../include/GPUErrors.h"
 
 
-__host__ void Import_Local_Src(unsigned int* local_src, unsigned int* src_ptr, unsigned int* src_ctr){
+__host__ void Import_Local_Src(unsigned int* local_src){
     ifstream myfile;
     myfile.open(LOCAL_SRC_PATH);
     string line,word;
@@ -269,15 +269,11 @@ __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node
                         column++;
                     }
                     else if(column==1){
-                        h_replica[count-1].replica = stoi(word);
-                        column++;
-                    }
-                    else if(column==2){
-                        h_replica[count-1].count = stoi(word);
+                        h_replica[count-1].num_replicas = stoi(word);
                         column++;
                     }
                     else{
-                        h_replica[count-1].node = stoi(word);
+                        h_replica[count-1].clusters[column-2] = stoi(word);
                     }
                 }
             }
@@ -289,9 +285,10 @@ __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k,
 unsigned int* src_ctr, unsigned int* src_ptr, unsigned int* unq_ctr, unsigned int* unq_ptr, unsigned int* h_ctr, unsigned int* h_ptr, 
-unsigned int node_size, unsigned int edge_size){
+unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int edge_size){
 
-    unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ctr, *d_src_ptr, *d_unq_ctr, *d_unq_ptr, *d_h_ctr, *d_h_ptr;
+    unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ctr, *d_src_ptr, *d_unq_ctr, *d_unq_ptr, *d_h_ctr, *d_h_ptr, *d_degree;
+    replica_tracker *d_replica;
     if(!HandleCUDAError(cudaMalloc((void**)&d_succ, (h_ctr[BLOCKS-1]+h_ptr[BLOCKS-1])*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_succ"<<endl;
     }
@@ -325,6 +322,12 @@ unsigned int node_size, unsigned int edge_size){
     if(!HandleCUDAError(cudaMalloc((void**)&d_h_ptr, BLOCKS*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_h_ptr"<<endl;
     }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_degree, node_size*sizeof(unsigned int)))){
+        cout<<"Error allocating memory for d_degree"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_replica, node_size*sizeof(replica_tracker)))){
+        cout<<"Error allocating memory for d_replica"<<endl;
+    }
     if(!HandleCUDAError(cudaMemcpy(d_succ, local_succ, (h_ctr[BLOCKS-1]+h_ptr[BLOCKS-1])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_succ"<<endl;
     }
@@ -357,6 +360,12 @@ unsigned int node_size, unsigned int edge_size){
     }
     if(!HandleCUDAError(cudaMemcpy(d_h_ptr, h_ptr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_h_ptr"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(d_degree, degree, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+        cout<<"Error copying memory to d_degree"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemcpy(d_replica, h_replica, node_size*sizeof(replica_tracker), cudaMemcpyHostToDevice))){
+        cout<<"Error copying memory to d_replica"<<endl;
     }
     /*Now, all of the memory has been transferred and allocated*/
 
