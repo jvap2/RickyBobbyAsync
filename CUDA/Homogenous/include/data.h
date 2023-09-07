@@ -189,8 +189,7 @@ __global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsign
 
 __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* unq);
 
-__global__ void Apply(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_C, unsigned int* num_loc_K, 
-unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int iter, float* p_t, curandState* d_state);
+__global__ void Apply(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, unsigned int iter, float* p_t, curandState* d_state);
 
 __global__ void Gather(unsigned int* K, unsigned int* C, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_C, unsigned int* num_local_K,
 unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigned int* local_C_idx);

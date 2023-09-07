@@ -464,8 +464,7 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
-        Apply<<<BLOCKS, TPB>>>(d_unq, d_unq_ptr, local_K, local_C, num_local_C, num_local_K, local_C_idx, local_K_idx, 
-        i, d_p_t, d_state_teleport);
+        Apply<<<BLOCKS, TPB>>>(d_unq, d_unq_ptr, local_K, local_C,num_local_K,local_K_idx, i, d_p_t, d_state_teleport);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
@@ -513,7 +512,6 @@ of the vertex. This will allow us to combine the functions into one and avoid pa
 
 __global__ void Gather(unsigned int* K, unsigned int* C, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_C, unsigned int* num_local_K,
 unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigned int* local_C_idx){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
@@ -525,10 +523,11 @@ unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigne
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
             atomicAdd(num_local_K+blockIdx.x,1);
             atomicExch(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,K[unq[i+unq_ptr[blockIdx.x]]]);
-            atomicExch(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,unq[i+unq_ptr[blockIdx.x]]);
+            atomicExch(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,i);
             //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
             //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
             //Possibly a question worth experimentation
+            //Local_K_idx is going to store the index of the unique value with a frog on it
         }
         __syncthreads();
     }
@@ -542,8 +541,7 @@ unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigne
 }
 
 
-__global__ void Apply(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_C, unsigned int* num_loc_K, 
-unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int iter, float* p_t, curandState* d_state){
+__global__ void Apply(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, unsigned int iter, float* p_t, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     if(tid<*(num_loc_K+blockIdx.x)){
@@ -555,10 +553,17 @@ unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int iter, float* 
             //number for each frog, so incrementing the seed by j should (in theory)
             //give each frog a unique random number
             if(rand<*(p_t)){
-                *(C+unq_ptr[blockIdx.x]+tid)+=1;
-                *(num_loc_C+blockIdx.x)+=1;
-                *(local_C_idx+unq_ptr[blockIdx.x]+*(num_loc_C+blockIdx.x))=*(local_K_idx+unq_ptr[blockIdx.x]+tid);
-                *(K+unq_ptr[blockIdx.x]+tid)-=1;
+                atomicAdd(C+unq_ptr[blockIdx.x]+local_K_idx[tid],1);
+                //Increment the number of frogs which have died on this vertex-this will mirror the indexing of the unq ptr
+                // atomicAdd(num_loc_C+blockIdx.x,1);
+                // //Increment the number of non zero C values
+                // *(local_C_idx+unq_ptr[blockIdx.x]+*(num_loc_C+blockIdx.x))=*(local_K_idx+unq_ptr[blockIdx.x]+tid);
+                //The local C index in this block is going to be the same as the local K index
+                //Notice that we are using the number of non-zero C's for this
+                //The issue with the above part could exceed the values, this poses an issue- do we need this?
+                //I do not think so
+                atomicSub(K+unq_ptr[blockIdx.x]+tid,1);
+                //Decrement the K value
             }
         }
     }
@@ -572,18 +577,24 @@ unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, uns
 curandState* d_state, replica_tracker* d_replica){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    if(tid<*(num_local_C+blockIdx.x)){
+    curand_init(1234, idx, 0, &d_state[idx]);
+    //We have this outside so if the if condition is satisfied, the entirety of local C can be committed
+    //to the global C
+    if(tid<*(unq_ptr+blockIdx.x)){
         for(int j=0; j<*(local_C+unq_ptr[blockIdx.x]+tid); j++){
-            curand_init(1234+j, idx, 0, &d_state[idx]);
             float rand = curand_uniform(&d_state[idx]);
             if(rand<*(p_s)){
-                *(C+unq[local_C_idx[tid]])+=1;
+                *(C+unq[tid+unq_ptr[blockIdx.x]])+=1;
+                *(local_C+unq_ptr[blockIdx.x]+tid)-=1;
             }
         }
     }
 
 }
 
-__global__ void Scatter(){
+__global__ void Scatter(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* src, unsigned int* src_ptr,
+unsigned int* succ, unsigned int* succ_ptr, unsigned int* h, unsigned int* h_ptr, unsigned int* local_C){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
 
 }
