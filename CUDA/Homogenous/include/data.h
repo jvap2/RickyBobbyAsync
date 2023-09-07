@@ -192,7 +192,8 @@ __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigne
 __global__ void Apply(unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* src_ptr, unsigned int* succ_ptr,
 unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_C, unsigned int* num_loc_K, unsigned int iter, float* p_t);
 
-
+__global__ void Gather(unsigned int* K, unsigned int* C, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_C, unsigned int* num_local_K,
+unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigned int* local_C_idx);
 /*DEVICE FUNCTIONS*/
 
 __device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);

@@ -311,6 +311,8 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     }
     unsigned int *local_K;
     unsigned int *local_C;
+    unsigned int *local_K_idx;
+    unsigned int *local_C_idx;
     cout<<"Allocating memory for device variables"<<endl;
     if(!HandleCUDAError(cudaMalloc((void**)&d_succ, (h_ptr[BLOCKS])*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_succ"<<endl;
@@ -359,6 +361,12 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     }
     if(!HandleCUDAError(cudaMalloc((void**)&local_C, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
         cout<<"Error allocating memory for local_C"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&local_K_idx, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+        cout<<"Error allocating memory for local_K_idx"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&local_C_idx, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+        cout<<"Error allocating memory for local_C_idx"<<endl;
     }
     cout<<"Copying memory to device variables"<<endl;
     if(!HandleCUDAError(cudaMemcpy(d_succ, local_succ, (h_ptr[BLOCKS])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
@@ -425,6 +433,12 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaMemset(local_C, 0, BLOCKS*src_ctr_max*sizeof(unsigned int)))){
         cout<<"Error initializing local_C"<<endl;
     }
+    if(!HandleCUDAError(cudaMemset(local_K_idx, 0, BLOCKS*unq_ctr_max*sizeof(unsigned int)))){
+        cout<<"Error initializing local_K_idx"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(local_C_idx, 0, BLOCKS*src_ctr_max*sizeof(unsigned int)))){
+        cout<<"Error initializing local_C_idx"<<endl;
+    }
     curandGenerator_t gen;
     curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
     curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
@@ -438,6 +452,10 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
         cout<<"Error synchronizing device"<<endl;
     }
     for(unsigned int i=0; i<iter; i++){
+        Gather<<<BLOCKS,TPB>>>(d_k, d_c, d_unq, d_unq_ptr,num_local_C, num_local_K, local_K, local_C, local_K_idx, local_C_idx);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Error synchronizing device"<<endl;
+        }
         Apply<<<BLOCKS, TPB,unq_ctr_max*sizeof(unsigned int)>>>(d_src, d_succ, d_unq, d_src_ptr, d_h_ptr, d_unq_ptr, d_k, d_c,
         num_local_C, num_local_K, i, d_p_t);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
@@ -485,7 +503,8 @@ Instead of dictating which block is the master of which vertex, we will have the
 of the vertex. This will allow us to combine the functions into one and avoid passing of data, and ease the synchronization
 */
 
-__global__ void Gather(unsigned int* K, unsigned int* C, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_C, unsigned int* num_local_K){
+__global__ void Gather(unsigned int* K, unsigned int* C, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_C, unsigned int* num_local_K,
+unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigned int* local_C_idx){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
@@ -493,9 +512,13 @@ __global__ void Gather(unsigned int* K, unsigned int* C, unsigned int* unq, unsi
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
             atomicAdd(num_local_K+blockIdx.x,1);
-            atomicCAS(&C[unq[i+unq_ptr[blockIdx.x]]],0,1);
-
+            atomicAdd(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x],K[unq[i+unq_ptr[blockIdx.x]]]);
+            atomicAdd(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x],unq[i+unq_ptr[blockIdx.x]]);
+            //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
+            //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
+            //Possibly a question worth experimentation
         }
+        __syncthreads();
     }
 }
 
@@ -506,14 +529,10 @@ unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_C
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
-    extern __shared__ unsigned int local_K[];
-
-    for(unsigned int i=tid; i<unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x]; i+=blockDim.x){
-        if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
-            //Store check_var like a sort of matrix, row corresponds to the first value fetched
-
-        }
+    if(tid<*(num_loc_K+blockIdx.x)){
+        for(int j=0; j<)
     }
+
     //This tells which vertices have frogs that have stopped
     __syncthreads();
 }
