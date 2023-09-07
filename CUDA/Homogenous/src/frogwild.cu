@@ -568,11 +568,11 @@ curandState* d_state, replica_tracker* d_replica){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     if(tid<*(num_local_C+blockIdx.x)){
-        for(int j=0; j<*(C+unq_ptr[blockIdx.x]+tid); j++){
+        for(int j=0; j<*(local_C+unq_ptr[blockIdx.x]+tid); j++){
             curand_init(1234+j, idx, 0, &d_state[idx]);
             float rand = curand_uniform(&d_state[idx]);
             if(rand<*(p_s)){
-                *(C+unq_ptr[blockIdx.x]+tid)+=1;
+                *(C+unq[local_C_idx[tid]])+=1;
             }
         }
     }
