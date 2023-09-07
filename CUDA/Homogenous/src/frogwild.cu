@@ -296,6 +296,8 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     unsigned int unq_ctr_max=0;
     unsigned int src_ctr_max=0;
     unsigned int h_ctr_max=0;
+    unsigned int *num_local_K;
+    unsigned int *num_local_C;
     for(int i = 1; i<=BLOCKS;i++){
         if(unq_ptr[i]-unq_ptr[i-1]>unq_ctr_max){
             unq_ctr_max=unq_ptr[i]-unq_ptr[i-1];
@@ -307,6 +309,8 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
             src_ctr_max=src_ptr[i]-src_ptr[i-1];
         }
     }
+    unsigned int *local_K;
+    unsigned int *local_C;
     cout<<"Allocating memory for device variables"<<endl;
     if(!HandleCUDAError(cudaMalloc((void**)&d_succ, (h_ptr[BLOCKS])*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_succ"<<endl;
@@ -343,6 +347,18 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     }
     if(!HandleCUDAError(cudaMalloc((void**)&d_p_s, sizeof(float)))){
         cout<<"Error allocating memory for d_p_s"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&num_local_K, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Error allocating memory for num_local_K"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&num_local_C, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Error allocating memory for num_local_C"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&local_K, BLOCKS*unq_ctr_max*sizeof(unsigned int)))){
+        cout<<"Error allocating memory for local_K"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&local_C, BLOCKS*src_ctr_max*sizeof(unsigned int)))){
+        cout<<"Error allocating memory for local_C"<<endl;
     }
     cout<<"Copying memory to device variables"<<endl;
     if(!HandleCUDAError(cudaMemcpy(d_succ, local_succ, (h_ptr[BLOCKS])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
@@ -397,6 +413,18 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaMemset(d_c, 0, node_size*sizeof(unsigned int)))){
         cout<<"Error initializing d_c"<<endl;
     }
+    if(!HandleCUDAError(cudaMemset(num_local_C, 0, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Error initializing num_local_C"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(num_local_K, 0, BLOCKS*sizeof(unsigned int)))){
+        cout<<"Error initializing num_local_K"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(local_K, 0, BLOCKS*unq_ctr_max*sizeof(unsigned int)))){
+        cout<<"Error initializing local_K"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(local_C, 0, BLOCKS*src_ctr_max*sizeof(unsigned int)))){
+        cout<<"Error initializing local_C"<<endl;
+    }
     curandGenerator_t gen;
     curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
     curandSetPseudoRandomGeneratorSeed(gen, 1234ULL);
@@ -410,7 +438,8 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
         cout<<"Error synchronizing device"<<endl;
     }
     for(unsigned int i=0; i<iter; i++){
-        Apply<<<BLOCKS, TPB,unq_ctr_max*sizeof(unsigned int)>>>(d_src, d_succ, d_unq, d_src_ptr, d_h_ptr, d_unq_ptr, d_k, d_c, i, d_p_t);
+        Apply<<<BLOCKS, TPB,unq_ctr_max*sizeof(unsigned int)>>>(d_src, d_succ, d_unq, d_src_ptr, d_h_ptr, d_unq_ptr, d_k, d_c,
+        num_local_C, num_local_K, i, d_p_t);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
@@ -456,32 +485,35 @@ Instead of dictating which block is the master of which vertex, we will have the
 of the vertex. This will allow us to combine the functions into one and avoid passing of data, and ease the synchronization
 */
 
-__global__ void Apply(unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* src_ptr, unsigned int* succ_ptr,
-unsigned int* unq_ptr, unsigned int* K, unsigned int* C,unsigned int iter, float* p_t){
+__global__ void Gather(unsigned int* K, unsigned int* C, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_C, unsigned int* num_local_K){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
-    extern __shared__ unsigned int check_var[];
-    for(unsigned int i=tid; i<unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x]; i+=blockDim.x){
+    for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
-            check_var[tid+(i/blockDim.x)*blockDim.x]=K[unq[i+unq_ptr[blockIdx.x]]];
-            //Store check_var like a sort of matrix, row corresponds to the first value fetched
+            atomicAdd(num_local_K+blockIdx.x,1);
+            atomicCAS(&C[unq[i+unq_ptr[blockIdx.x]]],0,1);
 
         }
-        else{
-            check_var[tid+(i/blockDim.x)*blockDim.x]=0;
+    }
+}
+
+
+__global__ void Apply(unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* src_ptr, unsigned int* succ_ptr,
+unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_C, unsigned int* num_loc_K, unsigned int iter, float* p_t){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
+    const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
+    extern __shared__ unsigned int local_K[];
+
+    for(unsigned int i=tid; i<unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x]; i+=blockDim.x){
+        if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
+            //Store check_var like a sort of matrix, row corresponds to the first value fetched
+
         }
     }
     //This tells which vertices have frogs that have stopped
     __syncthreads();
-    for(unsigned int i=0; i<c_v_len; i++){
-        if(check_var[i*blockDim.x]>0){
-            for(unsigned int j=0; j<check_var[i+tid*c_v_len]; j++){
-                //This double indexing fetches the i values from prior loop
-                //This seems to work, but I am not sure if it is correct
-                atomicSub(&K[unq[unq_ptr[blockIdx.x]+i*blockDim.x+tid]],1);
-            }
-        }
-    }
 }
