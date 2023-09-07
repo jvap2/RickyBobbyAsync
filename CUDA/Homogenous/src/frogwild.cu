@@ -518,22 +518,27 @@ unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigne
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        //unq contains the unqiue nodes in the cluster
+        //unq_ptr contains the pointers to the start of each cluster
+        //Hence referencing unq[i+unq_ptr[blockIdx.x]] will give the node in the cluster, pointing to K
+        //This is the node that we are going to be looking at
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
             atomicAdd(num_local_K+blockIdx.x,1);
-            // atomicAdd(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x],K[unq[i+unq_ptr[blockIdx.x]]]);
-            // atomicAdd(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x],unq[i+unq_ptr[blockIdx.x]]);
+            atomicExch(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,K[unq[i+unq_ptr[blockIdx.x]]]);
+            atomicExch(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,unq[i+unq_ptr[blockIdx.x]]);
             //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
             //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
             //Possibly a question worth experimentation
         }
         __syncthreads();
-        if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
-            *(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x])=K[unq[i+unq_ptr[blockIdx.x]]];
-            *(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x])=unq[i+unq_ptr[blockIdx.x]];
-        }
-        __syncthreads();
-
     }
+    /*To summarize what has been done here
+    (1), we increment the value of the number of non zero k values, i.e. we are using an array to identify how many vertices should be active in the
+    next function so as to avoid warp divergence
+    (2) As we increment the number of non zero K values, we use the new value as a memory pointer to identify that we need to place a new
+    value in the next memory location
+    (2a) Using num_local_K, we then store the K value in local_K, pointing the the block and then the offset based on the current num_local_K
+    (2b) We then save the global address of K in local_K_idx*/
 }
 
 
@@ -552,7 +557,7 @@ unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int iter, float* 
             if(rand<*(p_t)){
                 *(C+unq_ptr[blockIdx.x]+tid)+=1;
                 *(num_loc_C+blockIdx.x)+=1;
-                *(local_C_idx+unq_ptr[blockIdx.x]+*(num_loc_C+blockIdx.x))=unq_ptr[blockIdx.x]+tid;
+                *(local_C_idx+unq_ptr[blockIdx.x]+*(num_loc_C+blockIdx.x))=*(local_K_idx+unq_ptr[blockIdx.x]+tid);
                 *(K+unq_ptr[blockIdx.x]+tid)-=1;
             }
         }
