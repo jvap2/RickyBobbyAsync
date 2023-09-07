@@ -427,16 +427,16 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaMemset(num_local_K, 0, BLOCKS*sizeof(unsigned int)))){
         cout<<"Error initializing num_local_K"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(local_K, 0, BLOCKS*unq_ctr_max*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMemset(local_K, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
         cout<<"Error initializing local_K"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(local_C, 0, BLOCKS*src_ctr_max*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMemset(local_C, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
         cout<<"Error initializing local_C"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(local_K_idx, 0, BLOCKS*unq_ctr_max*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMemset(local_K_idx, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
         cout<<"Error initializing local_K_idx"<<endl;
     }
-    if(!HandleCUDAError(cudaMemset(local_C_idx, 0, BLOCKS*src_ctr_max*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMemset(local_C_idx, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
         cout<<"Error initializing local_C_idx"<<endl;
     }
     curandGenerator_t gen;
@@ -459,7 +459,7 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device"<<endl;
     }
-    for(unsigned int i=0; i<iter; i++){
+    for(unsigned int i=0; i<1; i++){
         Gather<<<BLOCKS,TPB>>>(d_k, d_c, d_unq, d_unq_ptr,num_local_C, num_local_K, local_K, local_C, local_K_idx, local_C_idx);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
@@ -520,13 +520,19 @@ unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigne
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
             atomicAdd(num_local_K+blockIdx.x,1);
-            atomicAdd(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x],K[unq[i+unq_ptr[blockIdx.x]]]);
-            atomicAdd(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x],unq[i+unq_ptr[blockIdx.x]]);
+            // atomicAdd(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x],K[unq[i+unq_ptr[blockIdx.x]]]);
+            // atomicAdd(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x],unq[i+unq_ptr[blockIdx.x]]);
             //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
             //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
             //Possibly a question worth experimentation
         }
         __syncthreads();
+        if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
+            *(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x])=K[unq[i+unq_ptr[blockIdx.x]]];
+            *(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x])=unq[i+unq_ptr[blockIdx.x]];
+        }
+        __syncthreads();
+
     }
 }
 
@@ -541,7 +547,7 @@ unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int iter, float* 
     float rand = curand_uniform(&d_state[idx]);
     if(tid<*(num_loc_K+blockIdx.x)){
         for(int j=0; j<*(K+unq_ptr[blockIdx.x]+tid); j++){
-            printf("rand: %f, idx: %f", rand, idx);
+            printf("rand: %f, idx: %d\n", rand, idx);
             if(rand<*(p_t)){
                 *(C+unq_ptr[blockIdx.x]+tid)+=1;
                 *(K+unq_ptr[blockIdx.x]+tid)-=1;
