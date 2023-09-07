@@ -79,6 +79,20 @@ int main()
     for(int i=1;i<BLOCKS;i++){
         src_ptr[i]=src_ptr[i-1]+src_ctr[i-1];
     }
+    unsigned int unq_ctr_max=0;
+    unsigned int src_ctr_max=0;
+    unsigned int h_ctr_max=0;
+    for(int i = 0; i<BLOCKS;i++){
+        if(unq_ctr[i]>unq_ctr_max){
+            unq_ctr_max=unq_ctr[i];
+        }
+        if(h_ctr[i]>h_ctr_max){
+            h_ctr_max=h_ctr[i];
+        }
+        if(src_ctr[i]>src_ctr_max){
+            src_ctr_max=src_ctr[i];
+        }
+    }
     unsigned int* h_local_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     unsigned int* h_temp_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]]{0};

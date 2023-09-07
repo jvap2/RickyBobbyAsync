@@ -283,15 +283,31 @@ __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node
     }
 }
 
+
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int edge_size){
     unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree;
     replica_tracker *d_replica;
-    float *p_t, *p_s;
-    *p_s=.15;
-    *p_t=.15;
+    float p_t, p_s;
+    p_s=.15;
+    p_t=.15;
     unsigned int iter =10;
     float* d_p_t, *d_p_s;
+    unsigned int unq_ctr_max=0;
+    unsigned int src_ctr_max=0;
+    unsigned int h_ctr_max=0;
+    for(int i = 1; i<=BLOCKS;i++){
+        if(unq_ptr[i]-unq_ptr[i-1]>unq_ctr_max){
+            unq_ctr_max=unq_ptr[i]-unq_ptr[i-1];
+        }
+        if(h_ptr[i]-h_ptr[i-1]>h_ctr_max){
+            h_ctr_max=h_ptr[i]-h_ptr[i-1];
+        }
+        if(src_ptr[i]-src_ptr[i-1]>src_ctr_max){
+            src_ctr_max=src_ptr[i]-src_ptr[i-1];
+        }
+    }
+    cout<<"Allocating memory for device variables"<<endl;
     if(!HandleCUDAError(cudaMalloc((void**)&d_succ, (h_ptr[BLOCKS])*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_succ"<<endl;
     }
@@ -328,6 +344,7 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaMalloc((void**)&d_p_s, sizeof(float)))){
         cout<<"Error allocating memory for d_p_s"<<endl;
     }
+    cout<<"Copying memory to device variables"<<endl;
     if(!HandleCUDAError(cudaMemcpy(d_succ, local_succ, (h_ptr[BLOCKS])*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_succ"<<endl;
     }
@@ -358,10 +375,10 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaMemcpy(d_replica, h_replica, node_size*sizeof(replica_tracker), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_replica"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_p_t, p_t, sizeof(float), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_p_t, &p_t, sizeof(float), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_p_t"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_p_s, p_s, sizeof(float), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_p_s, &p_s, sizeof(float), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_p_s"<<endl;
     }
     /*Now, all of the memory has been transferred and allocated*/
@@ -386,13 +403,13 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device"<<endl;
     }
-    for(unsigned int i = 0; i<iter;i++){
-        //You will need to change the shared memory size to be the size of the unique nodes in the cluster
-        Apply<<<BLOCKS, TPB,0>>>(d_src, d_succ, d_unq, d_src_ptr, d_h_ptr, d_unq_ptr, d_k, d_c, i, *d_p_t);
+    for(unsigned int i=0; i<iter; i++){
+        Apply<<<BLOCKS, TPB,unq_ctr_max*sizeof(unsigned int)>>>(d_src, d_succ, d_unq, d_src_ptr, d_h_ptr, d_unq_ptr, d_k, d_c, i, d_p_t);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
     }
+        //You will need to change the shared memory size to be the size of the unique nodes in the cluster
 
 }
 
@@ -434,7 +451,7 @@ of the vertex. This will allow us to combine the functions into one and avoid pa
 */
 
 __global__ void Apply(unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* src_ptr, unsigned int* succ_ptr,
-unsigned int* unq_ptr, unsigned int* K, unsigned int* C,unsigned int iter, float p_t){
+unsigned int* unq_ptr, unsigned int* K, unsigned int* C,unsigned int iter, float* p_t){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
@@ -444,6 +461,7 @@ unsigned int* unq_ptr, unsigned int* K, unsigned int* C,unsigned int iter, float
     for(unsigned int i=tid; i<unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x]; i+=blockDim.x){
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
             check_var[tid*c_v_len+i/blockDim.x]=K[unq[i+unq_ptr[blockIdx.x]]];
+            
         }
         else{
             check_var[tid*c_v_len+i/blockDim.x]=0;
