@@ -354,10 +354,10 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaMalloc((void**)&num_local_C, BLOCKS*sizeof(unsigned int)))){
         cout<<"Error allocating memory for num_local_C"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&local_K, BLOCKS*unq_ctr_max*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&local_K, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
         cout<<"Error allocating memory for local_K"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&local_C, BLOCKS*src_ctr_max*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&local_C, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
         cout<<"Error allocating memory for local_C"<<endl;
     }
     cout<<"Copying memory to device variables"<<endl;
