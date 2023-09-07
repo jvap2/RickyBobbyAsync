@@ -447,6 +447,14 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     curandDestroyGenerator(gen);
     unsigned int t_per_block = TPB;
     unsigned int b_per_grid_int = (sublinear_size+TPB-1)/TPB;
+    curandState* d_state_teleport;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_state_teleport, BLOCKS*TPB*sizeof(curandState)))){
+        cout<<"Error allocating memory for d_state"<<endl;
+    }
+    curandState* d_state_scatter;
+    if(!HandleCUDAError(cudaMalloc((void**)&d_state_scatter, BLOCKS*TPB*sizeof(curandState)))){
+        cout<<"Error allocating memory for d_state"<<endl;
+    }
     First_Init<<<b_per_grid_int, t_per_block>>>(rand_frog, d_k, node_size, sublinear_size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device"<<endl;
@@ -456,8 +464,8 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
-        Apply<<<BLOCKS, TPB,unq_ctr_max*sizeof(unsigned int)>>>(d_src, d_succ, d_unq, d_src_ptr, d_h_ptr, d_unq_ptr, d_k, d_c,
-        num_local_C, num_local_K, i, d_p_t);
+        Apply<<<BLOCKS, TPB,unq_ctr_max*sizeof(unsigned int)>>>(d_unq, d_unq_ptr, local_K, local_C, num_local_C, num_local_K, local_C_idx, local_K_idx, 
+        i, d_p_t, d_state_teleport);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
@@ -523,14 +531,23 @@ unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigne
 }
 
 
-__global__ void Apply(unsigned int* local_src, unsigned int* local_succ, unsigned int* unq, unsigned int* src_ptr, unsigned int* succ_ptr,
-unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_C, unsigned int* num_loc_K, unsigned int iter, float* p_t){
+__global__ void Apply(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_C, unsigned int* num_loc_K, 
+unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int iter, float* p_t, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
+    curand_init(1234, idx, 0, &d_state[idx]);
+    float rand = curand_uniform(&d_state[idx]);
     if(tid<*(num_loc_K+blockIdx.x)){
-        for(int j=0; j<)
+        for(int j=0; j<*(K+unq_ptr[blockIdx.x]+tid); j++){
+            printf("rand: %f, idx: %f", rand, idx);
+            if(rand<*(p_t)){
+                *(C+unq_ptr[blockIdx.x]+tid)+=1;
+                *(K+unq_ptr[blockIdx.x]+tid)-=1;
+            }
+            rand = curand_uniform(&d_state[idx]);
+        }
     }
 
     //This tells which vertices have frogs that have stopped
