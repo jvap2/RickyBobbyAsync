@@ -323,13 +323,13 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaMalloc((void**)&d_k, node_size*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_k"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, BLOCKS*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_src_ptr, (BLOCKS+1)*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_src_ptr"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_unq_ptr, BLOCKS*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_unq_ptr, (BLOCKS+1)*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_unq_ptr"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_h_ptr, BLOCKS*sizeof(unsigned int)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_h_ptr, (BLOCKS+1)*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_h_ptr"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**)&d_degree, node_size*sizeof(unsigned int)))){
@@ -360,13 +360,13 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaMemcpy(d_k, k, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_k"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_src_ptr, src_ptr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_src_ptr, src_ptr, (BLOCKS+1)*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_src_ptr"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_unq_ptr, unq_ptr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_unq_ptr, unq_ptr, (BLOCKS+1)*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_unq_ptr"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(d_h_ptr, h_ptr, BLOCKS*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+    if(!HandleCUDAError(cudaMemcpy(d_h_ptr, h_ptr, (BLOCKS+1)*sizeof(unsigned int), cudaMemcpyHostToDevice))){
         cout<<"Error copying memory to d_h_ptr"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(d_degree, degree, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
@@ -390,6 +390,12 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     }
     if(!HandleCUDAError(cudaMemset(rand_frog, 0, sublinear_size*sizeof(float)))){
         cout<<"Error initializing rand_frog"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_k, 0, node_size*sizeof(unsigned int)))){
+        cout<<"Error initializing d_k"<<endl;
+    }
+    if(!HandleCUDAError(cudaMemset(d_c, 0, node_size*sizeof(unsigned int)))){
+        cout<<"Error initializing d_c"<<endl;
     }
     curandGenerator_t gen;
     curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
@@ -457,20 +463,20 @@ unsigned int* unq_ptr, unsigned int* K, unsigned int* C,unsigned int iter, float
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
     extern __shared__ unsigned int check_var[];
-    // unsigned int check_idx[len_nodes_clust/blockDim.x+1]{0};
     for(unsigned int i=tid; i<unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x]; i+=blockDim.x){
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
-            check_var[tid*c_v_len+i/blockDim.x]=K[unq[i+unq_ptr[blockIdx.x]]];
-            
+            check_var[tid+(i/blockDim.x)*blockDim.x]=K[unq[i+unq_ptr[blockIdx.x]]];
+            //Store check_var like a sort of matrix, row corresponds to the first value fetched
+
         }
         else{
-            check_var[tid*c_v_len+i/blockDim.x]=0;
+            check_var[tid+(i/blockDim.x)*blockDim.x]=0;
         }
     }
     //This tells which vertices have frogs that have stopped
     __syncthreads();
-    for(unsigned int i=0; i<len_nodes_clust/blockDim.x+1; i++){
-        if(check_var[i+tid*c_v_len]>0){
+    for(unsigned int i=0; i<c_v_len; i++){
+        if(check_var[i*blockDim.x]>0){
             for(unsigned int j=0; j<check_var[i+tid*c_v_len]; j++){
                 //This double indexing fetches the i values from prior loop
                 //This seems to work, but I am not sure if it is correct
