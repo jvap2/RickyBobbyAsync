@@ -459,12 +459,12 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device"<<endl;
     }
-    for(unsigned int i=0; i<1; i++){
+    for(unsigned int i=0; i<2; i++){
         Gather<<<BLOCKS,TPB>>>(d_k, d_c, d_unq, d_unq_ptr,num_local_C, num_local_K, local_K, local_C, local_K_idx, local_C_idx);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
-        Apply<<<BLOCKS, TPB,unq_ctr_max*sizeof(unsigned int)>>>(d_unq, d_unq_ptr, local_K, local_C, num_local_C, num_local_K, local_C_idx, local_K_idx, 
+        Apply<<<BLOCKS, TPB>>>(d_unq, d_unq_ptr, local_K, local_C, num_local_C, num_local_K, local_C_idx, local_K_idx, 
         i, d_p_t, d_state_teleport);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
@@ -541,21 +541,44 @@ __global__ void Apply(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K,
 unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int iter, float* p_t, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
-    const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
-    curand_init(1234, idx, 0, &d_state[idx]);
-    float rand = curand_uniform(&d_state[idx]);
     if(tid<*(num_loc_K+blockIdx.x)){
         for(int j=0; j<*(K+unq_ptr[blockIdx.x]+tid); j++){
-            printf("rand: %f, idx: %d\n", rand, idx);
+            curand_init(1234+j, idx, 0, &d_state[idx]);
+            float rand = curand_uniform(&d_state[idx]);
+            //The above section is to generate a random number for each frog
+            //The index doing this seems as if it will have the same random
+            //number for each frog, so incrementing the seed by j should (in theory)
+            //give each frog a unique random number
             if(rand<*(p_t)){
                 *(C+unq_ptr[blockIdx.x]+tid)+=1;
+                *(num_loc_C+blockIdx.x)+=1;
+                *(local_C_idx+unq_ptr[blockIdx.x]+*(num_loc_C+blockIdx.x))=unq_ptr[blockIdx.x]+tid;
                 *(K+unq_ptr[blockIdx.x]+tid)-=1;
             }
-            rand = curand_uniform(&d_state[idx]);
         }
     }
 
     //This tells which vertices have frogs that have stopped
     __syncthreads();
+}
+
+__global__ void Sync_Mirrors(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
+unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int* num_local_C, unsigned int* num_local_K, float* p_s, 
+curandState* d_state, replica_tracker* d_replica){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    if(tid<*(num_local_C+blockIdx.x)){
+        for(int j=0; j<*(C+unq_ptr[blockIdx.x]+tid); j++){
+            curand_init(1234+j, idx, 0, &d_state[idx]);
+            float rand = curand_uniform(&d_state[idx]);
+            if(rand<*(p_s)){
+                *(C+unq_ptr[blockIdx.x]+tid)+=1;
+            }
+        }
+    }
+
+}
+
+__global__ void Scatter(){
+
 }
