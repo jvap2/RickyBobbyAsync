@@ -860,3 +860,106 @@ __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node
 //Thoughts- maybe save multiple files of the number of nodes and commit to them with the C to sync with the mirrors
 
 //There should be another better way
+
+
+__global__ void Gather_Ver1(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_K,
+unsigned int* local_K, unsigned int* local_K_idx){
+    unsigned int tid = threadIdx.x;
+    const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
+    const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
+    for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        //unq contains the unqiue nodes in the cluster
+        //unq_ptr contains the pointers to the start of each cluster
+        //Hence referencing unq[i+unq_ptr[blockIdx.x]] will give the node in the cluster, pointing to K
+        //This is the node that we are going to be looking at
+        if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
+            atomicAdd(num_local_K+blockIdx.x,1);
+            atomicExch(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,K[unq[i+unq_ptr[blockIdx.x]]]);
+            atomicExch(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,i);
+            //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
+            //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
+            //Possibly a question worth experimentation
+            //Local_K_idx is going to store the index of the unique value with a frog on it
+        }
+        __syncthreads();
+    }
+    /*To summarize what has been done here
+    (1), we increment the value of the number of non zero k values, i.e. we are using an array to identify how many vertices should be active in the
+    next function so as to avoid warp divergence
+    (2) As we increment the number of non zero K values, we use the new value as a memory pointer to identify that we need to place a new
+    value in the next memory location
+    (2a) Using num_local_K, we then store the K value in local_K, pointing the the block and then the offset based on the current num_local_K
+    (2b) We then save the global address of K in local_K_idx*/
+}
+
+
+__global__ void Apply_Ver1(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, curandState* d_state){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    if(tid<*(num_loc_K+blockIdx.x)){
+        for(int j=0; j<*(K+unq_ptr[blockIdx.x]+tid); j++){
+            curand_init(1234+j, idx, 0, &d_state[idx]);
+            float rand = curand_uniform(&d_state[idx]);
+            //The above section is to generate a random number for each frog
+            //The index doing this seems as if it will have the same random
+            //number for each frog, so incrementing the seed by j should (in theory)
+            //give each frog a unique random number
+            if(rand<*(p_t)){
+                atomicAdd(C+unq_ptr[blockIdx.x]+local_K_idx[tid],1);
+                //Increment the number of frogs which have died on this vertex-this will mirror the indexing of the unq ptr
+                // atomicAdd(num_loc_C+blockIdx.x,1);
+                // //Increment the number of non zero C values
+                // *(local_C_idx+unq_ptr[blockIdx.x]+*(num_loc_C+blockIdx.x))=*(local_K_idx+unq_ptr[blockIdx.x]+tid);
+                //The local C index in this block is going to be the same as the local K index
+                //Notice that we are using the number of non-zero C's for this
+                //The issue with the above part could exceed the values, this poses an issue- do we need this?
+                //I do not think so
+                atomicSub(K+unq_ptr[blockIdx.x]+tid,1);
+                //Decrement the K value
+            }
+        }
+    }
+
+    //This tells which vertices have frogs that have stopped
+    __syncthreads();
+}
+
+__global__ void Sync_Mirrors_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
+unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int* num_local_C, unsigned int* num_local_K, float* p_s, 
+curandState* d_state){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    curand_init(1234, idx, 0, &d_state[idx]);
+    //We have this outside so if the if condition is satisfied, the entirety of local C can be committed
+    //to the global C
+                float rand = curand_uniform(&d_state[idx]);
+    if(tid<*(unq_ptr+blockIdx.x)){
+        for(int j=0; j<*(local_C+unq_ptr[blockIdx.x]+tid); j++){
+            //Commit to global memory
+            if(rand<*(p_s) && *(local_C+unq_ptr[blockIdx.x]+tid)>0){
+                atomicAdd(C+unq[tid+unq_ptr[blockIdx.x]],1);
+                *(local_C+unq_ptr[blockIdx.x]+tid)-=1;
+            }
+        }
+        for(int m=0; m<*(local_K+unq_ptr[blockIdx.x]+tid); m++){
+            //Commit to global memory
+            if(rand<*(p_s) && *(local_K+unq_ptr[blockIdx.x]+tid)>0){
+                atomicAdd(K+unq[tid+unq_ptr[blockIdx.x]],1);
+                *(local_K+unq_ptr[blockIdx.x]+tid)-=1;
+            }
+        }
+    }
+}
+
+__global__ void Scatter_Ver1(unsigned int* C, unsigned int* K, unsigned int* src, unsigned int* succ,replica_tracker* d_rep, unsigned int node_size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    if(idx<node_size){
+        if(K[idx]>0){
+            unsigned int num_frog=K[idx]/d_rep[idx].num_replicas;
+            for(int i=src[idx]; i<src[idx+1]; i++){
+                atomicAdd(&K[succ[i]],num_frog);
+            }
+        }
+    }
+}
