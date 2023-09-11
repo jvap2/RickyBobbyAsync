@@ -824,11 +824,11 @@ curandState* d_state){
                 atomicAdd(C+unq[i+unq_ptr[blockIdx.x]],1);
             }
         }
-        for(int m=0; m<local_K[unq_ptr[blockIdx.x]+i]-K[unq_ptr[blockIdx.x]+i]; m++){
+        for(int m=0; m<K[unq_ptr[blockIdx.x]+i]-local_K[unq_ptr[blockIdx.x]+i]; m++){
             //Commit to global memory
             if(rand<*(p_s) && *(local_K+unq_ptr[blockIdx.x]+tid)>0){
-                atomicAdd(K+unq[tid+unq_ptr[blockIdx.x]],1);
-                *(local_K+unq_ptr[blockIdx.x]+tid)-=1;
+                atomicSub(K+unq[tid+unq_ptr[blockIdx.x]],1);
+
             }
         }
     }
