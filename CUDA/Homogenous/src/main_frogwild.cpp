@@ -8,7 +8,7 @@ int main(int argc, char** argv){
     unsigned int *h_ptr, *h_ctr;
     unsigned int *K, *C;
 
-    unsigned int* global_src = new unsigned int[nodes];
+    unsigned int* global_src = new unsigned int[nodes+1];
     unsigned int* global_succ = new unsigned int[edges];
     Import_Global_Src(global_src);
     Import_Global_Succ(global_succ);

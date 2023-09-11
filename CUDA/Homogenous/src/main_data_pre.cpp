@@ -8,8 +8,8 @@ int main()
     unsigned int nodes, edges;
     get_graph_info(GRAPH_DATA_PATH ,&nodes,&edges);
     unsigned int *src, *succ;
-    src = new unsigned int[nodes];
-    succ = new unsigned int[edges];
+    src = new unsigned int[nodes+1]{0};
+    succ = new unsigned int[edges]{0};
 
     cout<<nodes<<endl;
     cout<<edges<<endl;
@@ -20,7 +20,7 @@ int main()
     unsigned int* replica = new unsigned int[edges];
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
-    CSR_Graph(edge_list,src,succ,edges,nodes);
+    CSR_Graph(EDGE_PATH,nodes,edges,src,succ);
     Export_Global_Src(src,nodes);
     Export_Global_Succ(succ,edges);
     delete[] src;

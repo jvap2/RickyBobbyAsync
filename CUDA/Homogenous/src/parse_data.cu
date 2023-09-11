@@ -154,7 +154,7 @@ __host__ void Check_Repeats(edge* edge_list, unsigned int size){
     }
 }
 
-__host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_size, unsigned int* src_ptr, unsigned int* succ, unsigned int* deg_arr){
+__host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_size, unsigned int* src_ptr, unsigned int* succ){
     ifstream data;
     data.open(path);
     string line,word;
@@ -172,7 +172,6 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
                 else{
                     if(column==0){
                         src_ptr[stoi(word)]++; //Create a histogram of values
-                        deg_arr[stoi(word)]++;
                         column++;
                     }
                     else{
@@ -200,6 +199,7 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
         copy_ptr[i]+=copy_ptr[i-1];
         src_ptr[i]=copy_ptr[i];
     }
+    delete[] copy_ptr;
     cout<<count<<endl;
     data.close();
 }
@@ -278,7 +278,7 @@ __host__ void Export_Global_Src(unsigned int* src, unsigned int nodes){
     ofstream myfile;
     myfile.open(GLOBAL_SRC_PATH);
     myfile<<"node,src\n";
-    for(int i=0; i<nodes;i++){
+    for(int i=0; i<=nodes;i++){
         myfile<< to_string(i);
         myfile<< ",";
         myfile<< to_string(src[i]);
