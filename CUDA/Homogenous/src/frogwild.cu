@@ -816,16 +816,15 @@ curandState* d_state){
     curand_init(1234, idx, 0, &d_state[idx]);
     //We have this outside so if the if condition is satisfied, the entirety of local C can be committed
     //to the global C
-                float rand = curand_uniform(&d_state[idx]);
-    if(tid<*(unq_ptr+blockIdx.x)){
-        for(int j=0; j<*(local_C+unq_ptr[blockIdx.x]+tid); j++){
+    float rand = curand_uniform(&d_state[idx]);
+    for(int i=tid; i<*(unq_ptr+blockIdx.x+1); i+=blockDim.x){
+        for(int j=0; j<local_C[unq_ptr[blockIdx.x]+i]-C[unq_ptr[blockIdx.x]+i]; j++){
             //Commit to global memory
-            if(rand<*(p_s) && *(local_C+unq_ptr[blockIdx.x]+tid)>0){
-                atomicAdd(C+unq[tid+unq_ptr[blockIdx.x]],1);
-                *(local_C+unq_ptr[blockIdx.x]+tid)-=1;
+            if(rand<*(p_s)){
+                atomicAdd(C+unq[i+unq_ptr[blockIdx.x]],1);
             }
         }
-        for(int m=0; m<*(local_K+unq_ptr[blockIdx.x]+tid); m++){
+        for(int m=0; m<local_K[unq_ptr[blockIdx.x]+i]-K[unq_ptr[blockIdx.x]+i]; m++){
             //Commit to global memory
             if(rand<*(p_s) && *(local_K+unq_ptr[blockIdx.x]+tid)>0){
                 atomicAdd(K+unq[tid+unq_ptr[blockIdx.x]],1);
@@ -926,13 +925,13 @@ __global__ void Apply_Ver1(unsigned int* unq, unsigned int* unq_ptr, unsigned in
 
 __global__ void Sync_Mirrors_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
 unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int* num_local_C, unsigned int* num_local_K, float* p_s, 
-curandState* d_state){
+replica_tracker* d_replica, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     curand_init(1234, idx, 0, &d_state[idx]);
     //We have this outside so if the if condition is satisfied, the entirety of local C can be committed
     //to the global C
-                float rand = curand_uniform(&d_state[idx]);
+    float rand = curand_uniform(&d_state[idx]);
     if(tid<*(unq_ptr+blockIdx.x)){
         for(int j=0; j<*(local_C+unq_ptr[blockIdx.x]+tid); j++){
             //Commit to global memory
