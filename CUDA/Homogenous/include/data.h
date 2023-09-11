@@ -44,6 +44,8 @@ using namespace std;
 #define H_CTR_PTR_PATH "../../Data/Homogenous/rand/check/Local_Cluster_Hist_Ptr_Ctr_C.csv"
 #define DEG_PATH "../../Data/Homogenous/rand/check/Node_Degree_C.csv"
 #define REPLICA_STAT_PATH "../../Data/Homogenous/rand/check/Replica_Stat_C.csv"
+#define GLOBAL_SRC_PATH "../../Data/Homogenous/rand/check/Global_Cluster_Source_C.csv"
+#define GLOBAL_SUCC_PATH "../../Data/Homogenous/rand/check/Global_Cluster_Successor_C.csv"
 
 struct edge{
     unsigned int end, start;
@@ -74,7 +76,7 @@ __host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edg
 
 __host__ void Check_Out_pref_sum(unsigned int* list_1, unsigned int* list_2, int size);
 
-__host__ void check_out_replicas(string path,unsigned int* replicas, unsigned int node_size);
+__host__ void check_out_replicas(string path,replica_tracker* replicas, unsigned int node_size);
 
 __host__ int getMax_cluster(edge* edge_list, int n);
 
@@ -115,6 +117,10 @@ __host__ void Export_Degree(unsigned int* deg, unsigned int node_size);
 
 __host__ void Export_Replica_Stats(replica_tracker* h_replica, unsigned int node_size);
 
+__host__ void Export_Global_Src(unsigned int* src, unsigned int nodes);
+
+__host__ void Export_Global_Succ(unsigned int* succ, unsigned int edges);
+
 __host__ void Import_Local_Src(unsigned int* local_src);
 
 __host__ void Import_Local_Succ(unsigned int* local_succ);
@@ -130,6 +136,10 @@ __host__ void Import_Unq_Ptr_Ctr(unsigned int* unq_ptr, unsigned int* unq_ctr);
 __host__ void Import_Degree(unsigned int* deg, unsigned int node_size);
 
 __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node_size);
+
+__host__ void Import_Global_Succ(unsigned int* succ);
+
+__host__ void Import_Global_Src(unsigned int* src);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
@@ -139,7 +149,7 @@ __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, uns
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, replica_tracker* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size);
+__host__ void Org_Vertex_Helper(edge* h_edge, replica_tracker* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size);
 
 __global__ void Swap(edge* edge_list, edge* edge_list_2, unsigned int* table, unsigned int* table_2, long int size, unsigned int iter);
 
@@ -148,6 +158,8 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num, unsigned int
 __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num, replica_tracker* d_rep, unsigned int size);
 
 __global__ void Finalize_Replica_Tracker(replica_tracker* d_rep, unsigned int node_size);
+
+__global__ void Generate_Replica_List(replica_tracker* d_rep, replica_tracker* fin_rep, unsigned int node_size);
 
 __global__ void fin_exclusive_scan(unsigned int* bits_3, unsigned int size);
 
@@ -193,6 +205,10 @@ __global__ void Apply(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K,
 
 __global__ void Gather(unsigned int* K, unsigned int* C, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_C, unsigned int* num_local_K,
 unsigned int* local_K, unsigned int* local_C, unsigned int* local_K_idx, unsigned int* local_C_idx);
+
+__global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
+unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int* num_local_C, unsigned int* num_local_K, float* p_s, 
+curandState* d_state);
 /*DEVICE FUNCTIONS*/
 
 __device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);

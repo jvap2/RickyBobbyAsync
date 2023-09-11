@@ -7,6 +7,10 @@ int main()
 {  
     unsigned int nodes, edges;
     get_graph_info(GRAPH_DATA_PATH ,&nodes,&edges);
+    unsigned int *src, *succ;
+    src = new unsigned int[nodes];
+    succ = new unsigned int[edges];
+
     cout<<nodes<<endl;
     cout<<edges<<endl;
     edge* edge_list;
@@ -16,6 +20,11 @@ int main()
     unsigned int* replica = new unsigned int[edges];
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
+    CSR_Graph(edge_list,src,succ,edges,nodes);
+    Export_Global_Src(src,nodes);
+    Export_Global_Succ(succ,edges);
+    delete[] src;
+    delete[] succ;
     Capture_Node_Degree(edge_list,deg,edges);
     for(int i=0; i<nodes;i++){
         cout<<deg[i]<<endl;
@@ -28,11 +37,11 @@ int main()
     h_unq = new unsigned int[edges];
     cout<<"Ending edge list function"<<endl;
     cout<<"Starting Helper Function"<<endl;
-    Org_Vertex_Helper(edge_list,replica,h_replica,deg,h_ctr,h_ptr,edges,nodes);
+    Org_Vertex_Helper(edge_list,h_replica,deg,h_ctr,h_ptr,edges,nodes);
     cout<<"Ending Helper Function"<<endl;
     cpu_radixsort(edge_list,edges);
     Check_Out_csv_edge(edge_list, edges);
-    check_out_replicas(REPLICA_PATH,replica,nodes);
+    check_out_replicas(REPLICA_PATH,h_replica,nodes);
     unsigned int* h_start = new unsigned int[edges]{0};
     unsigned int* h_end = new unsigned int[edges]{0};
     unsigned int* h_unique_merge = new unsigned int[2*edges]{0};

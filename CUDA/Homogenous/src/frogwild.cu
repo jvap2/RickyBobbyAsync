@@ -283,6 +283,61 @@ __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node
     }
 }
 
+__host__ void Import_Global_Src(unsigned int* src){
+    ifstream myfile;
+    myfile.open(GLOBAL_SRC_PATH);
+    string line,word;
+    int count = 0;
+    int column = 0;
+    if(!myfile.is_open()){
+        cout << "Error opening file" << endl;
+        exit(1);
+    }
+    else{
+        while(getline(myfile,line)){
+            stringstream s(line);
+            while(getline(s,word,',')){
+                if(count==0){
+                    continue;
+                }
+                else{
+                    src[count-1] = stoi(word);
+                }
+            }
+            column = 0;
+            count++;
+        }
+    }
+}
+
+
+__host__ void Import_Global_Succ(unsigned int* succ){
+    ifstream myfile;
+    myfile.open(GLOBAL_SUCC_PATH);
+    string line,word;
+    int count = 0;
+    int column = 0;
+    if(!myfile.is_open()){
+        cout << "Error opening file" << endl;
+        exit(1);
+    }
+    else{
+        while(getline(myfile,line)){
+            stringstream s(line);
+            while(getline(s,word,',')){
+                if(count==0){
+                    continue;
+                }
+                else{
+                    succ[count-1] = stoi(word);
+                }
+            }
+            column = 0;
+            count++;
+        }
+    }
+}
+
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracker* h_replica, int node_size, unsigned int edge_size){
@@ -468,6 +523,10 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, replica_tracke
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
+        Sync_Mirrors_Ver0<<<BLOCKS,TPB>>>(d_c, d_k, d_unq, d_unq_ptr, local_C, local_K, local_C_idx, local_K_idx, num_local_C, num_local_K, d_p_s, d_state_scatter);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Error synchronizing device"<<endl;
+        }
     }
         //You will need to change the shared memory size to be the size of the unique nodes in the cluster
 
@@ -572,29 +631,42 @@ __global__ void Apply(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K,
     __syncthreads();
 }
 
-__global__ void Sync_Mirrors(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
+__global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
 unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int* num_local_C, unsigned int* num_local_K, float* p_s, 
-curandState* d_state, replica_tracker* d_replica){
+curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     curand_init(1234, idx, 0, &d_state[idx]);
     //We have this outside so if the if condition is satisfied, the entirety of local C can be committed
     //to the global C
+                float rand = curand_uniform(&d_state[idx]);
     if(tid<*(unq_ptr+blockIdx.x)){
         for(int j=0; j<*(local_C+unq_ptr[blockIdx.x]+tid); j++){
-            float rand = curand_uniform(&d_state[idx]);
-            if(rand<*(p_s)){
-                *(C+unq[tid+unq_ptr[blockIdx.x]])+=1;
+            //Commit to global memory
+            if(rand<*(p_s) && *(local_C+unq_ptr[blockIdx.x]+tid)>0){
+                atomicAdd(C+unq[tid+unq_ptr[blockIdx.x]],1);
                 *(local_C+unq_ptr[blockIdx.x]+tid)-=1;
             }
         }
+        for(int m=0; m<*(local_K+unq_ptr[blockIdx.x]+tid); m++){
+            //Commit to global memory
+            if(rand<*(p_s) && *(local_K+unq_ptr[blockIdx.x]+tid)>0){
+                atomicAdd(K+unq[tid+unq_ptr[blockIdx.x]],1);
+                *(local_K+unq_ptr[blockIdx.x]+tid)-=1;
+            }
+        }
     }
-
 }
 
-__global__ void Scatter(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* src, unsigned int* src_ptr,
-unsigned int* succ, unsigned int* succ_ptr, unsigned int* h, unsigned int* h_ptr, unsigned int* local_C){
+__global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* src, unsigned int* src_ptr,
+unsigned int* succ, unsigned int* succ_ptr){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
 
+
+
 }
+
+//Thoughts- maybe save multiple files of the number of nodes and commit to them with the C to sync with the mirrors
+
+//There should be another better way

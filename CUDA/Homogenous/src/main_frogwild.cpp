@@ -8,6 +8,11 @@ int main(int argc, char** argv){
     unsigned int *h_ptr, *h_ctr;
     unsigned int *K, *C;
 
+    unsigned int* global_src = new unsigned int[nodes];
+    unsigned int* global_succ = new unsigned int[edges];
+    Import_Global_Src(global_src);
+    Import_Global_Succ(global_succ);
+
     src_ptr = new unsigned int[BLOCKS+1];
     src_ctr = new unsigned int[BLOCKS];
     unq_ptr = new unsigned int[BLOCKS+1];

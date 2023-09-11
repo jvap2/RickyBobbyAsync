@@ -83,13 +83,13 @@ __host__ void Check_Out_pref_sum(unsigned int* list_1, unsigned int* list_2, int
 }
 
 
-__host__ void check_out_replicas(string path,unsigned int* replicas, unsigned int node_size){
+__host__ void check_out_replicas(string path,replica_tracker* replicas, unsigned int node_size){
     unsigned int total_rep;
     float rep_avg;
     total_rep=0;
     rep_avg=0;
     for(int i=0; i<node_size;i++){
-        total_rep+=replicas[i];
+        total_rep+=replicas[i].num_replicas;
     }
     rep_avg=1.0f*total_rep/(1.0f*node_size);
     ofstream myfile;
@@ -270,6 +270,32 @@ __host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, u
             myfile<< to_string(local_succ[j]);
             myfile<< "\n";
         }
+    }
+    myfile.close();
+}
+
+__host__ void Export_Global_Src(unsigned int* src, unsigned int nodes){
+    ofstream myfile;
+    myfile.open(GLOBAL_SRC_PATH);
+    myfile<<"node,src\n";
+    for(int i=0; i<nodes;i++){
+        myfile<< to_string(i);
+        myfile<< ",";
+        myfile<< to_string(src[i]);
+        myfile<< "\n";
+    }
+    myfile.close();
+}
+
+__host__ void Export_Global_Succ(unsigned int* succ, unsigned int edges){
+    ofstream myfile;
+    myfile.open(GLOBAL_SUCC_PATH);
+    myfile<<"edge,succ\n";
+    for(int i=0; i<edges;i++){
+        myfile<< to_string(i);
+        myfile<< ",";
+        myfile<< to_string(succ[i]);
+        myfile<< "\n";
     }
     myfile.close();
 }
@@ -760,6 +786,30 @@ __global__ void Finalize_Replica_Tracker(replica_tracker* d_rep, unsigned int no
     }
 }
 
+__global__ void Generate_Replica_List(replica_tracker* d_rep, replica_tracker* fin_rep, unsigned int node_size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    __shared__ replica_tracker shared_rep[TPB];
+    __shared__ unsigned int count_rep[TPB];
+    if(idx<node_size){
+        shared_rep[tid]=d_rep[idx];
+    }
+    __syncthreads();
+    if(idx<node_size){
+        for(int i=0; i<BLOCKS; i++){
+            if(shared_rep[tid].clusters[i]==1){
+                fin_rep[idx].clusters[count_rep[tid]]=i;
+                count_rep[tid]++;
+                fin_rep[idx].num_replicas++;
+            }
+        }
+    }
+    __syncthreads();
+    if(idx<node_size){
+        d_rep[idx]=shared_rep[tid];
+    }
+}
+
 
 __global__ void Histogram_1(edge* edgelist, unsigned int* hist_bin, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
@@ -1107,18 +1157,13 @@ __global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsign
     }
 }
 
-__global__ void Collect_Num_Replicas(replica_tracker* rep, unsigned int* rep_counts, unsigned int size){
-    unsigned int idx = threadIdx.x + (blockDim.x*blockIdx.x);
-    if(idx<size){
-        rep_counts[idx]=rep[idx].num_replicas;
-    }
-}
 
-__host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, replica_tracker* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size){
+__host__ void Org_Vertex_Helper(edge* h_edge, replica_tracker* h_tracker, unsigned int* h_deg, unsigned int* h_ctr, unsigned int* h_ptr,unsigned int size, unsigned int node_size){
     //Allocate memory for vertex and cluster info
     edge* d_edge;
     edge* d_edge_2;
     replica_tracker *d_tracker;
+    replica_tracker *d_tracker_fin;
     unsigned int* d_table;
     unsigned int* d_table_2;
     unsigned int* d_table_3;
@@ -1145,6 +1190,9 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, repli
     }
     cout<<"Done with edge list"<<endl;
     if(!HandleCUDAError(cudaMalloc((void**)&d_tracker, node_size*sizeof(replica_tracker)))){
+        cout<<"Unable to allocate memory for tracker"<<endl;
+    }
+    if(!HandleCUDAError(cudaMalloc((void**)&d_tracker_fin, node_size*sizeof(replica_tracker)))){
         cout<<"Unable to allocate memory for tracker"<<endl;
     }
 
@@ -1292,22 +1340,13 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, repli
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Unable to synchronize with host with Finalize_Replica_Tracker"<<endl;
     }
-    unsigned int* d_replica_counts; //Get the number of replicas for graphs
-    if(!HandleCUDAError(cudaMalloc((void**)&d_replica_counts, node_size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for replica counts"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemset(d_replica_counts,0,node_size*sizeof(unsigned int)))){
-        cout<<"Unable to set replica counts to 0"<<endl;
-    }
-    Collect_Num_Replicas<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,d_replica_counts,node_size);
+    cudaFuncSetAttribute(Generate_Replica_List, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+    Generate_Replica_List<<<blocks_per_grid,threads_per_block>>>(d_tracker,d_tracker_fin,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-        cout<<"Unable to synchronize with host with Collect_Num_Replicas"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemcpy(h_tracker,d_tracker,node_size*sizeof(replica_tracker), cudaMemcpyDeviceToHost))){
+            cout<<"Unable to synchronize with host with Generate_Replica_List"<<endl;
+    }    
+    if(!HandleCUDAError(cudaMemcpy(h_tracker,d_tracker_fin,node_size*sizeof(replica_tracker), cudaMemcpyDeviceToHost))){
         cout<<"Unable to copy tracker data"<<endl;
-    }
-    if(!HandleCUDAError(cudaMemcpy(replica_count,d_replica_counts,node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy replica counts"<<endl;
     }
     Histogram_1<<<blocks_per_grid,threads_per_block>>>(d_edge,d_hist,size); 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
@@ -1348,7 +1387,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, unsigned int* replica_count, repli
     HandleCUDAError(cudaFree(d_edge));
     HandleCUDAError(cudaFree(d_degree));
     HandleCUDAError(cudaFree(d_tracker));
-    HandleCUDAError(cudaFree(d_replica_counts));
+    HandleCUDAError(cudaFree(d_tracker_fin));
     HandleCUDAError(cudaFree(dev_fin_hist));
     HandleCUDAError(cudaFree(dev_fin_count));
     HandleCUDAError(cudaDeviceReset());   
