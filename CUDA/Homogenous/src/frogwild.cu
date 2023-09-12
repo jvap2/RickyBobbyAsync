@@ -339,6 +339,35 @@ __host__ void Import_Global_Succ(unsigned int* succ){
 }
 
 
+__host__ void Export_C(unsigned int* c, unsigned int node_size){
+    ofstream myfile;
+    myfile.open(C_PATH);
+    if(!myfile.is_open()){
+        cout << "Error opening file" << endl;
+        exit(1);
+    }
+    else{
+        for(unsigned int i=0; i<node_size; i++){
+            myfile<<c[i]<<endl;
+        }
+    }
+}
+
+__host__ void Export_K(unsigned int* k, unsigned int node_size){
+    ofstream myfile;
+    myfile.open(K_PATH);
+    if(!myfile.is_open()){
+        cout << "Error opening file" << endl;
+        exit(1);
+    }
+    else{
+        for(unsigned int i=0; i<node_size; i++){
+            myfile<<k[i]<<endl;
+        }
+    }
+}
+
+
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, unsigned int* global_src, unsigned int* global_succ,
 replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int* version){
@@ -483,7 +512,7 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
-        for(unsigned int i=0; i<iter; i++){
+        for(unsigned int i=0; i<1; i++){
             cout<<"Iteration "<<i<<endl;
             Gather_Ver0<<<BLOCKS,TPB>>>(d_k, d_unq, d_unq_ptr, num_local_K, local_K, local_K_idx);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
@@ -515,6 +544,9 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         }
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;
+        }
+        if(!HandleCUDAError(cudaMemcpy(k, d_k, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to k"<<endl;
         }
         cudaFree(d_unq);
         cudaFree(d_c);
@@ -865,10 +897,8 @@ __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src
 
 __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node_size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    if(idx<node_size){
-        if(K[idx]>0){
-            C[idx]+=K[idx];
-        }
+    for(int i=idx; i<node_size; i+=gridDim.x*blockDim.x){
+        C[i]+=K[i];
     }
 }
 

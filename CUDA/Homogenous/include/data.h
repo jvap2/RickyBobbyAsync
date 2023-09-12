@@ -46,6 +46,8 @@ using namespace std;
 #define REPLICA_STAT_PATH "../../Data/Homogenous/rand/check/Replica_Stat_C.csv"
 #define GLOBAL_SRC_PATH "../../Data/Homogenous/rand/check/Global_Cluster_Source_C.csv"
 #define GLOBAL_SUCC_PATH "../../Data/Homogenous/rand/check/Global_Cluster_Successor_C.csv"
+#define C_PATH "../../Data/Homogenous/rand/check/C.csv"
+#define K_PATH "../../Data/Homogenous/rand/check/K.csv"
 
 struct edge{
     unsigned int end, start;
@@ -140,6 +142,12 @@ __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node
 __host__ void Import_Global_Succ(unsigned int* succ);
 
 __host__ void Import_Global_Src(unsigned int* src);
+
+
+__host__ void Export_C(unsigned int* c, unsigned int node_size);
+
+
+__host__ void Export_K(unsigned int* K, unsigned int node_size)
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 

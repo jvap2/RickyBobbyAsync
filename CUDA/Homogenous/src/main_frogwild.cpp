@@ -52,7 +52,7 @@ int main(int argc, char** argv){
     unsigned int* deg = new unsigned int[nodes];
     Import_Degree(deg,nodes);
     FrogWild(h_succ, h_src, h_unq, C, K, src_ptr, unq_ptr, h_ptr,deg,global_src,global_succ,h_replica, nodes,edges,max_unq_ctr,0);
-    
-
+    Export_C(C,nodes);
+    Export_K(K,nodes);
     return 0;
 }
