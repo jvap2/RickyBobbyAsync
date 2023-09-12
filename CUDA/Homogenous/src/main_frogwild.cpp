@@ -35,6 +35,12 @@ int main(int argc, char** argv){
     src_ptr[BLOCKS]=src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1];
     unq_ptr[BLOCKS]=unq_ptr[BLOCKS-1]+unq_ctr[BLOCKS-1];
     h_ptr[BLOCKS]=h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1];
+    unsigned int max_unq_ctr=0;
+    for(int i=0;i<BLOCKS;i++){
+        if(unq_ctr[i]>max_unq_ctr){
+            max_unq_ctr=unq_ctr[i];
+        }
+    }
     // for(int i=0; i<=BLOCKS;i++){
     //     // cout<<src_ptr[i]<<endl;
     //     cout<<unq_ptr[i]<<endl;
@@ -45,7 +51,7 @@ int main(int argc, char** argv){
     Import_Replica_Stats(h_replica,nodes);
     unsigned int* deg = new unsigned int[nodes];
     Import_Degree(deg,nodes);
-    FrogWild(h_succ, h_src, h_unq, C, K, src_ptr, unq_ptr, h_ptr,deg,global_src,global_succ,h_replica, nodes,edges,0);
+    FrogWild(h_succ, h_src, h_unq, C, K, src_ptr, unq_ptr, h_ptr,deg,global_src,global_succ,h_replica, nodes,edges,max_unq_ctr,0);
     
 
     return 0;

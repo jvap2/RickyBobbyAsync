@@ -144,7 +144,7 @@ __host__ void Import_Global_Src(unsigned int* src);
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, unsigned int* global_src, unsigned int* global_succ,
-replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int* version);
+replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int* version);
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
@@ -202,10 +202,10 @@ __global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsign
 
 __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* unq);
 
-__global__ void Apply_Ver0(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, curandState* d_state);
+__global__ void Apply_Ver0(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, unsigned int iter, curandState* d_state);
 
 __global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_K,
-unsigned int* local_K, unsigned int* local_K_idx)
+unsigned int* local_K, unsigned int* local_K_idx);
 
 __global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
 unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int* num_local_C, unsigned int* num_local_K, float* p_s, 
