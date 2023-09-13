@@ -36,7 +36,7 @@ bool HandleCUBLASError(cublasStatus_t t){
 	if (t != CUBLAS_STATUS_SUCCESS)
 	{
 		cout << "CUBLAS ERROR: " << t << endl;
-		cout<< cublasGetErrorString(t)<<endl;
+		cout<< cublasGetStatusString(t)<<endl;
 		return false;
 	}
 	return true;
