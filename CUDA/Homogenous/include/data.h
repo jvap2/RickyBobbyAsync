@@ -224,6 +224,8 @@ curandState* d_state);
 __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src, unsigned int* succ,replica_tracker* d_rep, unsigned int node_size);
 
 __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node_size);
+
+__global__ void Gen_P(float* weight_P,unsigned int* src, unsigned int* succ, unsigned int node_size);
 /*DEVICE FUNCTIONS*/
 
 __device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);

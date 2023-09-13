@@ -554,17 +554,7 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
-        //Perform PageRank with NVGraph
-
-
-        if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-            cout<<"Error copying memory to c"<<endl;
-        }
-        if(!HandleCUDAError(cudaMemcpy(k, d_k, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-            cout<<"Error copying memory to k"<<endl;
-        }
         cudaFree(d_unq);
-        cudaFree(d_c);
         cudaFree(d_k);
         cudaFree(d_unq_ptr);
         cudaFree(d_replica);
@@ -580,6 +570,46 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         cudaFree(d_state_teleport);
         cudaFree(d_state_scatter);
         cudaFree(rand_frog);
+        //Perform PageRank with cuSparse and cuBLAS
+        cout<<"Performing PageRank"<<endl;
+        float* d_P;
+        if(!HandleCUDAError(cudaMalloc((void**)&d_P, (node_size*node_size)*sizeof(float)))){
+            cout<<"Error allocating memory for d_P"<<endl;
+        }
+        Gen_P<<<BLOCKS,TPB>>>(d_P, d_global_src, d_global_succ, node_size);
+        float* d_p_vals;
+        unsigned int* d_p_src, d_p_succ;
+        if(!HandleCUDAError(cudaMalloc((void**)&d_p_vals, (edge_size)*sizeof(float)))){
+            cout<<"Error allocating memory for d_p_vals"<<endl;
+        }
+        if(!HandleCUDAError(cudaMalloc((void**)&d_p_src, (node_size)*sizeof(unsigned int)))){
+            cout<<"Error allocating memory for d_p_src"<<endl;
+        }
+        if(!HandleCUDAError(cudaMalloc((void**)&d_p_succ, (edge_size)*sizeof(unsigned int)))){
+            cout<<"Error allocating memory for d_p_succ"<<endl;
+        }
+        cusparseHandle_t     handle = NULL;
+        cusparseSpMatDescr_t matP_sparse;
+        cusparseDnMatDescr_t matP_full;
+        if(!HandleCUSparseError(cusparseCreate(&handle))){
+            cout<<"Error creating handle"<<endl;
+        }
+        if(!cusparseCreateDnMat(&matP_full, node_size, node_size, node_size, d_P, CUDA_R_32F, CUSPARSE_ORDER_ROW)){
+            cout<<"Error creating full matrix"<<endl;
+        }
+        if(!cusparseCreateCsr(&matP_sparse, node_size, node_size, 0,d_p_src, NULL, NULL,CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F)){
+            cout<<"Error creating sparse matrix"<<endl;
+        }
+
+
+
+        if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to c"<<endl;
+        }
+        if(!HandleCUDAError(cudaMemcpy(k, d_k, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to k"<<endl;
+        }
+        cudaFree(d_c);
     }
     else{
         if(!HandleCUDAError(cudaMalloc((void**)&d_succ, (h_ptr[BLOCKS])*sizeof(unsigned int)))){

@@ -13,3 +13,5 @@ __global__ void Gen_P(float* weight_P,unsigned int* src, unsigned int* succ, uns
         weight_P[y*node_size + x] = 1.0f/(src[x+1]-src[x]);
     }
 }
+
+
