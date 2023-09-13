@@ -554,6 +554,13 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
+        if(!HandleCUDAError(cudaMemcpy(global_src, d_global_src, (node_size+1)*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to global_src"<<endl;
+        }
+        if(!HandleCUDAError(cudaMemcpy(global_succ, d_global_succ, (edge_size)*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to global_succ"<<endl;
+        }
+        
         cudaFree(d_unq);
         cudaFree(d_unq_ptr);
         cudaFree(d_replica);
@@ -577,7 +584,7 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         }
         Gen_P<<<BLOCKS,TPB>>>(d_P, d_global_src, d_global_succ, node_size);
         float* d_p_vals;
-        unsigned int* d_p_src, d_p_succ;
+        unsigned int *d_p_src, *d_p_succ;
         void* dBuffer = NULL;
         size_t bufferSize = 0;
         if(!HandleCUDAError(cudaMalloc((void**)&d_p_src, (node_size+1)*sizeof(unsigned int)))){

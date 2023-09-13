@@ -156,6 +156,8 @@ __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsign
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, unsigned int* global_src, unsigned int* global_succ,
 replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int* version);
 
+__host__ void PageRank(unsigned int* P, unsigned int* pr_vector, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size);
+
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
 __global__ void Sort_Cluster(edge* edgelist, unsigned int* table, unsigned int size,unsigned int iter);
