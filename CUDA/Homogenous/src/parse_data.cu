@@ -391,6 +391,7 @@ __host__ void Export_Replica_Stats(replica_tracker* h_replica, unsigned int node
     for(int i=0; i<node_size;i++){
         myfile<< to_string(i);
         myfile<<",";
+        cout<<h_replica[i].num_replicas<<endl;
         myfile<< to_string(h_replica[i].num_replicas);
         myfile<<",";
         for(int j=0; j<BLOCKS;j++){
@@ -770,6 +771,7 @@ __global__ void Finalize_Replica_Tracker(replica_tracker* d_rep, unsigned int no
     unsigned int tid = threadIdx.x;
     __shared__ replica_tracker shared_rep[TPB];
     if(idx<node_size){
+        d_rep[idx].num_replicas=0;
         shared_rep[tid]=d_rep[idx];
     }
     __syncthreads();
@@ -797,7 +799,7 @@ __global__ void Generate_Replica_List(replica_tracker* d_rep, replica_tracker* f
     __syncthreads();
     if(idx<node_size){
         for(int i=0; i<BLOCKS; i++){
-            if(shared_rep[tid].clusters[i]==1){
+            if(shared_rep[tid].clusters[i]!=0){
                 fin_rep[idx].clusters[count_rep[tid]]=i;
                 count_rep[tid]++;
                 fin_rep[idx].num_replicas++;
@@ -805,9 +807,6 @@ __global__ void Generate_Replica_List(replica_tracker* d_rep, replica_tracker* f
         }
     }
     __syncthreads();
-    if(idx<node_size){
-        d_rep[idx]=shared_rep[tid];
-    }
 }
 
 

@@ -376,7 +376,7 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
     float p_t, p_s;
     p_s=.15;
     p_t=.15;
-    unsigned int iter =10;
+    unsigned int iter =5;
     float* d_p_t, *d_p_s;
     unsigned int unq_ctr_max=0;
     unsigned int src_ctr_max=0;
@@ -512,7 +512,7 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
-        for(unsigned int i=0; i<1; i++){
+        for(unsigned int i=0; i<iter; i++){
             cout<<"Iteration "<<i<<endl;
             Gather_Ver0<<<BLOCKS,TPB>>>(d_k, d_unq, d_unq_ptr, num_local_K, local_K, local_K_idx);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
@@ -537,11 +537,26 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
             if(!HandleCUDAError(cudaMemset(num_local_K, 0, BLOCKS*sizeof(unsigned int)))){
                 cout<<"Error rewriting num of local K"<<endl;
             }
+            if(!HandleCUDAError(cudaMemset(num_local_C, 0, BLOCKS*sizeof(unsigned int)))){
+                cout<<"Error rewriting num of local C"<<endl;
+            }
+            if(!HandleCUDAError(cudaMemset(local_K, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+                cout<<"Error rewriting local K"<<endl;
+            }
+            if(!HandleCUDAError(cudaMemset(local_C, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+                cout<<"Error rewriting local C"<<endl;
+            }
+            if(!HandleCUDAError(cudaMemset(local_K_idx, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+                cout<<"Error rewriting local K idx"<<endl;
+            }
         }
         Final_Commit<<<BLOCKS,TPB>>>(d_c, d_k, node_size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
+        //Perform PageRank with NVGraph
+
+
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;
         }
@@ -798,8 +813,10 @@ unsigned int* local_K, unsigned int* local_K_idx){
         //This is the node that we are going to be looking at
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
             atomicAdd(num_local_K+blockIdx.x,1);
-            atomicExch(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,K[unq[i+unq_ptr[blockIdx.x]]]);
+            //Increment the number of local frogs
             atomicExch(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,i);
+            //Swap the 
+            atomicExch(local_K+unq_ptr[blockIdx.x]+local_K_idx[unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]],K[unq[i+unq_ptr[blockIdx.x]]]);
             //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
             //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
             //Possibly a question worth experimentation
@@ -826,7 +843,9 @@ __global__ void Apply_Ver0(unsigned int* unq, unsigned int* unq_ptr, unsigned in
     }
     __syncthreads();
     for(unsigned int i=tid; i<*(unq_ptr+blockIdx.x+1); i+=blockDim.x){
+        //This loop iterates throught the unique vertex values in a block
         for(int j=0; j<*(K+unq_ptr[blockIdx.x]+i); j++){
+            //This loop iterates through the number of living frogs on a vertex
             curand_init(1234+j+iter, idx, 0, &d_state[idx]);
             float rand = curand_uniform(&d_state[idx]);
             //The above section is to generate a random number for each frog
@@ -844,6 +863,7 @@ __global__ void Apply_Ver0(unsigned int* unq, unsigned int* unq_ptr, unsigned in
                 //The issue with the above part could exceed the values, this poses an issue- do we need this?
                 //I do not think so
                 atomicSub(local_K+i,1);
+                atomicSub(num_loc_K+blockIdx.x,1);
                 //Decrement the K value
             }
         }
@@ -872,13 +892,6 @@ curandState* d_state){
                 atomicAdd(C+unq[i+unq_ptr[blockIdx.x]],1);
             }
         }
-        for(int m=0; m<local_K[unq_ptr[blockIdx.x]+i]; m++){
-            //Commit to global memory
-            if(rand<*(p_s)){
-                atomicSub(K+unq[tid+unq_ptr[blockIdx.x]],1);
-
-            }
-        }
     }
 }
 
@@ -887,7 +900,10 @@ __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src
     unsigned int tid = threadIdx.x;
     for(int i=idx; i<node_size; i+=gridDim.x*blockDim.x){
         if(K[i]>0){
-            unsigned int num_frog=K[i]/d_rep[i].num_replicas;
+            unsigned int num_frog=K[i]/d_rep[i].num_replicas+1;
+            // printf("Im going to catch %u frogs\n",num_frog);
+            // printf("I am vertex %u\n",i);
+            // printf("I have %u replicas\n",d_rep[i].num_replicas);
             for(int j=src[i]; j<src[i+1]; j++){
                 atomicAdd(&K[succ[j]],num_frog);
             }
@@ -1001,7 +1017,7 @@ __global__ void Scatter_Ver1(unsigned int* C, unsigned int* K, unsigned int* src
     unsigned int tid = threadIdx.x;
     if(idx<node_size){
         if(K[idx]>0){
-            unsigned int num_frog=K[idx]/d_rep[idx].num_replicas;
+            unsigned int num_frog=K[idx]/d_rep[idx].num_replicas+1;
             for(int i=src[idx]; i<src[idx+1]; i++){
                 atomicAdd(&K[succ[i]],num_frog);
             }

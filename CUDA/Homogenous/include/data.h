@@ -10,6 +10,8 @@ using namespace std;
 #include <device_launch_parameters.h>
 #include <curand.h>
 #include <curand_kernel.h>
+#include <cusparse_v2.h>
+#include <cublas_v2.h>
 #include "../include/GPUErrors.h"
 //Google
 #define BLOCKS 12
@@ -147,7 +149,7 @@ __host__ void Import_Global_Src(unsigned int* src);
 __host__ void Export_C(unsigned int* c, unsigned int node_size);
 
 
-__host__ void Export_K(unsigned int* K, unsigned int node_size)
+__host__ void Export_K(unsigned int* K, unsigned int node_size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 

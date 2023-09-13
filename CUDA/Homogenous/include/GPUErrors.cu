@@ -22,3 +22,23 @@ bool GetCUDARunTimeError()
 	return true;
 }
 
+bool HandleCUSparseError(cusparseStatus_t t){
+	if (t != CUSPARSE_STATUS_SUCCESS)
+	{
+		cout << "CUSPARSE ERROR: " << t << endl;
+		cout<< cusparseGetErrorString(t)<<endl;
+		return false;
+	}
+	return true;
+}
+
+bool HandleCUBLASError(cublasStatus_t t){
+	if (t != CUBLAS_STATUS_SUCCESS)
+	{
+		cout << "CUBLAS ERROR: " << t << endl;
+		cout<< cublasGetErrorString(t)<<endl;
+		return false;
+	}
+	return true;
+}
+
