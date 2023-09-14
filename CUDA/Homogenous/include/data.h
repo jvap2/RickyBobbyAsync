@@ -232,11 +232,11 @@ __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src
 
 __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node_size);
 
-__global__ void Gen_P(float* weight_P,edge* edgelist, unsigned int* src, unsigned int node_size, float* damp);
+__global__ void Gen_P(double* weight_P,edge* edgelist, unsigned int* src, unsigned int node_size, float* damp);
 
-__global__ void Init_P(float* P, unsigned int node_size, float* damp);
+__global__ void Init_P(double* P, unsigned int node_size, float* damp);
 
-__global__ void Init_Pr(float* pr_vector, unsigned int node_size);
+__global__ void Init_Pr(double* pr_vector, unsigned int node_size);
 /*DEVICE FUNCTIONS*/
 
 __device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);
