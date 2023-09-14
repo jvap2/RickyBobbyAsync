@@ -6,11 +6,11 @@
 it utilizes cublas and cusparse*/
 
 
-__global__ void Gen_P(float* weight_P,unsigned int* src, unsigned int* succ, unsigned int node_size, float damp){
+__global__ void Gen_P(float* weight_P,unsigned int* src, unsigned int* succ, unsigned int node_size, float* damp){
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
     if(x < node_size && y < node_size){
-        weight_P[y*node_size + x] = (1-damp)*(1.0f/(src[x+1]-src[x]))+damp;
+        weight_P[y*node_size + x] = (1-*damp)*(1.0f/(src[x+1]-src[x]))+*damp;
     }
 }
 
@@ -22,7 +22,6 @@ __global__ void Init_Pr(float* pr_vector, unsigned int node_size){
 }
 
 __host__ void PageRank(float* pr_vector, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol){
-    cout<<"Performing PageRank"<<endl;
     float alpha = 1.0f; 
     float beta = 0.0f;
     float tol_temp=100.f;
@@ -59,7 +58,7 @@ __host__ void PageRank(float* pr_vector, unsigned int* global_src, unsigned int*
     if(!HandleCUDAError(cudaMemcpy(d_damp, &damp, sizeof(float), cudaMemcpyHostToDevice))){
         cout<<"Error copying damp to device"<<endl;
     }
-    Gen_P<<<Blocks,Threads>>>(d_P, d_global_src, d_global_succ, node_size, *d_damp);
+    Gen_P<<<Blocks,Threads>>>(d_P, d_global_src, d_global_succ, node_size, d_damp);
     //Now, we need to initialize the pr_vector
     if(!HandleCUDAError(cudaMalloc((void**)&d_pr_vector, node_size*sizeof(float)))){
         cout<<"Error allocating memory for pr_vector"<<endl;
@@ -68,13 +67,14 @@ __host__ void PageRank(float* pr_vector, unsigned int* global_src, unsigned int*
     if(!HandleCUDAError(cudaMalloc((void**)&dr_pr_vector_temp, node_size*sizeof(float)))){
         cout<<"Error allocating memory for dr_pr_vector_temp"<<endl;
     }
-    if(!HandleCUDAError(cudaMemcpy(dr_pr_vector_temp, pr_vector, node_size*sizeof(float), cudaMemcpyHostToDevice))){
-        cout<<"Error copying pr_vector to device"<<endl;
+    if(!HandleCUDAError(cudaMemset(dr_pr_vector_temp, 0, node_size*sizeof(float)))){
+        cout<<"Error setting memory for dr_pr_vector_temp"<<endl;
     }
     cublasHandle_t handle;
     if(!HandleCUBLASError(cublasCreate(&handle))){
         cout<<"Error creating cublas handle"<<endl;
     }
+    cout<<"Performing PageRank"<<endl;
     while(max_iter>0 && tol_temp>tol){
         cublasSgemv_v2(handle, CUBLAS_OP_N, node_size, node_size, &alpha, d_P, node_size, d_pr_vector, 1, &beta, dr_pr_vector_temp, 1);
         cublasSasum_v2(handle, node_size, dr_pr_vector_temp, 1, &norm_temp);
@@ -83,6 +83,7 @@ __host__ void PageRank(float* pr_vector, unsigned int* global_src, unsigned int*
         cublasScopy_v2(handle, node_size, dr_pr_vector_temp, 1, d_pr_vector, 1);
         max_iter--;
     }
+    cout<<"PageRank finished"<<endl;
     if(!HandleCUDAError(cudaMemcpy(pr_vector, d_pr_vector, node_size*sizeof(float), cudaMemcpyDeviceToHost))){
         cout<<"Error copying pr_vector to host"<<endl;
     }
@@ -109,3 +110,14 @@ __host__ void PageRank(float* pr_vector, unsigned int* global_src, unsigned int*
     }
 }
 
+
+
+__host__ void export_pr_vector(float* pr_vector, unsigned int node_size){
+    ofstream myfile;
+    myfile.open(CUBLAS_PR_PATH);
+    myfile<<"Node, PageRank"<<endl;
+    for(unsigned int i=0; i<node_size; i++){
+        myfile<<i<<", "<<pr_vector[i]<<endl;
+    }
+    myfile.close();
+}

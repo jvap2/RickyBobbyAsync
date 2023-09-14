@@ -585,7 +585,9 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         float damp = p_t;
         PageRank(pagerank, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
 
-        /*We now have cusparse format*/
+        /*We need to do accuracy stuff here, for now, we need to verify with python*/
+
+        export_pr_vector(pagerank, node_size);
 
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;

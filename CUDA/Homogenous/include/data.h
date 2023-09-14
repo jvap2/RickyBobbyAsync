@@ -52,6 +52,7 @@ using namespace std;
 #define GLOBAL_SUCC_PATH "../../Data/Homogenous/rand/check/Global_Cluster_Successor_C.csv"
 #define C_PATH "../../Data/Homogenous/rand/check/C.csv"
 #define K_PATH "../../Data/Homogenous/rand/check/K.csv"
+#define CUBLAS_PR_PATH "../../Data/Homogenous/rand/check/CUBLAS_PR.csv"
 
 struct edge{
     unsigned int end, start;
@@ -147,11 +148,11 @@ __host__ void Import_Global_Succ(unsigned int* succ);
 
 __host__ void Import_Global_Src(unsigned int* src);
 
-
 __host__ void Export_C(unsigned int* c, unsigned int node_size);
 
-
 __host__ void Export_K(unsigned int* K, unsigned int node_size);
+
+__host__ void export_pr_vector(float* pr_vector, unsigned int node_size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
@@ -229,7 +230,7 @@ __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src
 
 __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node_size);
 
-__global__ void Gen_P(float* weight_P,unsigned int* src, unsigned int* succ, unsigned int node_size, float damp);
+__global__ void Gen_P(float* weight_P,unsigned int* src, unsigned int* succ, unsigned int node_size, float* damp);
 
 __global__ void Init_Pr(float* pr_vector, unsigned int node_size);
 /*DEVICE FUNCTIONS*/
