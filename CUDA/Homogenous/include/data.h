@@ -8,10 +8,12 @@ using namespace std;
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <math.h>
 #include <curand.h>
 #include <curand_kernel.h>
 #include <cusparse_v2.h>
 #include <cublas_v2.h>
+#include <cublasLt.h>
 #include "../include/GPUErrors.h"
 //Google
 #define BLOCKS 12
@@ -156,7 +158,7 @@ __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsign
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, unsigned int* global_src, unsigned int* global_succ,
 replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int* version);
 
-__host__ void PageRank(unsigned int* P, unsigned int* pr_vector, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size);
+__host__ void PageRank(float* pr_vector, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol);
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
@@ -227,7 +229,9 @@ __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src
 
 __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node_size);
 
-__global__ void Gen_P(float* weight_P,unsigned int* src, unsigned int* succ, unsigned int node_size);
+__global__ void Gen_P(float* weight_P,unsigned int* src, unsigned int* succ, unsigned int node_size, float damp);
+
+__global__ void Init_Pr(float* pr_vector, unsigned int node_size);
 /*DEVICE FUNCTIONS*/
 
 __device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);

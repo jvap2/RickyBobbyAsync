@@ -578,64 +578,13 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         cudaFree(rand_frog);
         //Perform PageRank with cuSparse and cuBLAS
         cout<<"Performing PageRank"<<endl;
-        float* d_P;
-        if(!HandleCUDAError(cudaMalloc((void**)&d_P, (node_size*node_size)*sizeof(float)))){
-            cout<<"Error allocating memory for d_P"<<endl;
-        }
-        Gen_P<<<BLOCKS,TPB>>>(d_P, d_global_src, d_global_succ, node_size);
-        float* d_p_vals;
-        unsigned int *d_p_src, *d_p_succ;
-        void* dBuffer = NULL;
-        size_t bufferSize = 0;
-        if(!HandleCUDAError(cudaMalloc((void**)&d_p_src, (node_size+1)*sizeof(unsigned int)))){
-            cout<<"Error allocating memory for d_p_src"<<endl;
-        }
-        cusparseHandle_t     handle = NULL;
-        cusparseSpMatDescr_t matP_sparse;
-        cusparseDnMatDescr_t matP_full;
-        if(!HandleCUSparseError(cusparseCreate(&handle))){
-            cout<<"Error creating handle"<<endl;
-        }
-        if(!HandleCUSparseError(cusparseCreateDnMat(&matP_full, node_size, node_size, node_size, d_P, CUDA_R_32F, CUSPARSE_ORDER_ROW))){
-            cout<<"Error creating full matrix"<<endl;
-        }
-        if(!HandleCUSparseError(cusparseCreateCsr(&matP_sparse, node_size, node_size, 0,d_p_src, NULL, NULL,CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I,CUSPARSE_INDEX_BASE_ZERO, CUDA_R_32F))){
-            cout<<"Error creating sparse matrix"<<endl;
-        }
-        if(!HandleCUSparseError(cusparseDenseToSparse_bufferSize(handle, matP_full, matP_sparse, CUSPARSE_DENSETOSPARSE_ALG_DEFAULT, &bufferSize))){
-            cout<<"Error getting buffer size"<<endl;
-        }
-        if(!HandleCUDAError(cudaMalloc((void**)&dBuffer, bufferSize))){
-            cout<<"Error allocating memory for dBuffer"<<endl;
-        }
+        float* pagerank;
+        pagerank = new float[node_size]; 
+        unsigned int max_iter = 100;
+        float tol = 1e-6;   
+        float damp = p_t;
+        PageRank(pagerank, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
 
-        int64_t num_r_tmp, num_n_tmp, num_nnz_tmp;
-
-        if(!HandleCUSparseError(cusparseSpMatGetSize(matP_sparse, &num_r_tmp, &num_n_tmp, &num_nnz_tmp))){
-            cout<<"Error performing analysis"<<endl;
-        }
-        if(!HandleCUDAError(cudaMalloc((void**)&d_p_vals, (num_nnz_tmp)*sizeof(float)))){
-            cout<<"Error allocating memory for d_p_vals"<<endl;
-        }
-        if(!HandleCUDAError(cudaMalloc((void**)&d_p_succ, (num_nnz_tmp)*sizeof(unsigned int)))){
-            cout<<"Error allocating memory for d_p_succ"<<endl;
-        }
-
-        if(!HandleCUSparseError(cusparseCsrSetPointers(matP_sparse, d_p_src, d_p_succ, d_p_vals))){
-            cout<<"Error setting pointers"<<endl;
-        }
-        if(!HandleCUSparseError(cusparseDenseToSparse_convert(handle, matP_full, matP_sparse, CUSPARSE_DENSETOSPARSE_ALG_DEFAULT, dBuffer))){
-            cout<<"Error converting dense to sparse"<<endl;
-        }
-        if(!HandleCUSparseError(cusparseDestroyDnMat(matP_full))){
-            cout<<"Error destroying full matrix"<<endl;
-        }
-        if(!HandleCUSparseError(cusparseDestroySpMat(matP_sparse))){
-            cout<<"Error destroying sparse matrix"<<endl;
-        }
-        if(!HandleCUSparseError(cusparseDestroy(handle))){
-            cout<<"Error destroying handle"<<endl;
-        }
         /*We now have cusparse format*/
 
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
