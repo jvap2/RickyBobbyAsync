@@ -14,6 +14,15 @@ using namespace std;
 #include <cusparse_v2.h>
 #include <cublas_v2.h>
 #include <cublasLt.h>
+#include <thrust/device_ptr.h>
+#include <thrust/scan.h>
+#include <thrust/execution_policy.h>
+#include <thrust/unique.h>
+#include <thrust/functional.h>
+#include <thrust/sequence.h>
+#include <thrust/sort.h>
+
+
 #include "../include/GPUErrors.h"
 //Google
 #define BLOCKS 12
@@ -152,16 +161,16 @@ __host__ void Export_C(unsigned int* c, unsigned int node_size);
 
 __host__ void Export_K(unsigned int* K, unsigned int node_size);
 
-__host__ void export_pr_vector(float* pr_vector, unsigned int node_size);
+__host__ void export_pr_vector(double* pr_vector, unsigned int node_size);
 
-__host__ void Print_Matrix(float* matrix, unsigned int node_size);
+__host__ void Print_Matrix(double* matrix, unsigned int node_size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, unsigned int* global_src, unsigned int* global_succ,
 replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int* version);
 
-__host__ void PageRank(float* pr_vector, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol);
+__host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol);
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 

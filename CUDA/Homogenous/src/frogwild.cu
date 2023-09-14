@@ -578,12 +578,14 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         cudaFree(rand_frog);
         //Perform PageRank with cuSparse and cuBLAS
         cout<<"Performing PageRank"<<endl;
-        float* pagerank;
-        pagerank = new float[node_size]; 
+        double* pagerank;
+        pagerank = new double[node_size]; 
+        unsigned int* indices;
+        indices = new unsigned int[node_size];
         unsigned int max_iter = 100;
         float tol = 1e-6;   
         float damp = p_t;
-        PageRank(pagerank, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
+        PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
 
         /*We need to do accuracy stuff here, for now, we need to verify with python*/
 

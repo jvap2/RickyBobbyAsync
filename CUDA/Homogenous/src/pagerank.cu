@@ -33,7 +33,7 @@ __global__ void Init_Pr(double* pr_vector, unsigned int node_size){
     }
 }
 
-__host__ void PageRank(double* pr_vector, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol){
+__host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol){
     double alpha = 1.0; 
     double beta = 0.0;
     float tol_temp=100.f;
@@ -125,9 +125,17 @@ __host__ void PageRank(double* pr_vector, unsigned int* global_src, unsigned int
     }
     cout<<"Converged in "<<iter_temp-max_iter<<" iterations"<<endl;
     cout<<"Tolerance: "<<tol_temp<<endl;
+    unsigned int *d_indices;
 
+    if(!HandleCUDAError(cudaMalloc((void**)&d_indices, node_size*sizeof(unsigned int)))){
+        cout<<"Error allocating memory for d_indices"<<endl;
+    }
+    thrust::sort_by_key(thrust::device, d_pr_vector, d_pr_vector+node_size, d_indices, thrust::greater<float>());
+    if(!HandleCUDAError(cudaMemcpy(h_indices, d_indices, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        cout<<"Error copying d_indices to host"<<endl;
+    }
     cout<<"PageRank finished"<<endl;
-    float* P_test = new float[node_size*node_size]{0};
+    double* P_test = new double[node_size*node_size]{0};
     if(!HandleCUDAError(cudaMemcpy(P_test, d_P, node_size*node_size*sizeof(float), cudaMemcpyDeviceToHost))){
         cout<<"Error copying P to host"<<endl;
     }
@@ -160,7 +168,7 @@ __host__ void PageRank(double* pr_vector, unsigned int* global_src, unsigned int
 
 
 
-__host__ void export_pr_vector(float* pr_vector, unsigned int node_size){
+__host__ void export_pr_vector(double* pr_vector, unsigned int node_size){
     ofstream myfile;
     myfile.open(CUBLAS_PR_PATH);
     myfile<<"Node, PageRank"<<endl;
@@ -171,7 +179,7 @@ __host__ void export_pr_vector(float* pr_vector, unsigned int node_size){
 }
 
 
-__host__ void Print_Matrix(float* matrix, unsigned int node_size){
+__host__ void Print_Matrix(double* matrix, unsigned int node_size){
     for(unsigned int i=0; i<node_size; i++){
         for(unsigned int j=0; j<node_size; j++){
             cout<<matrix[i*node_size+j]<<" ";

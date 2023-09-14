@@ -4,7 +4,7 @@ NVCC := nvcc
 
 NVCC_FLAGS := -g -G -Xcompiler -Wall -rdc=true -gencode arch=compute_89,code=sm_89
 LINK_FLAGS := -arch=sm_89  
-INC_FLAGS := -lcudadevrt -lcurand -lcusparse -lcublas
+INC_FLAGS := -lcudadevrt -lcurand -lcusparse -lcublas -lthrust
 # C_FLAGS := -std=c++11 
 
 INC := include
