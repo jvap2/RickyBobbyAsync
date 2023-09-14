@@ -153,6 +153,8 @@ __host__ void Export_C(unsigned int* c, unsigned int node_size);
 __host__ void Export_K(unsigned int* K, unsigned int node_size);
 
 __host__ void export_pr_vector(float* pr_vector, unsigned int node_size);
+
+__host__ void Print_Matrix(float* matrix, unsigned int node_size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
@@ -230,7 +232,9 @@ __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src
 
 __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node_size);
 
-__global__ void Gen_P(float* weight_P,unsigned int* src, unsigned int* succ, unsigned int node_size, float* damp);
+__global__ void Gen_P(float* weight_P,edge* edgelist, unsigned int* src, unsigned int node_size, float* damp);
+
+__global__ void Init_P(float* P, unsigned int node_size, float* damp);
 
 __global__ void Init_Pr(float* pr_vector, unsigned int node_size);
 /*DEVICE FUNCTIONS*/
