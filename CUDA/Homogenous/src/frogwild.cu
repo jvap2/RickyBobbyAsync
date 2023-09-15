@@ -1044,3 +1044,78 @@ __global__ void Scatter_Ver1(unsigned int* C, unsigned int* K, unsigned int* src
         }
     }
 }
+
+
+__global__ void Schur_Product_Vectors(unsigned int* vect_1, unsigned int* vect_2, unsigned int* res_vec, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    if(idx<size){
+        res_vec[idx]=vect_1[idx]*vect_2[idx];
+    }
+}
+
+__global__ void Dot_Product_Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    unsigned int temp=0;
+    __shared__ unsigned int partial_sums[TPB];
+    if(idx<size){
+        partial_sums[threadIdx.x]=res_vec[idx];
+    }
+    for(int stride = 1; stride<blockDim.x; stride*=2){
+        __syncthreads();
+        if(tid>stride){
+            temp = partial_sums[tid]+partial_sums[tid-stride];
+        }
+        __syncthreads();
+        if(tid>stride){
+            partial_sums[tid]=temp;
+        }
+    }
+    if(tid==blockDim.x-1){
+        last_val[blockIdx.x]=partial_sums[tid];
+    }
+    if(idx<size){
+        res_vec[idx]=partial_sums[tid];
+    }
+}
+
+__global__ void Compute_L2_Max_u_1(unsigned int* vect_1, unsigned int* vect_2, unsigned int* res_vec_1, unsigned int* res_vec_2, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    if(idx<size){
+        res_vec_1[idx]=vect_1[idx]*vect_1[idx];
+        res_vec_2[idx]=vect_2[idx]*vect_2[idx];
+    }
+}
+
+__global__ void Compute_L2_Max_u_2(unsigned int* res_vec_1, unsigned int* res_vec_2, unsigned int* last_val_1, unsigned int* last_val_2, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    __shared__ unsigned int partial_sums_1[TPB];
+    __shared__ unsigned int partial_sums_2[TPB];
+    unsigned int temp=0;
+    unsigned int temp_2=0;
+    if(idx<size){
+        partial_sums_1[tid]=res_vec_1[idx];
+        partial_sums_2[tid]=res_vec_2[idx];
+    }
+    for(int stride = 1; stride<blockDim.x; stride*=2){
+        __syncthreads();
+        if(tid>stride){
+            temp=partial_sums_1[tid]+ partial_sums_1[tid-stride];
+            temp_2=partial_sums_2[tid]+partial_sums_2[tid-stride];
+        }
+        __syncthreads();
+        if(tid>stride){
+            partial_sums_1[tid]=temp;
+            partial_sums_2[tid]=temp_2;
+        }
+    }
+    if(tid==blockDim.x-1){
+        last_val_1[blockIdx.x]=partial_sums_1[tid];
+        last_val_2[blockIdx.x]=partial_sums_2[tid];
+    }
+    if(idx<size){
+        res_vec_1[idx]=partial_sums_1[tid];
+        res_vec_2[idx]=partial_sums_2[tid];
+    }
+}
