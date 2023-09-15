@@ -10,8 +10,7 @@ __global__ void Init_P(float* P, unsigned int node_size, float* damp){
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
     if(x < node_size && y < node_size){
-            P[y*node_size + x] = (*damp*1.0/(1.0*node_size));
-            printf("P[%d][%d]: %f\n", y, x, P[y*node_size+x]);
+            P[y*node_size + x] = (*damp/(1.0*node_size));
     }
 }
 
@@ -49,8 +48,10 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     float norm_temp=0;
     unsigned int tpb = 256;
     unsigned int blocks = (node_size+tpb-1)/tpb;
-    dim3 Threads(tpb, tpb);
-    dim3 Blocks(blocks, blocks);
+    unsigned int tpb_2d = 16;
+    unsigned int blocks_2d = (node_size+tpb_2d-1)/tpb_2d;
+    dim3 Threads(tpb_2d, tpb_2d);
+    dim3 Blocks(blocks_2d, blocks_2d);
     unsigned int blocks_edge = (edge_size+tpb-1)/tpb;
     edge* d_edgelist;
     if(!HandleCUDAError(cudaMalloc((void**)&d_edgelist, edge_size*sizeof(edge)))){
@@ -84,6 +85,42 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     }
     cout<< "2D grid dim: "<<Blocks.x<<" "<<Blocks.y<<endl;
     cout<< "2D block dim: "<<Threads.x<<" "<<Threads.y<<endl;
+        int deviceCount = 0;
+    cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
+    if (error_id != cudaSuccess) {
+        printf("cudaGetDeviceCount returned %d\n-> %s\n",
+                static_cast<int>(error_id), cudaGetErrorString(error_id));
+        printf("Result = FAIL\n");
+        exit(EXIT_FAILURE);
+    }
+
+
+    int dev, driverVersion = 0, runtimeVersion = 0;
+
+    for (dev = 0; dev < deviceCount; ++dev) {
+        cudaSetDevice(dev);
+        cudaDeviceProp deviceProp;
+        cudaGetDeviceProperties(&deviceProp, dev);
+        printf("  Total amount of constant memory:               %zu bytes\n",
+            deviceProp.totalConstMem);
+        printf("  Total amount of shared memory per block:       %zu bytes\n",
+            deviceProp.sharedMemPerBlock);
+        printf("  Total shared memory per multiprocessor:        %zu bytes\n",
+            deviceProp.sharedMemPerMultiprocessor);
+    }
+
+
+    size_t free_byte ;
+    size_t total_byte ;
+    if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
+        cout<<"Error getting memory info"<<endl;
+    }
+    double free_db = (double)free_byte ;
+    double total_db = (double)total_byte ;
+    double used_db = total_db - free_db ;
+    printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n",
+        used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+
     Init_P<<<Blocks,Threads>>>(d_P, node_size, d_damp);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device"<<endl;
@@ -103,9 +140,8 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     if(!HandleCUDAError(cudaMalloc((void**)&dr_pr_vector_temp, node_size*sizeof(float)))){
         cout<<"Error allocating memory for dr_pr_vector_temp"<<endl;
     }
-    Init_Pr<<<blocks,tpb>>>(dr_pr_vector_temp, node_size);
-    if(!HandleCUDAError(cudaDeviceSynchronize())){
-        cout<<"Error synchronizing device"<<endl;
+    if(!HandleCUDAError(cudaMemset(dr_pr_vector_temp, 0, node_size*sizeof(float)))){
+        cout<<"Error setting dr_pr_vector_temp to 0"<<endl;
     }
     cublasHandle_t handle;
     if(!HandleCUBLASError(cublasCreate(&handle))){
@@ -130,16 +166,17 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     if(!HandleCUDAError(cudaMalloc((void**)&d_indices, node_size*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_indices"<<endl;
     }
+    thrust::sequence(thrust::device, d_indices, d_indices+node_size);
     thrust::stable_sort_by_key(thrust::device, d_pr_vector, d_pr_vector+node_size, d_indices, thrust::greater<float>());
     if(!HandleCUDAError(cudaMemcpy(h_indices, d_indices, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
         cout<<"Error copying d_indices to host"<<endl;
     }
     cout<<"PageRank finished"<<endl;
-    float* P_test = new float[node_size*node_size]{0};
-    if(!HandleCUDAError(cudaMemcpy(P_test, d_P, node_size*node_size*sizeof(float), cudaMemcpyDeviceToHost))){
-        cout<<"Error copying P to host"<<endl;
-    }
-    Print_Matrix(P_test, node_size);
+    // float* P_test = new float[node_size*node_size]{0};
+    // if(!HandleCUDAError(cudaMemcpy(P_test, d_P, node_size*node_size*sizeof(float), cudaMemcpyDeviceToHost))){
+    //     cout<<"Error copying P to host"<<endl;
+    // }
+    // Print_Matrix(P_test, node_size);
     if(!HandleCUDAError(cudaMemcpy(pr_vector, d_pr_vector, node_size*sizeof(float), cudaMemcpyDeviceToHost))){
         cout<<"Error copying pr_vector to host"<<endl;
     }
@@ -180,10 +217,15 @@ __host__ void Export_pr_vector(float* pr_vector, unsigned int* indices, unsigned
 
 
 __host__ void Print_Matrix(float* matrix, unsigned int node_size){
+    int non_zero_count=0;
     for(unsigned int i=0; i<node_size; i++){
         for(unsigned int j=0; j<node_size; j++){
+            if(matrix[i*node_size+j]>0){
+                non_zero_count++;
+            }
             cout<<matrix[i*node_size+j]<<" ";
         }
         cout<<endl;
     }
+    printf("Non zero count: %d\n", non_zero_count);
 }
