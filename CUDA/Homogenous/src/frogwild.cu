@@ -582,8 +582,10 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         pagerank = new float[node_size]; 
         unsigned int *indices, *indices_approx;
         indices = new unsigned int[node_size];
-        indices_approx = new unsigned int[node_size];
-        thrust::device_ptr<unsigned int> dev_ind_ptr_approx = thrust::device_pointer_cast(indices_approx);
+        unsigned int* dev_ind_ptr_approx;
+        if(!HandleCUDAError(cudaMalloc((void**)&dev_ind_ptr_approx, node_size*sizeof(unsigned int)))){
+            cout<<"Error allocating memory for dev_ind_ptr_approx"<<endl;
+        }
         thrust::sequence(dev_ind_ptr_approx, dev_ind_ptr_approx+node_size);
         thrust::sequence(indices, indices+node_size);
         unsigned int max_iter = 100;
@@ -627,6 +629,55 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         }
         if(!HandleCUDAError(cudaMallocAsync((void**)&part_sumL2_b, ps_block*sizeof(unsigned int), streams[2]))){
             cout<<"Error allocating memory for part_sumL2_b"<<endl;
+        }
+
+        Schur_Product_Vectors<<<ps_block, TPB, 0, streams[0]>>>(d_indices_pr, dev_ind_ptr_approx, d_dot_res, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Compute_L2_Max_u_1<<<ps_block,TPB,0,streams[1]>>>(d_indices_pr, d_L_1_res_A, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[1]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Compute_L2_Max_u_1<<<ps_block,TPB,0,streams[2]>>>(dev_ind_ptr_approx, d_L_1_res_B, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Partial_Sums<<<ps_block,TPB,0,streams[0]>>>(d_dot_res, part_sum_dot, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Partial_Sums<<<ps_block,TPB,0,streams[1]>>>(d_L_1_res_A, part_sumL2_a, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[1]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Partial_Sums<<<ps_block,TPB,0,streams[2]>>>(d_L_1_res_B, part_sumL2_b, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Partial_Sum_Last_Val<<<1,ps_block,0,streams[0]>>>(part_sum_dot, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Partial_Sum_Last_Val<<<1,ps_block,0,streams[1]>>>(part_sumL2_a, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[1]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Partial_Sum_Last_Val<<<1,ps_block,0,streams[2]>>>(part_sumL2_b, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Commit_Partial_Sums<<<ps_block,TPB,0,streams[0]>>>(d_dot_res,part_sum_dot, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Commit_Partial_Sums<<<ps_block,TPB,0,streams[1]>>>(d_L_1_res_A,part_sumL2_a, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[1]))){
+            cout<<"Error synchronizing stream 0"<<endl;
+        }
+        Commit_Partial_Sums<<<ps_block,TPB,0,streams[2]>>>(d_L_1_res_B,part_sumL2_b, node_size);
+        if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
+            cout<<"Error synchronizing stream 0"<<endl;
         }
 
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
