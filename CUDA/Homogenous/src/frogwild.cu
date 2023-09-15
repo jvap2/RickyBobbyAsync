@@ -580,17 +580,54 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         cout<<"Performing PageRank"<<endl;
         float* pagerank;
         pagerank = new float[node_size]; 
-        unsigned int* indices;
+        unsigned int *indices, *indices_approx;
         indices = new unsigned int[node_size];
+        indices_approx = new unsigned int[node_size];
+        thrust::device_ptr<unsigned int> dev_ind_ptr_approx = thrust::device_pointer_cast(indices_approx);
+        thrust::sequence(dev_ind_ptr_approx, dev_ind_ptr_approx+node_size);
         thrust::sequence(indices, indices+node_size);
         unsigned int max_iter = 100;
         float tol = 1e-6;   
         float damp = p_t;
         PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
-
+        thrust::sort_by_key(dev_ind_ptr_approx, dev_ind_ptr_approx+node_size, d_c, thrust::greater<float>());
         /*We need to do accuracy stuff here, for now, we need to verify with python*/
 
         Export_pr_vector(pagerank,indices, node_size);
+        unsigned int* d_indices_pr;
+        if(!HandleCUDAError(cudaMalloc((void**)&d_indices_pr, node_size*sizeof(unsigned int)))){
+            cout<<"Error allocating memory for d_indices_pr"<<endl;
+        }
+        if(!HandleCUDAError(cudaMemcpy(d_indices_pr, indices, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+            cout<<"Error copying memory to d_indices_pr"<<endl;
+        }
+        unsigned int dot_res, L_1_res_A, L_1_res_B;
+        unsigned int *d_dot_res, *d_L_1_res_A, *d_L_1_res_B;
+        unsigned int *part_sum_dot, *part_sumL2_a, *part_sumL2_b;
+        unsigned int ps_block = node_size/TPB+1;
+        cudaStream_t streams[3];
+        for(int i=0; i<3; i++){
+            cudaStreamCreate(&streams[i]);
+        }
+
+        if(!HandleCUDAError(cudaMallocAsync((void**)&d_dot_res, node_size*sizeof(unsigned int),streams[0]))){
+            cout<<"Error allocating memory for d_dot_res"<<endl;
+        }
+        if(!HandleCUDAError(cudaMallocAsync((void**)&d_L_1_res_A, node_size*sizeof(unsigned int),streams[1]))){
+            cout<<"Error allocating memory for d_L_1_res_A"<<endl;
+        }
+        if(!HandleCUDAError(cudaMallocAsync((void**)&d_L_1_res_B, node_size*sizeof(unsigned int),streams[2]))){
+            cout<<"Error allocating memory for d_L_1_res_B"<<endl;
+        }
+        if(!HandleCUDAError(cudaMallocAsync((void**)&part_sum_dot, ps_block*sizeof(unsigned int), streams[0]))){
+            cout<<"Error allocating memory for part_sum_dot"<<endl;
+        }
+        if(!HandleCUDAError(cudaMallocAsync((void**)&part_sumL2_a, ps_block*sizeof(unsigned int), streams[1]))){
+            cout<<"Error allocating memory for part_sumL2_a"<<endl;
+        }
+        if(!HandleCUDAError(cudaMallocAsync((void**)&part_sumL2_b, ps_block*sizeof(unsigned int), streams[2]))){
+            cout<<"Error allocating memory for part_sumL2_b"<<endl;
+        }
 
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;
@@ -1053,7 +1090,7 @@ __global__ void Schur_Product_Vectors(unsigned int* vect_1, unsigned int* vect_2
     }
 }
 
-__global__ void Dot_Product_Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsigned int size){
+__global__ void Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     unsigned int temp=0;
@@ -1079,43 +1116,45 @@ __global__ void Dot_Product_Partial_Sums(unsigned int* res_vec, unsigned int* la
     }
 }
 
-__global__ void Compute_L2_Max_u_1(unsigned int* vect_1, unsigned int* vect_2, unsigned int* res_vec_1, unsigned int* res_vec_2, unsigned int size){
+__global__ void Compute_L2_Max_u_1(unsigned int* vect_1, unsigned int* res_vec_1, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     if(idx<size){
         res_vec_1[idx]=vect_1[idx]*vect_1[idx];
-        res_vec_2[idx]=vect_2[idx]*vect_2[idx];
     }
 }
 
-__global__ void Compute_L2_Max_u_2(unsigned int* res_vec_1, unsigned int* res_vec_2, unsigned int* last_val_1, unsigned int* last_val_2, unsigned int size){
+
+__global__ void Partial_Sum_Last_Val(unsigned int* last_val, unsigned int block_size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    __shared__ unsigned int partial_sums_1[TPB];
-    __shared__ unsigned int partial_sums_2[TPB];
     unsigned int temp=0;
-    unsigned int temp_2=0;
-    if(idx<size){
-        partial_sums_1[tid]=res_vec_1[idx];
-        partial_sums_2[tid]=res_vec_2[idx];
+    __shared__ unsigned int partial_sums[TPB];
+    if(idx<block_size && tid==0){
+        partial_sums[threadIdx.x]=last_val[idx];
     }
-    for(int stride = 1; stride<blockDim.x; stride*=2){
+    else{
+        partial_sums[threadIdx.x]=0;
+    }
+    for(unsigned int stride=1; stride<blockDim.x; stride*=2){
         __syncthreads();
         if(tid>stride){
-            temp=partial_sums_1[tid]+ partial_sums_1[tid-stride];
-            temp_2=partial_sums_2[tid]+partial_sums_2[tid-stride];
+            temp = partial_sums[tid]+partial_sums[tid-stride];
         }
         __syncthreads();
         if(tid>stride){
-            partial_sums_1[tid]=temp;
-            partial_sums_2[tid]=temp_2;
+            partial_sums[tid]=temp;
         }
     }
-    if(tid==blockDim.x-1){
-        last_val_1[blockIdx.x]=partial_sums_1[tid];
-        last_val_2[blockIdx.x]=partial_sums_2[tid];
+    if(idx<block_size){
+        last_val[blockIdx.x]=partial_sums[tid];
     }
+
+}
+
+__global__ void Commit_Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsigned int size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     if(idx<size){
-        res_vec_1[idx]=partial_sums_1[tid];
-        res_vec_2[idx]=partial_sums_2[tid];
+        res_vec[idx]+=last_val[blockIdx.x];
     }
 }
+

@@ -15,6 +15,7 @@ using namespace std;
 #include <cublas_v2.h>
 #include <cublasLt.h>
 #include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
 #include <thrust/scan.h>
 #include <thrust/execution_policy.h>
 #include <thrust/unique.h>
@@ -246,6 +247,16 @@ __global__ void Gen_P(float* weight_P,edge* edgelist, unsigned int* src, unsigne
 __global__ void Init_P(float* P, unsigned int node_size, float* damp);
 
 __global__ void Init_Pr(float* pr_vector, unsigned int node_size);
+
+__global__ void Schur_Product_Vectors(unsigned int* vect_1, unsigned int* vect_2, unsigned int* res_vec, unsigned int size);
+
+__global__ void Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsigned int size);
+
+__global__ void Compute_L2_Max_u_1(unsigned int* vect_1, unsigned int* res_vec_1, unsigned int size);
+
+__global__ void Partial_Sum_Last_Val(unsigned int* last_val, unsigned int block_size);
+
+__global__ void Commit_Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsigned int size);
 /*DEVICE FUNCTIONS*/
 
 __device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);
