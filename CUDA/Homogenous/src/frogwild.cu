@@ -582,6 +582,7 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         pagerank = new double[node_size]; 
         unsigned int* indices;
         indices = new unsigned int[node_size];
+        thrust::sequence(indices, indices+node_size);
         unsigned int max_iter = 100;
         float tol = 1e-6;   
         float damp = p_t;
@@ -589,7 +590,7 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
 
         /*We need to do accuracy stuff here, for now, we need to verify with python*/
 
-        export_pr_vector(pagerank, node_size);
+        Export_pr_vector(pagerank,indices, node_size);
 
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;

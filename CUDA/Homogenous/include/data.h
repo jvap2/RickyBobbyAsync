@@ -161,7 +161,7 @@ __host__ void Export_C(unsigned int* c, unsigned int node_size);
 
 __host__ void Export_K(unsigned int* K, unsigned int node_size);
 
-__host__ void export_pr_vector(double* pr_vector, unsigned int node_size);
+__host__ void Export_pr_vector(double* pr_vector, unsigned int* indices, unsigned int node_size);
 
 __host__ void Print_Matrix(double* matrix, unsigned int node_size);
 /*HELPER FUNCTION AND KERNELS*/

@@ -21,7 +21,9 @@ __global__ void Gen_P(double* weight_P,edge* edgelist, unsigned int* src, unsign
         unsigned int start =edgelist[x].start;
         unsigned int end = edgelist[x].end;
         unsigned int out = src[start+1]-src[start];
-        weight_P[end*node_size+start]+=(1.0-*damp)/(out*1.0);
+        if(out!=0){
+            weight_P[end*node_size+start]+=(1.0-*damp)/(out*1.0);
+        }
     }
 
 }
@@ -112,12 +114,10 @@ __host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int*
     cout<<"Performing PageRank"<<endl;
     unsigned int iter_temp=max_iter;
     while(max_iter>0 && tol_temp>tol){
-        cublasDgemv_v2(handle, CUBLAS_OP_N, node_size, node_size, &alpha, d_P, node_size, d_pr_vector, 1, &beta, dr_pr_vector_temp, 1);
+        cublasDgemv_v2(handle, CUBLAS_OP_T, node_size, node_size, &alpha, d_P, node_size, d_pr_vector, 1, &beta, dr_pr_vector_temp, 1);
         cublasDasum_v2(handle, node_size, dr_pr_vector_temp, 1, &norm_temp);
         cublasDasum_v2(handle, node_size, d_pr_vector, 1, &norm);
-        // printf("Norm_temp: %f\n", norm_temp);
-        // printf("Norm: %f\n", norm);
-        tol_temp = fabsf(norm_temp-norm);
+        tol_temp = fabs(norm_temp-norm);
         norm_temp=0;
         norm=0;
         cublasDcopy_v2(handle, node_size, dr_pr_vector_temp, 1, d_pr_vector, 1);
@@ -130,7 +130,7 @@ __host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int*
     if(!HandleCUDAError(cudaMalloc((void**)&d_indices, node_size*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_indices"<<endl;
     }
-    thrust::sort_by_key(thrust::device, d_pr_vector, d_pr_vector+node_size, d_indices, thrust::greater<float>());
+    thrust::stable_sort_by_key(thrust::device, d_pr_vector, d_pr_vector+node_size, d_indices, thrust::greater<double>());
     if(!HandleCUDAError(cudaMemcpy(h_indices, d_indices, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
         cout<<"Error copying d_indices to host"<<endl;
     }
@@ -168,12 +168,12 @@ __host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int*
 
 
 
-__host__ void export_pr_vector(double* pr_vector, unsigned int node_size){
+__host__ void Export_pr_vector(double* pr_vector, unsigned int* indices, unsigned int node_size){
     ofstream myfile;
     myfile.open(CUBLAS_PR_PATH);
     myfile<<"Node, PageRank"<<endl;
     for(unsigned int i=0; i<node_size; i++){
-        myfile<<i<<", "<<pr_vector[i]<<endl;
+        myfile<<indices[i]<<", "<<pr_vector[i]<<endl;
     }
     myfile.close();
 }
