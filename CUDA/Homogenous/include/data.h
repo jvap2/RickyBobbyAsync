@@ -161,16 +161,16 @@ __host__ void Export_C(unsigned int* c, unsigned int node_size);
 
 __host__ void Export_K(unsigned int* K, unsigned int node_size);
 
-__host__ void Export_pr_vector(double* pr_vector, unsigned int* indices, unsigned int node_size);
+__host__ void Export_pr_vector(float* pr_vector, unsigned int* indices, unsigned int node_size);
 
-__host__ void Print_Matrix(double* matrix, unsigned int node_size);
+__host__ void Print_Matrix(float* matrix, unsigned int node_size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, unsigned int* global_src, unsigned int* global_succ,
 replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int* version);
 
-__host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol);
+__host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol);
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
@@ -241,11 +241,11 @@ __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src
 
 __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node_size);
 
-__global__ void Gen_P(double* weight_P,edge* edgelist, unsigned int* src, unsigned int node_size, float* damp);
+__global__ void Gen_P(float* weight_P,edge* edgelist, unsigned int* src, unsigned int node_size, float* damp);
 
-__global__ void Init_P(double* P, unsigned int node_size, float* damp);
+__global__ void Init_P(float* P, unsigned int node_size, float* damp);
 
-__global__ void Init_Pr(double* pr_vector, unsigned int node_size);
+__global__ void Init_Pr(float* pr_vector, unsigned int node_size);
 /*DEVICE FUNCTIONS*/
 
 __device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);

@@ -578,8 +578,8 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         cudaFree(rand_frog);
         //Perform PageRank with cuSparse and cuBLAS
         cout<<"Performing PageRank"<<endl;
-        double* pagerank;
-        pagerank = new double[node_size]; 
+        float* pagerank;
+        pagerank = new float[node_size]; 
         unsigned int* indices;
         indices = new unsigned int[node_size];
         thrust::sequence(indices, indices+node_size);

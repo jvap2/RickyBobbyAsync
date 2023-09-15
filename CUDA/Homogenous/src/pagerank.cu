@@ -6,7 +6,7 @@
 it utilizes cublas and cusparse*/
 
 
-__global__ void Init_P(double* P, unsigned int node_size, float* damp){
+__global__ void Init_P(float* P, unsigned int node_size, float* damp){
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
     if(x < node_size && y < node_size){
@@ -15,7 +15,7 @@ __global__ void Init_P(double* P, unsigned int node_size, float* damp){
     }
 }
 
-__global__ void Gen_P(double* weight_P,edge* edgelist, unsigned int* src, unsigned int node_size, float* damp){
+__global__ void Gen_P(float* weight_P,edge* edgelist, unsigned int* src, unsigned int node_size, float* damp){
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     if(x < node_size){
         unsigned int start =edgelist[x].start;
@@ -28,25 +28,25 @@ __global__ void Gen_P(double* weight_P,edge* edgelist, unsigned int* src, unsign
 
 }
 
-__global__ void Init_Pr(double* pr_vector, unsigned int node_size){
+__global__ void Init_Pr(float* pr_vector, unsigned int node_size){
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     if(x < node_size){
         pr_vector[x] = 1.0f/node_size;
     }
 }
 
-__host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol){
-    double alpha = 1.0; 
-    double beta = 0.0;
-    float tol_temp=100.f;
-    double* d_P;
+__host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol){
+    float alpha = 1.0; 
+    float beta = 0.0;
+    float tol_temp=100.0f;
+    float* d_P;
     unsigned int* d_global_src;
     unsigned int* d_global_succ;
-    double* d_pr_vector;
-    double* dr_pr_vector_temp;
+    float* d_pr_vector;
+    float* dr_pr_vector_temp;
     float* d_damp;
-    double norm=0;
-    double norm_temp=0;
+    float norm=0;
+    float norm_temp=0;
     unsigned int tpb = 256;
     unsigned int blocks = (node_size+tpb-1)/tpb;
     dim3 Threads(tpb, tpb);
@@ -61,7 +61,7 @@ __host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int*
     if(!HandleCUDAError(cudaMemcpy(d_edgelist, h_edgelist, edge_size*sizeof(edge), cudaMemcpyHostToDevice))){
         cout<<"Error copying edgelist to device"<<endl;
     }
-    if(!HandleCUDAError(cudaMalloc((void**)&d_P, node_size*node_size*sizeof(double)))){
+    if(!HandleCUDAError(cudaMalloc((void**)&d_P, node_size*node_size*sizeof(float)))){
         cout<<"Error allocating memory for P"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**)&d_global_src, (node_size+1)*sizeof(unsigned int)))){
@@ -114,13 +114,13 @@ __host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int*
     cout<<"Performing PageRank"<<endl;
     unsigned int iter_temp=max_iter;
     while(max_iter>0 && tol_temp>tol){
-        cublasDgemv_v2(handle, CUBLAS_OP_T, node_size, node_size, &alpha, d_P, node_size, d_pr_vector, 1, &beta, dr_pr_vector_temp, 1);
-        cublasDasum_v2(handle, node_size, dr_pr_vector_temp, 1, &norm_temp);
-        cublasDasum_v2(handle, node_size, d_pr_vector, 1, &norm);
-        tol_temp = fabs(norm_temp-norm);
+        cublasSgemv_v2(handle, CUBLAS_OP_T, node_size, node_size, &alpha, d_P, node_size, d_pr_vector, 1, &beta, dr_pr_vector_temp, 1);
+        cublasSasum_v2(handle, node_size, dr_pr_vector_temp, 1, &norm_temp);
+        cublasSasum_v2(handle, node_size, d_pr_vector, 1, &norm);
+        tol_temp = fabsf(norm_temp-norm);
         norm_temp=0;
         norm=0;
-        cublasDcopy_v2(handle, node_size, dr_pr_vector_temp, 1, d_pr_vector, 1);
+        cublasScopy_v2(handle, node_size, dr_pr_vector_temp, 1, d_pr_vector, 1);
         max_iter--;
     }
     cout<<"Converged in "<<iter_temp-max_iter<<" iterations"<<endl;
@@ -130,12 +130,12 @@ __host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int*
     if(!HandleCUDAError(cudaMalloc((void**)&d_indices, node_size*sizeof(unsigned int)))){
         cout<<"Error allocating memory for d_indices"<<endl;
     }
-    thrust::stable_sort_by_key(thrust::device, d_pr_vector, d_pr_vector+node_size, d_indices, thrust::greater<double>());
+    thrust::stable_sort_by_key(thrust::device, d_pr_vector, d_pr_vector+node_size, d_indices, thrust::greater<float>());
     if(!HandleCUDAError(cudaMemcpy(h_indices, d_indices, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
         cout<<"Error copying d_indices to host"<<endl;
     }
     cout<<"PageRank finished"<<endl;
-    double* P_test = new double[node_size*node_size]{0};
+    float* P_test = new float[node_size*node_size]{0};
     if(!HandleCUDAError(cudaMemcpy(P_test, d_P, node_size*node_size*sizeof(float), cudaMemcpyDeviceToHost))){
         cout<<"Error copying P to host"<<endl;
     }
@@ -168,7 +168,7 @@ __host__ void PageRank(double* pr_vector, unsigned int* h_indices, unsigned int*
 
 
 
-__host__ void Export_pr_vector(double* pr_vector, unsigned int* indices, unsigned int node_size){
+__host__ void Export_pr_vector(float* pr_vector, unsigned int* indices, unsigned int node_size){
     ofstream myfile;
     myfile.open(CUBLAS_PR_PATH);
     myfile<<"Node, PageRank"<<endl;
@@ -179,7 +179,7 @@ __host__ void Export_pr_vector(double* pr_vector, unsigned int* indices, unsigne
 }
 
 
-__host__ void Print_Matrix(double* matrix, unsigned int node_size){
+__host__ void Print_Matrix(float* matrix, unsigned int node_size){
     for(unsigned int i=0; i<node_size; i++){
         for(unsigned int j=0; j<node_size; j++){
             cout<<matrix[i*node_size+j]<<" ";
