@@ -26,9 +26,6 @@ int main()
     delete[] src;
     delete[] succ;
     Capture_Node_Degree(edge_list,deg,edges);
-    for(int i=0; i<nodes;i++){
-        cout<<deg[i]<<endl;
-    }
     Export_Degree(deg,nodes);
     unsigned int *h_ctr, *h_ptr;
     h_ctr = new unsigned int[BLOCKS];

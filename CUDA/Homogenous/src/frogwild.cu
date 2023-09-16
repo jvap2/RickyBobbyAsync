@@ -350,7 +350,7 @@ __host__ void Export_C(unsigned int* c, unsigned int* indices, unsigned int node
     }
     else{
         for(unsigned int i=0; i<node_size; i++){
-            myfile<<c[i]<<endl;
+            myfile<<indices[i]<<","<<c[i]<<endl;
         }
     }
 }
