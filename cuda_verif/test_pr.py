@@ -16,5 +16,6 @@ df_pagerank = cugraph.pagerank(G)
 print(df_pagerank)
 #Print the top 5 connections
 print(df_pagerank.nlargest(5, 'pagerank'))
-#Export the results to a csv
-df_pagerank.to_csv(os.path.join(os.path.dirname(folder),"Data/Homogenous/rand/Cluster_Assignment_Norm_pagerank_py.csv"))
+#Export the results to a 
+df_pagerank.drop_duplicates(subset=['vertex'],keep='first',inplace=True)
+df_pagerank.to_csv(os.path.join(os.path.dirname(folder),"Data/Homogenous/rand/Cluster_Assignment_Norm_pagerank_py.csv"),index=False)
