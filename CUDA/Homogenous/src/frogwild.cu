@@ -370,7 +370,8 @@ __host__ void Export_K(unsigned int* k, unsigned int node_size){
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, unsigned int* global_src, unsigned int* global_succ,
-replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int* version){
+replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int version,
+unsigned int* ind_rank, unsigned int debug){
     unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree, *d_global_src, *d_global_succ;
     replica_tracker *d_replica;
     float p_t, p_s;
@@ -512,6 +513,16 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }
+        cudaEvent_t start, stop;
+        if(!HandleCUDAError(cudaEventCreate(&start))){
+            cout<<"Error creating start event"<<endl;
+        }
+        if(!HandleCUDAError(cudaEventCreate(&stop))){
+            cout<<"Error creating stop event"<<endl;
+        }
+        if(!HandleCUDAError(cudaEventRecord(start))){
+            cout<<"Error recording start event"<<endl;
+        }
         for(unsigned int i=0; i<iter; i++){
             cout<<"Iteration "<<i<<endl;
             Gather_Ver0<<<BLOCKS,TPB>>>(d_k, d_unq, d_unq_ptr, num_local_K, local_K, local_K_idx);
@@ -550,6 +561,15 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
                 cout<<"Error rewriting local K idx"<<endl;
             }
         }
+        if(!HandleCUDAError(cudaEventRecord(stop))){
+            cout<<"Error recording stop event"<<endl;
+        }
+        if(!HandleCUDAError(cudaEventSynchronize(stop))){
+            cout<<"Error synchronizing stop event"<<endl;
+        }
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        cout<<"Time elapsed FrogWild: "<<milliseconds<<" ms"<<endl;
         Final_Commit<<<BLOCKS,TPB>>>(d_c, d_k, node_size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
@@ -600,7 +620,7 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         if(!HandleCUDAError(cudaMemcpy(dev_ind_ptr_approx, indices_approx, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
             cout<<"Error copying memory to dev_ind_ptr_approx"<<endl;
         }
-        thrust::stable_sort_by_key(thrust::device,dev_ind_ptr_approx, dev_ind_ptr_approx+node_size, d_c, thrust::greater<float>());
+        thrust::stable_sort_by_key(thrust::device,d_c, d_c+node_size, dev_ind_ptr_approx, thrust::greater<float>());
         unsigned int* d_indices_pr;
         if(!HandleCUDAError(cudaMalloc((void**)&d_indices_pr, node_size*sizeof(unsigned int)))){
             cout<<"Error allocating memory for d_indices_pr"<<endl;
@@ -689,13 +709,11 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
             }
         }
         unsigned int* h_indices_pr;
-        unsigned int* h_indices_frog;
         h_indices_pr = new unsigned int[node_size];
-        h_indices_frog = new unsigned int[node_size];
         if(!HandleCUDAError(cudaMemcpy(h_indices_pr, d_indices_pr, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to h_indices_pr"<<endl;
         }
-        if(!HandleCUDAError(cudaMemcpy(h_indices_frog, dev_ind_ptr_approx, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        if(!HandleCUDAError(cudaMemcpy(ind_rank, dev_ind_ptr_approx, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to h_indices_frog"<<endl;
         }
         if(!HandleCUDAError(cudaMemcpy(&dot_res, fin_dot_res, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
@@ -707,8 +725,8 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         if(!HandleCUDAError(cudaMemcpy(&L_1_res_B, fin_L_1_res_B, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to L_1_res_B"<<endl;
         }
-        Verif_Dot_Product(h_indices_pr, h_indices_frog, dot_res, node_size);
-        Verif_L2(h_indices_frog,L_1_res_B, node_size);
+        Verif_Dot_Product(h_indices_pr, ind_rank, dot_res, node_size);
+        Verif_L2(ind_rank,L_1_res_B, node_size);
         Verif_L2(h_indices_pr,L_1_res_A, node_size);
         cout<<"Dot product is "<<dot_res<<endl;
         cout<<"L_1 norm of A is "<<L_1_res_A<<endl;
@@ -729,7 +747,6 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         delete[] indices;
         delete[] indices_approx;
         delete[] h_indices_pr;
-        delete[] h_indices_frog;
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;
         }
