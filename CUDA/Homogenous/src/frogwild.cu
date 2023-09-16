@@ -339,9 +339,10 @@ __host__ void Import_Global_Succ(unsigned int* succ){
 }
 
 
-__host__ void Export_C(unsigned int* c, unsigned int node_size){
+__host__ void Export_C(unsigned int* c, unsigned int* indices, unsigned int node_size){
     ofstream myfile;
     myfile.open(C_PATH);
+    myfile<<"Node,Count"<<endl;
     if(!myfile.is_open()){
         cout << "Error opening file" << endl;
         exit(1);
@@ -607,13 +608,12 @@ unsigned int* ind_rank, unsigned int debug){
         if(!HandleCUDAError(cudaMalloc((void**)&dev_ind_ptr_approx, node_size*sizeof(unsigned int)))){
             cout<<"Error allocating memory for dev_ind_ptr_approx"<<endl;
         }
-        thrust::sequence(indices, indices+node_size);
-        thrust::sequence(indices_approx, indices_approx+node_size);
+        thrust::sequence(indices, indices+node_size,1);
+        thrust::sequence(indices_approx, indices_approx+node_size,1);
         unsigned int max_iter = 100;
         float tol = 1e-6;   
         float damp = p_t;
         PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
-
         /*We need to do accuracy stuff here, for now, we need to verify with python*/
 
         Export_pr_vector(pagerank,indices, node_size);
@@ -728,11 +728,14 @@ unsigned int* ind_rank, unsigned int debug){
         Verif_Dot_Product(h_indices_pr, ind_rank, dot_res, node_size);
         Verif_L2(ind_rank,L_1_res_B, node_size);
         Verif_L2(h_indices_pr,L_1_res_A, node_size);
+        float min_sim = (1.0f*node_size+2.0f)/(2.0f*node_size+1.0f);
         cout<<"Dot product is "<<dot_res<<endl;
         cout<<"L_1 norm of A is "<<L_1_res_A<<endl;
         cout<<"L_1 norm of B is "<<L_1_res_B<<endl;
         float cosine_sim = (float)dot_res/(sqrt((float)L_1_res_A)*sqrt((float)L_1_res_B));
         cout<<"Cosine similarity is "<<cosine_sim<<endl;
+        float norm_cosine_sim = (cosine_sim-min_sim)/(1-min_sim);
+        cout<<"Normalized cosine similarity is "<<norm_cosine_sim<<endl;
         cudaFree(d_dot_res);
         cudaFree(d_L_1_res_A);
         cudaFree(d_L_1_res_B);

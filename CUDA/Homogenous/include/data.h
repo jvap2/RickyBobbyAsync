@@ -158,7 +158,7 @@ __host__ void Import_Global_Succ(unsigned int* succ);
 
 __host__ void Import_Global_Src(unsigned int* src);
 
-__host__ void Export_C(unsigned int* c, unsigned int node_size);
+__host__ void Export_C(unsigned int* c, unsigned int* indices, unsigned int node_size);
 
 __host__ void Export_K(unsigned int* K, unsigned int node_size);
 
