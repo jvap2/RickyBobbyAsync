@@ -85,7 +85,7 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     }
     cout<< "2D grid dim: "<<Blocks.x<<" "<<Blocks.y<<endl;
     cout<< "2D block dim: "<<Threads.x<<" "<<Threads.y<<endl;
-        int deviceCount = 0;
+    int deviceCount = 0;
     cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
     if (error_id != cudaSuccess) {
         printf("cudaGetDeviceCount returned %d\n-> %s\n",
