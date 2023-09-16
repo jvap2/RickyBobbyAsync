@@ -149,6 +149,10 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     }
     cout<<"Performing PageRank"<<endl;
     unsigned int iter_temp=max_iter;
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
     while(max_iter>0 && tol_temp>tol){
         cublasSgemv_v2(handle, CUBLAS_OP_T, node_size, node_size, &alpha, d_P, node_size, d_pr_vector, 1, &beta, dr_pr_vector_temp, 1);
         cublasSasum_v2(handle, node_size, dr_pr_vector_temp, 1, &norm_temp);
@@ -159,6 +163,11 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
         cublasScopy_v2(handle, node_size, dr_pr_vector_temp, 1, d_pr_vector, 1);
         max_iter--;
     }
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    cout<<"Time elapsed PageRank: "<<milliseconds<<" ms"<<endl;
     cout<<"Converged in "<<iter_temp-max_iter<<" iterations"<<endl;
     cout<<"Tolerance: "<<tol_temp<<endl;
     unsigned int *d_indices;
@@ -172,11 +181,6 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
         cout<<"Error copying d_indices to host"<<endl;
     }
     cout<<"PageRank finished"<<endl;
-    // float* P_test = new float[node_size*node_size]{0};
-    // if(!HandleCUDAError(cudaMemcpy(P_test, d_P, node_size*node_size*sizeof(float), cudaMemcpyDeviceToHost))){
-    //     cout<<"Error copying P to host"<<endl;
-    // }
-    // Print_Matrix(P_test, node_size);
     if(!HandleCUDAError(cudaMemcpy(pr_vector, d_pr_vector, node_size*sizeof(float), cudaMemcpyDeviceToHost))){
         cout<<"Error copying pr_vector to host"<<endl;
     }

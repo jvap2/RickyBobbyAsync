@@ -715,6 +715,21 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         cout<<"L_1 norm of B is "<<L_1_res_B<<endl;
         float cosine_sim = (float)dot_res/(sqrt((float)L_1_res_A)*sqrt((float)L_1_res_B));
         cout<<"Cosine similarity is "<<cosine_sim<<endl;
+        cudaFree(d_dot_res);
+        cudaFree(d_L_1_res_A);
+        cudaFree(d_L_1_res_B);
+        cudaFree(part_sum_dot);
+        cudaFree(part_sumL2_a);
+        cudaFree(part_sumL2_b);
+        cudaFree(fin_dot_res);
+        cudaFree(fin_L_1_res_A);
+        cudaFree(fin_L_1_res_B);
+        cudaFree(d_indices_pr);
+        delete[] pagerank;
+        delete[] indices;
+        delete[] indices_approx;
+        delete[] h_indices_pr;
+        delete[] h_indices_frog;
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;
         }
