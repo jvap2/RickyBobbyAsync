@@ -582,20 +582,25 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         pagerank = new float[node_size]; 
         unsigned int *indices, *indices_approx;
         indices = new unsigned int[node_size];
+        indices_approx = new unsigned int[node_size];
         unsigned int* dev_ind_ptr_approx;
         if(!HandleCUDAError(cudaMalloc((void**)&dev_ind_ptr_approx, node_size*sizeof(unsigned int)))){
             cout<<"Error allocating memory for dev_ind_ptr_approx"<<endl;
         }
-        thrust::sequence(dev_ind_ptr_approx, dev_ind_ptr_approx+node_size);
         thrust::sequence(indices, indices+node_size);
+        thrust::sequence(indices_approx, indices_approx+node_size);
         unsigned int max_iter = 100;
         float tol = 1e-6;   
         float damp = p_t;
         PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
-        thrust::sort_by_key(dev_ind_ptr_approx, dev_ind_ptr_approx+node_size, d_c, thrust::greater<float>());
+
         /*We need to do accuracy stuff here, for now, we need to verify with python*/
 
         Export_pr_vector(pagerank,indices, node_size);
+        if(!HandleCUDAError(cudaMemcpy(dev_ind_ptr_approx, indices_approx, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+            cout<<"Error copying memory to dev_ind_ptr_approx"<<endl;
+        }
+        thrust::stable_sort_by_key(thrust::device,dev_ind_ptr_approx, dev_ind_ptr_approx+node_size, d_c, thrust::greater<float>());
         unsigned int* d_indices_pr;
         if(!HandleCUDAError(cudaMalloc((void**)&d_indices_pr, node_size*sizeof(unsigned int)))){
             cout<<"Error allocating memory for d_indices_pr"<<endl;
