@@ -684,7 +684,20 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
             cout<<"Error synchronizing stream 0"<<endl;
         }
-
+        if(!HandleCUDAError(cudaMemcpy(&dot_res, d_dot_res+node_size-1, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to dot_res"<<endl;
+        }
+        if(!HandleCUDAError(cudaMemcpy(&L_1_res_A, d_L_1_res_A+node_size-1, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to L_1_res_A"<<endl;
+        }
+        if(!HandleCUDAError(cudaMemcpy(&L_1_res_B, d_L_1_res_B+node_size-1, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to L_1_res_B"<<endl;
+        }
+        cout<<"Dot product is "<<dot_res<<endl;
+        cout<<"L_1 norm of A is "<<L_1_res_A<<endl;
+        cout<<"L_1 norm of B is "<<L_1_res_B<<endl;
+        float cosine_sim = (float)dot_res/(sqrt((float)L_1_res_A)*sqrt((float)L_1_res_B));
+        cout<<"Cosine similarity is "<<cosine_sim<<endl;
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;
         }
