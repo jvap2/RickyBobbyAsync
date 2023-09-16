@@ -165,6 +165,10 @@ __host__ void Export_K(unsigned int* K, unsigned int node_size);
 __host__ void Export_pr_vector(float* pr_vector, unsigned int* indices, unsigned int node_size);
 
 __host__ void Print_Matrix(float* matrix, unsigned int node_size);
+
+__host__ void Verif_L2(unsigned int* vec, unsigned int res, unsigned int size);
+
+__host__ void Verif_Dot_Product(unsigned int* vec_1, unsigned int* vec_2, unsigned int res, unsigned int size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 

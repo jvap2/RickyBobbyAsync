@@ -1188,7 +1188,7 @@ __global__ void Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsi
 __global__ void Compute_L2_Max_u_1(unsigned int* vect_1, unsigned int* res_vec_1, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     if(idx<size){
-        res_vec_1[idx]=vect_1[idx]*vect_1[idx];
+        res_vec_1[idx]=vect_1[idx]^2;
     }
 }
 
@@ -1227,3 +1227,28 @@ __global__ void Commit_Partial_Sums(unsigned int* res_vec, unsigned int* last_va
     }
 }
 
+__host__ void Verif_Dot_Product(unsigned int* vec_1, unsigned int* vec_2, unsigned int res, unsigned int size){
+    unsigned int temp=0;
+    for(int i=0; i<size; i++){
+        temp+=vec_1[i]*vec_2[i];
+    }
+    if(temp==res){
+        cout<<"Dot product is correct"<<endl;
+    }
+    else{
+        cout<<"Dot product is incorrect"<<endl;
+    }
+}
+
+__host__ void Verif_L2(unsigned int* vec, unsigned int res, unsigned int size){
+    unsigned int temp=0;
+    for(int i=0; i<size; i++){
+        temp+=vec[i]*vec[i];
+    }
+    if(temp==res){
+        cout<<"L2 norm is correct"<<endl;
+    }
+    else{
+        cout<<"L2 norm is incorrect"<<endl;
+    }
+} 
