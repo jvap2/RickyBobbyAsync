@@ -636,6 +636,17 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
             cout<<"Error allocating memory for part_sumL2_b"<<endl;
         }
 
+        unsigned int *fin_dot_res, *fin_L_1_res_A, *fin_L_1_res_B;
+        if(!HandleCUDAError(cudaMallocAsync((void**)&fin_dot_res,sizeof(unsigned int),streams[0]))){
+            cout<<"Error allocating memory for d_dot_res"<<endl;
+        }
+        if(!HandleCUDAError(cudaMallocAsync((void**)&fin_L_1_res_A,sizeof(unsigned int),streams[1]))){
+            cout<<"Error allocating memory for d_L_1_res_A"<<endl;
+        }
+        if(!HandleCUDAError(cudaMallocAsync((void**)&fin_L_1_res_B,sizeof(unsigned int),streams[2]))){
+            cout<<"Error allocating memory for d_L_1_res_B"<<endl;
+        }
+
         Schur_Product_Vectors<<<ps_block, TPB, 0, streams[0]>>>(d_indices_pr, dev_ind_ptr_approx, d_dot_res, node_size);
         if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
             cout<<"Error synchronizing stream 0"<<endl;
@@ -660,39 +671,45 @@ replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int 
         if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
             cout<<"Error synchronizing stream 0"<<endl;
         }
-        Partial_Sum_Last_Val<<<1,ps_block,0,streams[0]>>>(part_sum_dot, node_size);
+        Partial_Sum_Last_Val<<<1,ps_block,0,streams[0]>>>(part_sum_dot, fin_dot_res, node_size);
         if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
             cout<<"Error synchronizing stream 0"<<endl;
         }
-        Partial_Sum_Last_Val<<<1,ps_block,0,streams[1]>>>(part_sumL2_a, node_size);
+        Partial_Sum_Last_Val<<<1,ps_block,0,streams[1]>>>(part_sumL2_a, fin_L_1_res_A, node_size);
         if(!HandleCUDAError(cudaStreamSynchronize(streams[1]))){
             cout<<"Error synchronizing stream 0"<<endl;
         }
-        Partial_Sum_Last_Val<<<1,ps_block,0,streams[2]>>>(part_sumL2_b, node_size);
+        Partial_Sum_Last_Val<<<1,ps_block,0,streams[2]>>>(part_sumL2_b, fin_L_1_res_B, node_size);
         if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
             cout<<"Error synchronizing stream 0"<<endl;
         }
-        Commit_Partial_Sums<<<ps_block,TPB,0,streams[0]>>>(d_dot_res,part_sum_dot, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
-            cout<<"Error synchronizing stream 0"<<endl;
+        for(int i =0; i<3; i++){
+            if(!HandleCUDAError(cudaStreamDestroy(streams[i]))){
+                cout<<"Error destroying stream 0"<<endl;
+            }
         }
-        Commit_Partial_Sums<<<ps_block,TPB,0,streams[1]>>>(d_L_1_res_A,part_sumL2_a, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[1]))){
-            cout<<"Error synchronizing stream 0"<<endl;
+        unsigned int* h_indices_pr;
+        unsigned int* h_indices_frog;
+        h_indices_pr = new unsigned int[node_size];
+        h_indices_frog = new unsigned int[node_size];
+        if(!HandleCUDAError(cudaMemcpy(h_indices_pr, d_indices_pr, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to h_indices_pr"<<endl;
         }
-        Commit_Partial_Sums<<<ps_block,TPB,0,streams[2]>>>(d_L_1_res_B,part_sumL2_b, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
-            cout<<"Error synchronizing stream 0"<<endl;
+        if(!HandleCUDAError(cudaMemcpy(h_indices_frog, dev_ind_ptr_approx, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+            cout<<"Error copying memory to h_indices_frog"<<endl;
         }
-        if(!HandleCUDAError(cudaMemcpy(&dot_res, d_dot_res+node_size-1, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        if(!HandleCUDAError(cudaMemcpy(&dot_res, fin_dot_res, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to dot_res"<<endl;
         }
-        if(!HandleCUDAError(cudaMemcpy(&L_1_res_A, d_L_1_res_A+node_size-1, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        if(!HandleCUDAError(cudaMemcpy(&L_1_res_A, fin_L_1_res_A, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to L_1_res_A"<<endl;
         }
-        if(!HandleCUDAError(cudaMemcpy(&L_1_res_B, d_L_1_res_B+node_size-1, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
+        if(!HandleCUDAError(cudaMemcpy(&L_1_res_B, fin_L_1_res_B, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to L_1_res_B"<<endl;
         }
+        Verif_Dot_Product(h_indices_pr, h_indices_frog, dot_res, node_size);
+        Verif_L2(h_indices_frog,L_1_res_B, node_size);
+        Verif_L2(h_indices_pr,L_1_res_A, node_size);
         cout<<"Dot product is "<<dot_res<<endl;
         cout<<"L_1 norm of A is "<<L_1_res_A<<endl;
         cout<<"L_1 norm of B is "<<L_1_res_B<<endl;
@@ -1163,69 +1180,49 @@ __global__ void Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsi
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     unsigned int temp=0;
-    __shared__ unsigned int partial_sums[TPB];
-    if(idx<size){
-        partial_sums[threadIdx.x]=res_vec[idx];
+    if (idx>=size){
+        return;
     }
-    for(int stride = 1; stride<blockDim.x; stride*=2){
-        __syncthreads();
-        if(tid>stride){
-            temp = partial_sums[tid]+partial_sums[tid-stride];
+    unsigned int* blockAddress= res_vec+(blockDim.x*blockIdx.x);
+    for(int stride=blockDim.x/2; stride>0; stride>>=1){
+        if (tid<stride && tid+stride<size){
+            blockAddress[tid]+=blockAddress[tid+stride];
         }
         __syncthreads();
-        if(tid>stride){
-            partial_sums[tid]=temp;
-        }
     }
-    if(tid==blockDim.x-1){
-        last_val[blockIdx.x]=partial_sums[tid];
-    }
-    if(idx<size){
-        res_vec[idx]=partial_sums[tid];
+    if(tid==0){
+        last_val[blockIdx.x]=blockAddress[0];
     }
 }
 
 __global__ void Compute_L2_Max_u_1(unsigned int* vect_1, unsigned int* res_vec_1, unsigned int size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     if(idx<size){
-        res_vec_1[idx]=vect_1[idx]^2;
+        res_vec_1[idx]=vect_1[idx]*vect_1[idx];
     }
 }
 
 
-__global__ void Partial_Sum_Last_Val(unsigned int* last_val, unsigned int block_size){
+__global__ void Partial_Sum_Last_Val(unsigned int* last_val, unsigned int* res, unsigned int block_size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    unsigned int temp=0;
-    __shared__ unsigned int partial_sums[TPB];
-    if(idx<block_size && tid==0){
-        partial_sums[threadIdx.x]=last_val[idx];
-    }
-    else{
-        partial_sums[threadIdx.x]=0;
-    }
-    for(unsigned int stride=1; stride<blockDim.x; stride*=2){
-        __syncthreads();
-        if(tid>stride){
-            temp = partial_sums[tid]+partial_sums[tid-stride];
-        }
-        __syncthreads();
-        if(tid>stride){
-            partial_sums[tid]=temp;
-        }
-    }
-    if(idx<block_size){
-        last_val[blockIdx.x]=partial_sums[tid];
+    unsigned int* blockAddress=last_val;
+    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
+	{
+		if (tid < stride)
+		{
+			//tid<stride ensures we do not try to access memory past the vector allocated to the block
+			//tid+stride<size allows for vector sizes less than blockDim
+			blockAddress[tid] += blockAddress[tid + stride];
+		}
+		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
+	}
+    if(tid==0){
+        *(res)=(blockAddress[0]);
     }
 
 }
 
-__global__ void Commit_Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsigned int size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    if(idx<size){
-        res_vec[idx]+=last_val[blockIdx.x];
-    }
-}
 
 __host__ void Verif_Dot_Product(unsigned int* vec_1, unsigned int* vec_2, unsigned int res, unsigned int size){
     unsigned int temp=0;
@@ -1237,6 +1234,8 @@ __host__ void Verif_Dot_Product(unsigned int* vec_1, unsigned int* vec_2, unsign
     }
     else{
         cout<<"Dot product is incorrect"<<endl;
+        cout<<"GPU "<<res<<endl;
+        cout<<"CPU "<<temp<<endl;
     }
 }
 
@@ -1250,5 +1249,7 @@ __host__ void Verif_L2(unsigned int* vec, unsigned int res, unsigned int size){
     }
     else{
         cout<<"L2 norm is incorrect"<<endl;
+        cout<<"GPU "<<res<<endl;
+        cout<<"CPU "<<temp<<endl;
     }
 } 

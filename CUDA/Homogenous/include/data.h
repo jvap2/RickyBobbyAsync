@@ -258,9 +258,8 @@ __global__ void Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsi
 
 __global__ void Compute_L2_Max_u_1(unsigned int* vect_1, unsigned int* res_vec_1, unsigned int size);
 
-__global__ void Partial_Sum_Last_Val(unsigned int* last_val, unsigned int block_size);
+__global__ void Partial_Sum_Last_Val(unsigned int* last_val, unsigned int* res, unsigned int block_size);
 
-__global__ void Commit_Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsigned int size);
 /*DEVICE FUNCTIONS*/
 
 __device__ unsigned int co_rank(unsigned int* start, unsigned int* end, int m, int n, int k);
