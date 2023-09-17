@@ -9,9 +9,10 @@ df_cublas=pl.read_csv(os.path.join(os.path.dirname(folder),"Data/Homogenous/rand
 df_frog=pl.read_csv(os.path.join(os.path.dirname(folder),"Data/Homogenous/rand/check/C.csv"))
 df_cugraph=cudf.read_csv(os.path.join(os.path.dirname(folder),"Data/Homogenous/rand/Cluster_Assignment_Norm_pagerank_py.csv"))
 
-cub_vertex=df_cublas["Node"].to_numpy()
-frog_vertex = df_frog["Node"].to_numpy()
-cug_vertex = df_cugraph["vertex"].to_numpy()
+
+cub_vertex=df_cublas["Node"].to_numpy()[:100]
+frog_vertex = df_frog["Node"].to_numpy()[:100]
+cug_vertex = df_cugraph["vertex"].to_numpy()[:100]
 print(cub_vertex.shape)
 print(frog_vertex.shape)
 print(cug_vertex.shape)
