@@ -3,6 +3,7 @@
 int main(int argc, char** argv){
     unsigned int nodes, edges;
     get_graph_info(GRAPH_DATA_PATH ,&nodes,&edges);
+    cout<<"Nodes: "<<nodes<<" Edges: "<<edges<<endl;
     unsigned int *src_ptr, *src_ctr;
     unsigned int *unq_ptr, *unq_ctr;
     unsigned int *h_ptr, *h_ctr;

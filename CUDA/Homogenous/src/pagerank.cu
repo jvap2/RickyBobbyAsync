@@ -155,11 +155,9 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     cudaEventRecord(start);
     while(max_iter>0 && tol_temp>tol){
         cublasSgemv_v2(handle, CUBLAS_OP_T, node_size, node_size, &alpha, d_P, node_size, d_pr_vector, 1, &beta, dr_pr_vector_temp, 1);
-        cublasSasum_v2(handle, node_size, dr_pr_vector_temp, 1, &norm_temp);
-        cublasSasum_v2(handle, node_size, d_pr_vector, 1, &norm);
+        cublasSnrm2_v2(handle, node_size, dr_pr_vector_temp, 1, &norm_temp);
+        cublasSnrm2_v2(handle, node_size, d_pr_vector, 1, &norm);
         tol_temp = fabsf(norm_temp-norm);
-        norm_temp=0;
-        norm=0;
         cublasScopy_v2(handle, node_size, dr_pr_vector_temp, 1, d_pr_vector, 1);
         max_iter--;
     }

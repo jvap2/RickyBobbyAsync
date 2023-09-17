@@ -1,7 +1,7 @@
 #include "../include/data.h"
 #include "../include/GPUErrors.h"
 
-#define thrd_blck 1024
+#define thrd_blck 512
 
 __host__ void Import_Local_Src(unsigned int* local_src){
     ifstream myfile;
@@ -550,10 +550,13 @@ unsigned int* ind_rank, unsigned int debug){
                 cout<<"Error synchronizing device"<<endl;
             }
             cout<<"Gathered"<<endl;
-            Apply_Ver0<<<BLOCKS, thrd_blck, max_unq_ctr*sizeof(unsigned int)>>>(d_unq, d_unq_ptr, local_K, local_C,num_local_K,local_K_idx, d_p_t,i, d_state_teleport);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Error synchronizing device"<<endl;
-            }
+            Apply_Ver0<<<BLOCKS, thrd_blck>>>(d_unq, d_unq_ptr, local_K, local_C,num_local_K,local_K_idx, d_p_t,i, d_state_teleport);
+            // if(!HandleCUDAError(cudaDeviceSynchronize())){
+            //     cout<<"Error synchronizing device"<<endl;
+            // }
+            cudaError_t err = cudaGetLastError();
+            if (err != cudaSuccess) 
+                printf("Error: %s\n", cudaGetErrorString(err));
             cout<<"Applied"<<endl;
             Sync_Mirrors_Ver0<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_unq, d_unq_ptr, local_C, local_K, local_C_idx, local_K_idx, num_local_C, num_local_K, d_p_s, d_state_scatter);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
@@ -1380,7 +1383,7 @@ unsigned int* local_K, unsigned int* local_K_idx){
             //Increment the number of local frogs
             atomicExch(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,i);
             //Swap the 
-            atomicExch(local_K+unq_ptr[blockIdx.x]+local_K_idx[unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]],K[unq[i+unq_ptr[blockIdx.x]]]);
+            atomicExch(local_K+unq_ptr[blockIdx.x]+i,K[unq[i+unq_ptr[blockIdx.x]]]);
             //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
             //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
             //Possibly a question worth experimentation
@@ -1480,6 +1483,8 @@ __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node
     for(int i=idx; i<node_size; i+=gridDim.x*blockDim.x){
         C[i]+=K[i];
     }
+    __syncthreads();
+    
 }
 
 //Thoughts- maybe save multiple files of the number of nodes and commit to them with the C to sync with the mirrors
