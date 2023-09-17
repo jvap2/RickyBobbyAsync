@@ -1,6 +1,6 @@
 #!/bin/bash
 
-nodes=500000
+nodes=10000
 m=40
 p=.5
 seed=42

@@ -630,7 +630,7 @@ unsigned int* ind_rank, unsigned int debug){
         thrust::sequence(indices, indices+node_size,1);
         thrust::sequence(indices_approx, indices_approx+node_size,1);
         unsigned int max_iter = 100;
-        float tol = 1e-6;   
+        float tol = 1e-14;   
         float damp = p_t;
         PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
         /*We need to do accuracy stuff here, for now, we need to verify with python*/

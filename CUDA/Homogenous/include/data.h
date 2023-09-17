@@ -75,7 +75,7 @@ struct vert_hash_table{
 };
 
 struct replica_tracker{
-    unsigned int clusters[BLOCKS];
+    unsigned int clusters[BLOCKS]{0};
     unsigned int num_replicas;
 };
 
@@ -214,19 +214,8 @@ __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc);
 
 __global__ void acc_accum(unsigned int* approx, unsigned int* pagerank, unsigned int* table, unsigned int k);
 
-__global__ void gen_backward_mask(unsigned int* global_list, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* start_mask, unsigned int size);
+__global__ void Copy_Clusters(edge* edgelist, unsigned int* clusters, unsigned int size);
 
-__global__ void scan_mask(unsigned int* start_mask, unsigned* compct_start, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
-
-__global__ void Prefix_Scan_Cmpt(unsigned int* mask, unsigned int* cmpt, unsigned int size);
-
-__global__ void Scanned_To_Compact(unsigned int* cmpt, unsigned int* scanned, unsigned int* new_size, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int size);
-
-__global__ void Final_Compression(unsigned int* cmpt, unsigned int* new_size, unsigned int* in, unsigned int* new_idx, unsigned int* out);
-
-__global__ void Find_Max_Cluster(unsigned int* ctr_table, unsigned int* max_val);
-
-__global__ void unq_exclusive_scan(unsigned int* len, unsigned int* unq_ptr);
 
 // __global__ void Total_Unq_Ptr(unsigned int* start_ptr, unsigned int* end_ptr, unsigned int* fin_ptr);
 

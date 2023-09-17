@@ -28,8 +28,8 @@ int main()
     Capture_Node_Degree(edge_list,deg,edges);
     Export_Degree(deg,nodes);
     unsigned int *h_ctr, *h_ptr;
-    h_ctr = new unsigned int[BLOCKS];
-    h_ptr = new unsigned int[BLOCKS];
+    h_ctr = new unsigned int[BLOCKS]{0};
+    h_ptr = new unsigned int[BLOCKS]{0};
     unsigned int *h_unq;
     h_unq = new unsigned int[edges];
     cout<<"Ending edge list function"<<endl;
