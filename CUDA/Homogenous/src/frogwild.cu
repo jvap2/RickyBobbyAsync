@@ -442,20 +442,11 @@ unsigned int* ind_rank, unsigned int debug){
         if(!HandleCUDAError(cudaMalloc((void**)&d_p_s, sizeof(float)))){
             cout<<"Error allocating memory for d_p_s"<<endl;
         }
-        if(!HandleCUDAError(cudaMalloc((void**)&num_local_C, BLOCKS*sizeof(unsigned int)))){
-            cout<<"Error allocating memory for num_local_K"<<endl;
-        }
-        if(!HandleCUDAError(cudaMalloc((void**)&num_local_K, BLOCKS*sizeof(unsigned int)))){
-            cout<<"Error allocating memory for num_local_K"<<endl;
-        }
         if(!HandleCUDAError(cudaMalloc((void**)&local_K, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
             cout<<"Error allocating memory for local_K"<<endl;
         }
         if(!HandleCUDAError(cudaMalloc((void**)&local_C, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
             cout<<"Error allocating memory for local_C"<<endl;
-        }
-        if(!HandleCUDAError(cudaMalloc((void**)&local_K_idx, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
-            cout<<"Error allocating memory for local_K_idx"<<endl;
         }
         if(!HandleCUDAError(cudaMalloc((void**)&d_global_src, (node_size+1)*sizeof(unsigned int)))){
             cout<<"Error allocating memory for d_global_src"<<endl;
@@ -498,20 +489,11 @@ unsigned int* ind_rank, unsigned int debug){
         if(!HandleCUDAError(cudaMemset(d_c, 0, node_size*sizeof(unsigned int)))){
             cout<<"Error initializing d_c"<<endl;
         }
-        if(!HandleCUDAError(cudaMemset(num_local_C, 0, BLOCKS*sizeof(unsigned int)))){
-            cout<<"Error initializing num_local_C"<<endl;
-        }
-        if(!HandleCUDAError(cudaMemset(num_local_K, 0, BLOCKS*sizeof(unsigned int)))){
-            cout<<"Error initializing num_local_K"<<endl;
-        }
         if(!HandleCUDAError(cudaMemset(local_K, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
             cout<<"Error initializing local_K"<<endl;
         }
         if(!HandleCUDAError(cudaMemset(local_C, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
             cout<<"Error initializing local_C"<<endl;
-        }
-        if(!HandleCUDAError(cudaMemset(local_K_idx, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
-            cout<<"Error initializing local_K_idx"<<endl;
         }
         curandGenerator_t gen;
         curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
@@ -547,18 +529,21 @@ unsigned int* ind_rank, unsigned int debug){
         cudaFuncSetAttribute(Apply_Ver0, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
         for(unsigned int i=0; i<iter; i++){
             cout<<"Iteration "<<i<<endl;
-            Gather_Ver0<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, num_local_K, local_K, local_K_idx);
+            Gather_Ver0<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Error synchronizing device"<<endl;
             }
+            if(!HandleCUDAError(cudaMemset(d_k,0, node_size*sizeof(unsigned int)))){
+                cout<<"Error initializing d_k"<<endl;
+            }
             cout<<"Gathered"<<endl;
             cout<<max_unq_ctr*sizeof(unsigned int)<<endl;
-            Apply_Ver0<<<BLOCKS, thrd_blck, max_unq_ctr*sizeof(unsigned int)>>>(d_unq_ptr, local_K, local_C,num_local_K,local_K_idx, d_p_t,i, d_state_teleport);
+            Apply_Ver0<<<BLOCKS, thrd_blck, max_unq_ctr*sizeof(unsigned int)>>>(d_unq_ptr, local_K, local_C, d_p_t,i, d_state_teleport);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Error synchronizing device for Apply"<<endl;
             }
             cout<<"Applied"<<endl;
-            Sync_Mirrors_Ver0<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_unq, d_unq_ptr, local_C, local_K, local_C_idx, local_K_idx, num_local_C, num_local_K, d_p_s, d_state_scatter);
+            Sync_Mirrors_Ver0<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_unq, d_unq_ptr, local_C, local_K, d_p_s, d_state_scatter);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Error synchronizing device for Sync"<<endl;
             }
@@ -568,21 +553,10 @@ unsigned int* ind_rank, unsigned int debug){
                 cout<<"Error synchronizing device for Scatter"<<endl;
             }
             cout<<"Scattered"<<endl;
-            if(!HandleCUDAError(cudaMemset(num_local_K, 0, BLOCKS*sizeof(unsigned int)))){
-                cout<<"Error rewriting num of local K"<<endl;
-            }
-            if(!HandleCUDAError(cudaMemset(num_local_C, 0, BLOCKS*sizeof(unsigned int)))){
-                cout<<"Error rewriting num of local C"<<endl;
-            }
-            if(!HandleCUDAError(cudaMemset(local_K, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
-                cout<<"Error rewriting local K"<<endl;
-            }
-            if(!HandleCUDAError(cudaMemset(local_C, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
-                cout<<"Error rewriting local C"<<endl;
-            }
-            if(!HandleCUDAError(cudaMemset(local_K_idx, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
-                cout<<"Error rewriting local K idx"<<endl;
-            }
+        }
+        Final_Commit<<<BLOCKS,thrd_blck>>>(d_c, d_k, node_size);
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            cout<<"Error synchronizing device"<<endl;
         }
         if(!HandleCUDAError(cudaEventRecord(stop))){
             cout<<"Error recording stop event"<<endl;
@@ -593,10 +567,6 @@ unsigned int* ind_rank, unsigned int debug){
         float milliseconds = 0;
         cudaEventElapsedTime(&milliseconds, start, stop);
         cout<<"Time elapsed FrogWild: "<<milliseconds<<" ms"<<endl;
-        Final_Commit<<<BLOCKS,thrd_blck>>>(d_c, d_k, node_size);
-        if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Error synchronizing device"<<endl;
-        }
         if(!HandleCUDAError(cudaMemcpy(global_src, d_global_src, (node_size+1)*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to global_src"<<endl;
         }
@@ -609,11 +579,8 @@ unsigned int* ind_rank, unsigned int debug){
         cudaFree(d_replica);
         cudaFree(d_p_t);
         cudaFree(d_p_s);
-        cudaFree(num_local_K);
-        cudaFree(num_local_C);
         cudaFree(local_K);
         cudaFree(local_C);
-        cudaFree(local_K_idx);
         cudaFree(d_global_src);
         cudaFree(d_global_succ);
         cudaFree(d_state_teleport);
@@ -756,6 +723,7 @@ unsigned int* ind_rank, unsigned int debug){
         curandDestroyGenerator(gen);
         unsigned int t_per_block = thrd_blck;
         unsigned int b_per_grid_int = (sublinear_size+thrd_blck-1)/thrd_blck;
+        unsigned int b_per_grid = (node_size+thrd_blck-1)/thrd_blck;
         curandState* d_state_teleport;
         if(!HandleCUDAError(cudaMalloc((void**)&d_state_teleport, BLOCKS*thrd_blck*sizeof(curandState)))){
             cout<<"Error allocating memory for d_state"<<endl;
@@ -778,51 +746,46 @@ unsigned int* ind_rank, unsigned int debug){
         if(!HandleCUDAError(cudaEventRecord(start))){
             cout<<"Error recording start event"<<endl;
         }
-        unsigned int tpb=64;
-        for(unsigned int i=0; i<iter; i++){
-            cout<<"Iteration "<<i<<endl;
-            Gather_Ver0<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, num_local_K, local_K, local_K_idx);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Error synchronizing device"<<endl;
-            }
-            cout<<"Gathered"<<endl;
-            Apply_Ver0<<<BLOCKS, thrd_blck, max_unq_ctr*sizeof(unsigned int)>>>(d_unq_ptr, local_K, local_C,num_local_K,local_K_idx, d_p_t,i, d_state_teleport);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Error synchronizing device"<<endl;
-            }
-            cout<<"Applied"<<endl;
-            Sync_Mirrors_Ver0<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_unq, d_unq_ptr, local_C, local_K, local_C_idx, local_K_idx, num_local_C, num_local_K, d_p_s, d_state_scatter);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Error synchronizing device"<<endl;
-            }
-            cout<<"Synced"<<endl;
-            Scatter_Ver0<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_global_src, d_global_succ, d_replica, node_size);
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                cout<<"Error synchronizing device"<<endl;
-            }
-            cout<<"Scattered"<<endl;
-            if(!HandleCUDAError(cudaMemset(num_local_K, 0, BLOCKS*sizeof(unsigned int)))){
-                cout<<"Error rewriting num of local K"<<endl;
-            }
-            if(!HandleCUDAError(cudaMemset(num_local_C, 0, BLOCKS*sizeof(unsigned int)))){
-                cout<<"Error rewriting num of local C"<<endl;
-            }
-            if(!HandleCUDAError(cudaMemset(local_K, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
-                cout<<"Error rewriting local K"<<endl;
-            }
-            if(!HandleCUDAError(cudaMemset(local_C, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
-                cout<<"Error rewriting local C"<<endl;
-            }
-            if(!HandleCUDAError(cudaMemset(local_K_idx, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
-                cout<<"Error rewriting local K idx"<<endl;
-            }
-            if(2*tpb<512){
-                tpb = 2*tpb;
-            }
-            else{
-                tpb = 512;
-            }
-        }
+        cudaFuncSetAttribute(Apply_Ver0, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+        // for(unsigned int i=0; i<iter; i++){
+        //     cout<<"Iteration "<<i<<endl;
+        //     Gather_Ver1<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, num_local_K, local_K, local_K_idx);
+        //     if(!HandleCUDAError(cudaDeviceSynchronize())){
+        //         cout<<"Error synchronizing device"<<endl;
+        //     }
+        //     cout<<"Gathered"<<endl;
+        //     cout<<max_unq_ctr*sizeof(unsigned int)<<endl;
+        //     Apply_Ver1<<<BLOCKS, thrd_blck, max_unq_ctr*sizeof(unsigned int)>>>(d_unq_ptr, local_K, local_C,num_local_K,local_K_idx, d_p_t,i, d_state_teleport);
+        //     if(!HandleCUDAError(cudaDeviceSynchronize())){
+        //         cout<<"Error synchronizing device for Apply"<<endl;
+        //     }
+        //     cout<<"Applied"<<endl;
+        //     Sync_Mirrors_Ver1<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_unq, d_unq_ptr, local_C, local_K, local_C_idx, local_K_idx, num_local_C, num_local_K, d_p_s, d_state_scatter);
+        //     if(!HandleCUDAError(cudaDeviceSynchronize())){
+        //         cout<<"Error synchronizing device for Sync"<<endl;
+        //     }
+        //     cout<<"Synced"<<endl;
+        //     Scatter_Ver1<<<b_per_grid,thrd_blck>>>(d_c, d_k, d_global_src, d_global_succ, d_replica, node_size);
+        //     if(!HandleCUDAError(cudaDeviceSynchronize())){
+        //         cout<<"Error synchronizing device for Scatter"<<endl;
+        //     }
+        //     cout<<"Scattered"<<endl;
+        //     if(!HandleCUDAError(cudaMemset(num_local_K, 0, BLOCKS*sizeof(unsigned int)))){
+        //         cout<<"Error rewriting num of local K"<<endl;
+        //     }
+        //     if(!HandleCUDAError(cudaMemset(num_local_C, 0, BLOCKS*sizeof(unsigned int)))){
+        //         cout<<"Error rewriting num of local C"<<endl;
+        //     }
+        //     if(!HandleCUDAError(cudaMemset(local_K, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+        //         cout<<"Error rewriting local K"<<endl;
+        //     }
+        //     if(!HandleCUDAError(cudaMemset(local_C, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+        //         cout<<"Error rewriting local C"<<endl;
+        //     }
+        //     if(!HandleCUDAError(cudaMemset(local_K_idx, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+        //         cout<<"Error rewriting local K idx"<<endl;
+        //     }
+        // }
         if(!HandleCUDAError(cudaEventRecord(stop))){
             cout<<"Error recording stop event"<<endl;
         }
@@ -872,145 +835,19 @@ unsigned int* ind_rank, unsigned int debug){
         thrust::sequence(indices, indices+node_size,1);
         thrust::sequence(indices_approx, indices_approx+node_size,1);
         unsigned int max_iter = 100;
-        float tol = 1e-6;   
+        float tol = 1e-14;   
         float damp = p_t;
         PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
         /*We need to do accuracy stuff here, for now, we need to verify with python*/
 
         Export_pr_vector(pagerank,indices, node_size);
-        if(!HandleCUDAError(cudaMemcpy(dev_ind_ptr_approx, indices_approx, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
-            cout<<"Error copying memory to dev_ind_ptr_approx"<<endl;
-        }
         thrust::stable_sort_by_key(thrust::device,d_c, d_c+node_size, dev_ind_ptr_approx, thrust::greater<float>());
-        unsigned int* d_indices_pr;
-        if(!HandleCUDAError(cudaMalloc((void**)&d_indices_pr, node_size*sizeof(unsigned int)))){
-            cout<<"Error allocating memory for d_indices_pr"<<endl;
-        }
-        if(!HandleCUDAError(cudaMemcpy(d_indices_pr, indices, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
-            cout<<"Error copying memory to d_indices_pr"<<endl;
-        }
-        unsigned int dot_res, L_1_res_A, L_1_res_B;
-        unsigned int *d_dot_res, *d_L_1_res_A, *d_L_1_res_B;
-        unsigned int *part_sum_dot, *part_sumL2_a, *part_sumL2_b;
-        unsigned int ps_block = node_size/thrd_blck+1;
-        cudaStream_t streams[3];
-        for(int i=0; i<3; i++){
-            cudaStreamCreate(&streams[i]);
-        }
-
-        if(!HandleCUDAError(cudaMallocAsync((void**)&d_dot_res, node_size*sizeof(unsigned int),streams[0]))){
-            cout<<"Error allocating memory for d_dot_res"<<endl;
-        }
-        if(!HandleCUDAError(cudaMallocAsync((void**)&d_L_1_res_A, node_size*sizeof(unsigned int),streams[1]))){
-            cout<<"Error allocating memory for d_L_1_res_A"<<endl;
-        }
-        if(!HandleCUDAError(cudaMallocAsync((void**)&d_L_1_res_B, node_size*sizeof(unsigned int),streams[2]))){
-            cout<<"Error allocating memory for d_L_1_res_B"<<endl;
-        }
-        if(!HandleCUDAError(cudaMallocAsync((void**)&part_sum_dot, ps_block*sizeof(unsigned int), streams[0]))){
-            cout<<"Error allocating memory for part_sum_dot"<<endl;
-        }
-        if(!HandleCUDAError(cudaMallocAsync((void**)&part_sumL2_a, ps_block*sizeof(unsigned int), streams[1]))){
-            cout<<"Error allocating memory for part_sumL2_a"<<endl;
-        }
-        if(!HandleCUDAError(cudaMallocAsync((void**)&part_sumL2_b, ps_block*sizeof(unsigned int), streams[2]))){
-            cout<<"Error allocating memory for part_sumL2_b"<<endl;
-        }
-
-        unsigned int *fin_dot_res, *fin_L_1_res_A, *fin_L_1_res_B;
-        if(!HandleCUDAError(cudaMallocAsync((void**)&fin_dot_res,sizeof(unsigned int),streams[0]))){
-            cout<<"Error allocating memory for d_dot_res"<<endl;
-        }
-        if(!HandleCUDAError(cudaMallocAsync((void**)&fin_L_1_res_A,sizeof(unsigned int),streams[1]))){
-            cout<<"Error allocating memory for d_L_1_res_A"<<endl;
-        }
-        if(!HandleCUDAError(cudaMallocAsync((void**)&fin_L_1_res_B,sizeof(unsigned int),streams[2]))){
-            cout<<"Error allocating memory for d_L_1_res_B"<<endl;
-        }
-
-        Schur_Product_Vectors<<<ps_block, thrd_blck, 0, streams[0]>>>(d_indices_pr, dev_ind_ptr_approx, d_dot_res, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
-            cout<<"Error synchronizing stream 0"<<endl;
-        }
-        Compute_L2_Max_u_1<<<ps_block,thrd_blck,0,streams[1]>>>(d_indices_pr, d_L_1_res_A, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[1]))){
-            cout<<"Error synchronizing stream 0"<<endl;
-        }
-        Compute_L2_Max_u_1<<<ps_block,thrd_blck,0,streams[2]>>>(dev_ind_ptr_approx, d_L_1_res_B, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
-            cout<<"Error synchronizing stream 0"<<endl;
-        }
-        Partial_Sums<<<ps_block,thrd_blck,0,streams[0]>>>(d_dot_res, part_sum_dot, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
-            cout<<"Error synchronizing stream 0"<<endl;
-        }
-        Partial_Sums<<<ps_block,thrd_blck,0,streams[1]>>>(d_L_1_res_A, part_sumL2_a, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[1]))){
-            cout<<"Error synchronizing stream 0"<<endl;
-        }
-        Partial_Sums<<<ps_block,thrd_blck,0,streams[2]>>>(d_L_1_res_B, part_sumL2_b, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
-            cout<<"Error synchronizing stream 0"<<endl;
-        }
-        Partial_Sum_Last_Val<<<1,ps_block,0,streams[0]>>>(part_sum_dot, fin_dot_res, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[0]))){
-            cout<<"Error synchronizing stream 0"<<endl;
-        }
-        Partial_Sum_Last_Val<<<1,ps_block,0,streams[1]>>>(part_sumL2_a, fin_L_1_res_A, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[1]))){
-            cout<<"Error synchronizing stream 0"<<endl;
-        }
-        Partial_Sum_Last_Val<<<1,ps_block,0,streams[2]>>>(part_sumL2_b, fin_L_1_res_B, node_size);
-        if(!HandleCUDAError(cudaStreamSynchronize(streams[2]))){
-            cout<<"Error synchronizing stream 0"<<endl;
-        }
-        for(int i =0; i<3; i++){
-            if(!HandleCUDAError(cudaStreamDestroy(streams[i]))){
-                cout<<"Error destroying stream 0"<<endl;
-            }
-        }
-        unsigned int* h_indices_pr;
-        h_indices_pr = new unsigned int[node_size];
-        if(!HandleCUDAError(cudaMemcpy(h_indices_pr, d_indices_pr, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-            cout<<"Error copying memory to h_indices_pr"<<endl;
-        }
         if(!HandleCUDAError(cudaMemcpy(ind_rank, dev_ind_ptr_approx, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to h_indices_frog"<<endl;
         }
-        if(!HandleCUDAError(cudaMemcpy(&dot_res, fin_dot_res, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-            cout<<"Error copying memory to dot_res"<<endl;
-        }
-        if(!HandleCUDAError(cudaMemcpy(&L_1_res_A, fin_L_1_res_A, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-            cout<<"Error copying memory to L_1_res_A"<<endl;
-        }
-        if(!HandleCUDAError(cudaMemcpy(&L_1_res_B, fin_L_1_res_B, sizeof(unsigned int), cudaMemcpyDeviceToHost))){
-            cout<<"Error copying memory to L_1_res_B"<<endl;
-        }
-        Verif_Dot_Product(h_indices_pr, ind_rank, dot_res, node_size);
-        Verif_L2(ind_rank,L_1_res_B, node_size);
-        Verif_L2(h_indices_pr,L_1_res_A, node_size);
-        float min_sim = (1.0f*node_size+2.0f)/(2.0f*node_size+1.0f);
-        cout<<"Dot product is "<<dot_res<<endl;
-        cout<<"L_1 norm of A is "<<L_1_res_A<<endl;
-        cout<<"L_1 norm of B is "<<L_1_res_B<<endl;
-        float cosine_sim = (float)dot_res/(sqrt((float)L_1_res_A)*sqrt((float)L_1_res_B));
-        cout<<"Cosine similarity is "<<cosine_sim<<endl;
-        float norm_cosine_sim = (cosine_sim-min_sim)/(1-min_sim);
-        cout<<"Normalized cosine similarity is "<<norm_cosine_sim<<endl;
-        cudaFree(d_dot_res);
-        cudaFree(d_L_1_res_A);
-        cudaFree(d_L_1_res_B);
-        cudaFree(part_sum_dot);
-        cudaFree(part_sumL2_a);
-        cudaFree(part_sumL2_b);
-        cudaFree(fin_dot_res);
-        cudaFree(fin_L_1_res_A);
-        cudaFree(fin_L_1_res_B);
-        cudaFree(d_indices_pr);
         delete[] pagerank;
         delete[] indices;
         delete[] indices_approx;
-        delete[] h_indices_pr;
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;
         }
@@ -1242,8 +1079,7 @@ Instead of dictating which block is the master of which vertex, we will have the
 of the vertex. This will allow us to combine the functions into one and avoid passing of data, and ease the synchronization
 */
 
-__global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_K,
-unsigned int* local_K, unsigned int* local_K_idx){
+__global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr,unsigned int* local_K){
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
@@ -1253,11 +1089,7 @@ unsigned int* local_K, unsigned int* local_K_idx){
         //Hence referencing unq[i+unq_ptr[blockIdx.x]] will give the node in the cluster, pointing to K
         //This is the node that we are going to be looking at
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
-            atomicAdd(num_local_K+blockIdx.x,1);
-            //Increment the number of local frogs
-            atomicExch(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,i);
-            //Swap the 
-            atomicExch(local_K+unq_ptr[blockIdx.x]+i,K[unq[i+unq_ptr[blockIdx.x]]]);
+            *(local_K+unq_ptr[blockIdx.x]+i)=K[unq[i+unq_ptr[blockIdx.x]]];
             //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
             //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
             //Possibly a question worth experimentation
@@ -1275,7 +1107,7 @@ unsigned int* local_K, unsigned int* local_K_idx){
 }
 
 
-__global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, unsigned int* local_C_global, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, unsigned int iter, curandState* d_state){
+__global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, unsigned int* local_C_global, float* p_t, unsigned int iter, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     extern __shared__ unsigned int local_K[];
@@ -1299,7 +1131,7 @@ __global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, 
             //number for each frog, so incrementing the seed by j should (in theory)
             //give each frog a unique random number
             if(rand<*(p_t)){
-                atomicAdd(local_C_global+unq_ptr[blockIdx.x]+local_K_idx[i],1);
+                atomicAdd(local_C_global+unq_ptr[blockIdx.x]+i,1);
                 //Increment the number of frogs which have died on this vertex-this will mirror the indexing of the unq ptr
                 // atomicAdd(num_loc_C+blockIdx.x,1);
                 // //Increment the number of non zero C values
@@ -1309,9 +1141,6 @@ __global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, 
                 //The issue with the above part could exceed the values, this poses an issue- do we need this?
                 //I do not think so
                 atomicSub(local_K+i,1);
-                if(local_K[i]==0){
-                    atomicSub(num_loc_K+blockIdx.x,1);
-                }
                 //Decrement the K value
             }
         }
@@ -1328,9 +1157,7 @@ __global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, 
     // __syncthreads();
 }
 
-__global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
-unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int* num_local_C, unsigned int* num_local_K, float* p_s, 
-curandState* d_state){
+__global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, unsigned int* local_K, float* p_s, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
@@ -1370,7 +1197,21 @@ __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node
         C[i]+=K[i];
     }
     __syncthreads();
-    
+}
+
+__global__ void Reverse_Gather(unsigned int* K, unsigned int* local_K, replica_tracker* d_rep, unsigned int* unq, unsigned int* unq_ptr, unsigned int node_size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
+    for(unsigned int i =tid; i<len_nodes_clust; i+=blockDim.x){
+        if(local_K[i]>0){
+            unsigned int num_frog=local_K[i]/d_rep[unq[i+unq_ptr[blockIdx.x]]].num_replicas+1;
+            for(int j=0; j<num_frog; j++){
+                atomicAdd(&K[unq[i+unq_ptr[blockIdx.x]]],1);
+            }
+        }
+        __syncthreads();
+    }
 }
 
 //Thoughts- maybe save multiple files of the number of nodes and commit to them with the C to sync with the mirrors
@@ -1409,7 +1250,7 @@ unsigned int* local_K, unsigned int* local_K_idx){
 }
 
 
-__global__ void Apply_Ver1(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, curandState* d_state){
+__global__ void Apply_Ver1(unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     extern __shared__ unsigned int local_K[];
@@ -1448,8 +1289,7 @@ __global__ void Apply_Ver1(unsigned int* unq, unsigned int* unq_ptr, unsigned in
 }
 
 __global__ void Sync_Mirrors_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
-unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int* num_local_C, unsigned int* num_local_K, float* p_s, 
-replica_tracker* d_replica, curandState* d_state){
+unsigned int* local_K, float* p_s, replica_tracker* d_replica, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
@@ -1458,13 +1298,14 @@ replica_tracker* d_replica, curandState* d_state){
     //to the global C
     float rand = curand_uniform(&d_state[idx]);
     for(unsigned int i =tid; i<len_nodes_clust; i+=blockDim.x){
-        for(int j=0; j<*(local_C+unq_ptr[blockIdx.x]+tid); j++){
+        for(int j=0; j<*(local_C+unq_ptr[blockIdx.x]+i); j++){
             //Commit to global memory
             if(rand<*(p_s) && *(local_C+unq_ptr[blockIdx.x]+i)>0){
                 atomicAdd(C+unq[i+unq_ptr[blockIdx.x]],1);
                 *(local_C+unq_ptr[blockIdx.x]+i)-=1;
             }
         }
+        __syncthreads();
     }
 }
 

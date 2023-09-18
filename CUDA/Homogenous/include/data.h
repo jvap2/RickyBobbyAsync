@@ -223,16 +223,20 @@ __global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsign
 
 __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* unq);
 
-__global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, unsigned int* local_C_global, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, unsigned int iter, curandState* d_state);
+__global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, unsigned int* local_C_global, float* p_t, unsigned int iter, curandState* d_state);
 
-__global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_K,
-unsigned int* local_K, unsigned int* local_K_idx);
+__global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr,unsigned int* local_K);
 
-__global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
-unsigned int* local_K, unsigned int* local_C_idx, unsigned int* local_K_idx, unsigned int* num_local_C, unsigned int* num_local_K, float* p_s, 
-curandState* d_state);
+__global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, unsigned int* local_K, float* p_s, curandState* d_state);
 
 __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src, unsigned int* succ,replica_tracker* d_rep, unsigned int node_size);
+
+__global__ void Reverse_Gather(unsigned int* K, unsigned int* local_K, replica_tracker* d_rep, unsigned int* unq, unsigned int* unq_ptr, unsigned int node_size);
+
+__global__ void Gather_Ver1(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_K,
+unsigned int* local_K, unsigned int* local_K_idx);
+
+__global__ void Apply_Ver1(unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, curandState* d_state);
 
 __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node_size);
 
