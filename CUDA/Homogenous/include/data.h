@@ -26,7 +26,7 @@ using namespace std;
 
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 48
+#define BLOCKS 32
 #if BLOCKS>=48
 #define TPB 128
 #else
@@ -223,7 +223,7 @@ __global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsign
 
 __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* unq);
 
-__global__ void Apply_Ver0(unsigned int* unq, unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, unsigned int iter, curandState* d_state);
+__global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, unsigned int* local_C_global, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, unsigned int iter, curandState* d_state);
 
 __global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_K,
 unsigned int* local_K, unsigned int* local_K_idx);

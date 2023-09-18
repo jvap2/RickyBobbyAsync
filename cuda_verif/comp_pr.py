@@ -36,7 +36,7 @@ cub_frog_acc = 0
 cub_cug_acc = 0
 frog_cug_acc = 0
 
-k=16
+k=int(no_nodes/20)
 for i in range(k):
     for j in range(k):
         if cub_vertex[i]==frog_vertex[j]:
