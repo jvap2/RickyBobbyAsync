@@ -395,9 +395,9 @@ unsigned int* ind_rank, unsigned int debug){
     unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree, *d_global_src, *d_global_succ;
     replica_tracker *d_replica;
     float p_t, p_s;
-    p_s=.15;
-    p_t=.15;
-    unsigned int iter = 3;
+    p_s=.7;
+    p_t=.7;
+    unsigned int iter = 5;
     float* d_p_t, *d_p_s;
     unsigned int unq_ctr_max=0;
     unsigned int src_ctr_max=0;
@@ -476,7 +476,7 @@ unsigned int* ind_rank, unsigned int debug){
             cout<<"Error copying memory to d_global_succ"<<endl;
         }
         float* rand_frog;
-        int sublinear_size=node_size/8;
+        int sublinear_size=node_size/100;
         if(!HandleCUDAError(cudaMalloc((void**)&rand_frog, sublinear_size*sizeof(float)))){
             cout<<"Error allocating memory for rand_frog"<<endl;
         }
@@ -554,7 +554,7 @@ unsigned int* ind_rank, unsigned int debug){
             }
             cout<<"Scattered"<<endl;
         }
-        Final_Commit<<<BLOCKS,thrd_blck>>>(d_c, d_k, node_size);
+        Final_Commit<<<b_per_grid,thrd_blck>>>(d_c, d_k, node_size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             cout<<"Error synchronizing device"<<endl;
         }

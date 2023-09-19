@@ -32,27 +32,25 @@ print("FROG vs CUGRAPH: ", frog_cug_sim)
 
 ## Compare the accuraccy of the three methods
 
-cub_frog_acc = 0
-cub_cug_acc = 0
-frog_cug_acc = 0
+frog_cub_acc=0
+frog_pr_acc=0
 
-k=int(no_nodes/20)
+k=int(no_nodes/100)
 for i in range(k):
     for j in range(k):
-        if cub_vertex[i]==frog_vertex[j]:
-            cub_frog_acc+=1
-        if cub_vertex[i]==cug_vertex[j]:
-            cub_cug_acc+=1
-        if frog_vertex[i]==cug_vertex[j]:
-            frog_cug_acc+=1
+        if(frog_vertex[i]==cub_vertex[j]):
+            frog_cub_acc+=1
+        if(frog_vertex[i]==cug_vertex[j]):
+            frog_pr_acc+=1
 
-cub_frog_acc = cub_frog_acc/k
-cub_cug_acc = cub_cug_acc/k
-frog_cug_acc = frog_cug_acc/k
+for i in range(k):
+    print(frog_vertex[i],cub_vertex[i],cug_vertex[i])
 
-print("CUBLAS vs FROG: ", cub_frog_acc)
-print("CUBLAS vs CUGRAPH: ", cub_cug_acc)
-print("FROG vs CUGRAPH: ", frog_cug_acc)
+frog_cub_acc=frog_cub_acc/k
+frog_pr_acc=frog_pr_acc/k
+
+print("FROG vs CUBLAS accuracy: ", frog_cub_acc)
+print("FROG vs CUGRAPH accuracy: ", frog_pr_acc)
 
 
 
