@@ -273,8 +273,11 @@ __host__ void Import_Replica_Stats(replica_tracker* h_replica, unsigned int node
                         h_replica[count-1].num_replicas = stoi(word);
                         column++;
                     }
-                    else{
+                    else if(column>1 && column <BLOCKS+2){
                         h_replica[count-1].clusters[column-2] = stoi(word);
+                    }
+                    else{
+                        h_replica[count-1].master_rep= stoi(word);
                     }
                 }
             }
@@ -395,9 +398,9 @@ unsigned int* ind_rank, unsigned int debug){
     unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree, *d_global_src, *d_global_succ;
     replica_tracker *d_replica;
     float p_t, p_s;
-    p_s=.7;
-    p_t=.7;
-    unsigned int iter = 5;
+    p_s=.85;
+    p_t=.85;
+    unsigned int iter = 10;
     float* d_p_t, *d_p_s;
     unsigned int unq_ctr_max=0;
     unsigned int src_ctr_max=0;
@@ -476,7 +479,7 @@ unsigned int* ind_rank, unsigned int debug){
             cout<<"Error copying memory to d_global_succ"<<endl;
         }
         float* rand_frog;
-        int sublinear_size=node_size/100;
+        int sublinear_size=node_size/300;
         if(!HandleCUDAError(cudaMalloc((void**)&rand_frog, sublinear_size*sizeof(float)))){
             cout<<"Error allocating memory for rand_frog"<<endl;
         }
@@ -526,29 +529,65 @@ unsigned int* ind_rank, unsigned int debug){
         if(!HandleCUDAError(cudaEventRecord(start))){
             cout<<"Error recording start event"<<endl;
         }
-        cudaFuncSetAttribute(Apply_Ver0, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
+        // unsigned int num_streams=max_unq_ctr*sizeof(unsigned int)/102400+1;
+        // cudaStream_t streams[num_streams];
+        // for(int i=0; i<num_streams;i++){
+        //     if(!HandleCUDAError(cudaStreamCreate(&streams[i]))){
+        //         cout<<"Error creating stream"<<endl;
+        //     }
+        // }
+        unsigned int* d_k_local_temp;
+        if(!HandleCUDAError(cudaMalloc((void**)&d_k_local_temp, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+            cout<<"Error allocating memory for d_k_temp"<<endl;
+        }
+        size_t free_byte ;
+        size_t total_byte ;
+        if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
+            cout<<"Error getting memory info"<<endl;
+        }
+        double free_db = (double)free_byte ;
+        double total_db = (double)total_byte ;
+        double used_db = total_db - free_db ;
+        printf("GPU memory usage before PR: used = %f, free = %f MB, total = %f MB\n",
+            used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+        // cudaFuncSetAttribute(Apply_Ver0, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
         for(unsigned int i=0; i<iter; i++){
             cout<<"Iteration "<<i<<endl;
             Gather_Ver0<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
+            cudaError_t err = cudaGetLastError();
+            if (err != cudaSuccess) 
+                printf("Gather Error: %s\n", cudaGetErrorString(err));
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Error synchronizing device"<<endl;
             }
             if(!HandleCUDAError(cudaMemset(d_k,0, node_size*sizeof(unsigned int)))){
                 cout<<"Error initializing d_k"<<endl;
             }
+            if(!HandleCUDAError(cudaMemset(d_k_local_temp, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+                cout<<"Error initializing d_k_temp"<<endl;
+            }
             cout<<"Gathered"<<endl;
             cout<<max_unq_ctr*sizeof(unsigned int)<<endl;
-            Apply_Ver0<<<BLOCKS, thrd_blck, max_unq_ctr*sizeof(unsigned int)>>>(d_unq_ptr, local_K, local_C, d_p_t,i, d_state_teleport);
+            Apply_Ver0<<<BLOCKS, thrd_blck>>>(d_unq_ptr, local_K,d_k_local_temp, local_C, d_p_t,i, d_state_teleport);
+            cudaError_t err1 = cudaGetLastError();
+            if (err1 != cudaSuccess) 
+                printf("Apply Error: %s\n", cudaGetErrorString(err1));
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Error synchronizing device for Apply"<<endl;
             }
             cout<<"Applied"<<endl;
             Sync_Mirrors_Ver0<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_unq, d_unq_ptr, local_C, local_K, d_p_s, d_state_scatter);
+            cudaError_t err2 = cudaGetLastError();  
+            if (err2 != cudaSuccess) 
+                printf("Sync Error: %s\n", cudaGetErrorString(err2));
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Error synchronizing device for Sync"<<endl;
             }
             cout<<"Synced"<<endl;
             Scatter_Ver0<<<b_per_grid,thrd_blck>>>(d_c, d_k, d_global_src, d_global_succ, d_replica, node_size);
+            err2= cudaGetLastError();
+            if (err2 != cudaSuccess) 
+                printf("Error: %s\n", cudaGetErrorString(err2));
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 cout<<"Error synchronizing device for Scatter"<<endl;
             }
@@ -586,33 +625,18 @@ unsigned int* ind_rank, unsigned int debug){
         cudaFree(d_state_teleport);
         cudaFree(d_state_scatter);
         cudaFree(rand_frog);
-        //Perform PageRank with cuSparse and cuBLAS
-        cout<<"Performing PageRank"<<endl;
-        float* pagerank;
-        pagerank = new float[node_size]; 
-        unsigned int *indices, *indices_approx;
-        indices = new unsigned int[node_size];
-        indices_approx = new unsigned int[node_size];
+        thrust::sequence(ind_rank, ind_rank+node_size,1);
         unsigned int* dev_ind_ptr_approx;
         if(!HandleCUDAError(cudaMalloc((void**)&dev_ind_ptr_approx, node_size*sizeof(unsigned int)))){
             cout<<"Error allocating memory for dev_ind_ptr_approx"<<endl;
         }
-        thrust::sequence(indices, indices+node_size,1);
-        thrust::sequence(indices_approx, indices_approx+node_size,1);
-        unsigned int max_iter = 100;
-        float tol = 1e-14;   
-        float damp = p_t;
-        PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
-        /*We need to do accuracy stuff here, for now, we need to verify with python*/
-
-        Export_pr_vector(pagerank,indices, node_size);
+        if(!HandleCUDAError(cudaMemcpy(dev_ind_ptr_approx, ind_rank, node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
+            cout<<"Error copying memory to dev_ind_ptr_approx"<<endl;
+        }
         thrust::stable_sort_by_key(thrust::device,d_c, d_c+node_size, dev_ind_ptr_approx, thrust::greater<float>());
         if(!HandleCUDAError(cudaMemcpy(ind_rank, dev_ind_ptr_approx, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to h_indices_frog"<<endl;
         }
-        delete[] pagerank;
-        delete[] indices;
-        delete[] indices_approx;
         if(!HandleCUDAError(cudaMemcpy(c, d_c, node_size*sizeof(unsigned int), cudaMemcpyDeviceToHost))){
             cout<<"Error copying memory to c"<<endl;
         }
@@ -621,6 +645,33 @@ unsigned int* ind_rank, unsigned int debug){
         }
         cudaFree(d_c);
         cudaFree(d_k);
+        if(!HandleCUDAError(cudaMemGetInfo( &free_byte, &total_byte ))){
+            cout<<"Error getting memory info"<<endl;
+        }
+        free_db = (double)free_byte ;
+        total_db = (double)total_byte ;
+        used_db = total_db - free_db ;
+        printf("GPU memory usage before PR: used = %f, free = %f MB, total = %f MB\n",
+            used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+        //Perform PageRank with cuSparse and cuBLAS
+        // cout<<"Performing PageRank"<<endl;
+        // float* pagerank;
+        // pagerank = new float[node_size]; 
+        // unsigned int *indices, *indices_approx;
+        // indices = new unsigned int[node_size];
+        // indices_approx = new unsigned int[node_size];
+        // thrust::sequence(indices, indices+node_size,1);
+        // thrust::sequence(indices_approx, indices_approx+node_size,1);
+        // unsigned int max_iter = 100;
+        // float tol = 1e-14;   
+        // float damp = p_t;
+        // PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
+        // /*We need to do accuracy stuff here, for now, we need to verify with python*/
+
+        // Export_pr_vector(pagerank,indices, node_size);
+        // delete[] pagerank;
+        // delete[] indices;
+        // delete[] indices_approx;
     }
     else if(version==1){
         if(!HandleCUDAError(cudaMalloc((void**)&d_unq, (unq_ptr[BLOCKS])*sizeof(unsigned int)))){
@@ -1107,11 +1158,11 @@ __global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* un
 }
 
 
-__global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, unsigned int* local_C_global, float* p_t, unsigned int iter, curandState* d_state){
+__global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global,unsigned int* local_K_temp, unsigned int* local_C_global, float* p_t, unsigned int iter, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    extern __shared__ unsigned int local_K[];
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
+    unsigned int* local_K = local_K_temp+unq_ptr[blockIdx.x];
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
         local_K[i]=local_K_global[i+unq_ptr[blockIdx.x]];
     }

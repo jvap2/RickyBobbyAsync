@@ -13,7 +13,7 @@ G = cugraph.Graph()
 G.from_cudf_edgelist(df, source='from', destination='to', store_transposed=True)
 
 #Perform PageRank on the graph
-df_pagerank = cugraph.pagerank(G)
+df_pagerank = cugraph.pagerank(G, max_iter=10)
 print(df_pagerank)
 #Print the top 5 connections
 print(df_pagerank.nlargest(5, 'pagerank'))

@@ -1,0 +1,23 @@
+Getting graph info
+1000000
+39992657
+Starting the edge list function
+Getting edge list
+Data is open 1
+Ending edge list function
+Starting Helper Function
+Num of blocks 156222
+Second amount of blocks 1221
+Allocating d_edge
+Copying edge list
+Done with edge list
+  Total amount of constant memory:               65536 bytes
+  Total amount of shared memory per block:       49152 bytes
+  Total shared memory per multiprocessor:        102400 bytes
+The random number is 0.840188
+Starting random edge placement
+Ending Helper Function
+Copying the edge list
+Starting the merge function
+Ending the merge function
+Done making src, unq and succ

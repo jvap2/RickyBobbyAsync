@@ -131,6 +131,7 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     }
     cudaFree(d_edgelist);
     free(h_edgelist);
+    cudaFree(d_global_src);
     
     //Now, we need to initialize the pr_vector
     if(!HandleCUDAError(cudaMalloc((void**)&d_pr_vector, node_size*sizeof(float)))){

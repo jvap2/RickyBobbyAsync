@@ -77,6 +77,7 @@ struct vert_hash_table{
 struct replica_tracker{
     unsigned int clusters[BLOCKS]{0};
     unsigned int num_replicas;
+    unsigned int master_rep;
 };
 
 /*CPU FUNCTIONS*/
@@ -169,6 +170,8 @@ __host__ void Print_Matrix(float* matrix, unsigned int node_size);
 __host__ void Verif_L2(unsigned int* vec, unsigned int res, unsigned int size);
 
 __host__ void Verif_Dot_Product(unsigned int* vec_1, unsigned int* vec_2, unsigned int res, unsigned int size);
+
+__host__ void Determine_Master(unsigned int* unq_ptr, replica_tracker* h_replica, unsigned int node_size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
@@ -223,7 +226,7 @@ __global__ void temp_Copy_Start_End(edge* edge_list, unsigned int* start, unsign
 
 __global__ void Naive_Merge_Sort(unsigned int* start, unsigned int* end, unsigned int* ptr_table, unsigned int* ctr_table, unsigned int* unq);
 
-__global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global, unsigned int* local_C_global, float* p_t, unsigned int iter, curandState* d_state);
+__global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global,unsigned int* local_K_temp, unsigned int* local_C_global, float* p_t, unsigned int iter, curandState* d_state);
 
 __global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr,unsigned int* local_K);
 

@@ -384,6 +384,7 @@ __host__ void Export_Replica_Stats(replica_tracker* h_replica, unsigned int node
         myfile<<to_string(i);
         myfile<<",";
     }
+    myfile<<"master_rep";
     myfile<<"\n";
     for(int i=0; i<node_size;i++){
         myfile<< to_string(i);
@@ -394,6 +395,7 @@ __host__ void Export_Replica_Stats(replica_tracker* h_replica, unsigned int node
             myfile<< to_string(h_replica[i].clusters[j]);
             myfile<<",";
         }
+        myfile<<to_string(h_replica[i].master_rep);
         myfile<<"\n";
     }
     myfile.close();
@@ -531,6 +533,17 @@ __host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsig
                 edge_list_2[h_ptr[i]+j].start=start_idx;
                 edge_list_2[h_ptr[i]+j].end=end_idx;
                 edge_list_2[h_ptr[i]+j].cluster=edge_list[h_ptr[i]+j].cluster;
+            }
+        }
+    }
+}
+
+__host__ void Determine_Master(unsigned int* unq_ptr, replica_tracker* rep, unsigned int node_size){
+    for(int i=0; i<node_size;i++){
+        unsigned int min = 4294967290;
+        for(int j=0; j<rep[i].num_replicas;j++){
+            if(unq_ptr[rep[i].clusters[j]+1]-unq_ptr[rep[i].clusters[j]]<min){
+                rep[i].master_rep=rep[i].clusters[j];
             }
         }
     }
@@ -798,11 +811,11 @@ __global__ void Generate_Replica_List(replica_tracker* d_rep, replica_tracker* f
         for(int i=0; i<BLOCKS; i++){
             if(shared_rep[tid].clusters[i]!=0){
                 fin_rep[idx].clusters[count_rep[tid]]=i;
-                count_rep[tid]++;
+                count_rep[tid]+=1;
                 if(count_rep[tid]>BLOCKS){
                     printf("Error: %d, %d, %d\n", idx, tid, count_rep[tid]);
                 }
-                fin_rep[idx].num_replicas++;
+                fin_rep[idx].num_replicas+=1;
             }
         }
     }

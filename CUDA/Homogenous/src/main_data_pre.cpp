@@ -99,12 +99,15 @@ int main()
             src_ctr_max=src_ctr[i];
         }
     }
+    cout<<"Done making src, unq and succ"<<endl;
     unsigned int* h_local_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     unsigned int* h_temp_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]]{0};
     Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
     Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,src_ctr,src_ptr,h_ctr,h_ptr);
     Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ,src_ctr,src_ptr,h_ptr);
+    cout<<"Done generating local src and succ"<<endl;
+    Determine_Master(unq_ptr,h_replica,nodes);
     Export_Local_Src(h_local_src,src_ptr,src_ctr);
     Export_Local_Succ(h_local_succ,h_ptr,h_ctr);
     Export_Unq(h_unq_fin,unq_ptr,unq_ctr);
@@ -112,6 +115,7 @@ int main()
     Export_Src_Ctr_Ptr(src_ptr,src_ctr);
     Export_H_Ctr_Ptr(h_ptr,h_ctr);
     Export_Replica_Stats(h_replica,nodes);
+    cout<<"Done exporting"<<endl;
     delete[] h_temp_src;
     free(h_replica);
     free(edge_list);
@@ -132,5 +136,6 @@ int main()
     delete[] h_local_succ;
     delete[] src_ptr;
     delete[] src_ctr;
+    cout<<"Done"<<endl;
     return 0;
 }
