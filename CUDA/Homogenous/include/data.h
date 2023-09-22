@@ -4,6 +4,8 @@
 #include <string>
 #include <sstream>   
 #include<algorithm>
+#include<cstdlib>
+#include<ctime>
 using namespace std;
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -233,7 +235,7 @@ __global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* un
 //__global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, unsigned int* local_K, float* p_s, curandState* d_state);
 
 __global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, unsigned int* local_K, 
-unsigned int* src, unsigned int* succ, unsigned int* mirror_ctr,replica_tracker* d_rep, unsigned int node_size, float* p_s, curandState* d_state);
+unsigned int* src, unsigned int* succ, unsigned int* mirror_ctr,replica_tracker* d_rep, unsigned int node_size, unsigned int iter, float* p_s, curandState* d_state);
 
 __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src, unsigned int* succ,replica_tracker* d_rep, unsigned int node_size);
 
