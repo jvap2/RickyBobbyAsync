@@ -25,6 +25,10 @@ int main(int argc, char** argv){
 
 
     Import_Unq_Ptr_Ctr(unq_ptr,unq_ctr);
+    cout<<"unq ptr values"<<endl;
+    for(int i=0;i<BLOCKS+1;i++){
+        cout<<unq_ptr[i]<<endl;
+    }
     Import_Src_Ctr_Ptr(src_ctr,src_ptr);
     Import_H_Ctr_Ptr(h_ctr,h_ptr);
     unsigned int* h_unq = new unsigned int[unq_ptr[BLOCKS-1]+unq_ctr[BLOCKS-1]];

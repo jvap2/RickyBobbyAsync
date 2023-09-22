@@ -23,8 +23,6 @@ int main()
     CSR_Graph(EDGE_PATH,nodes,edges,src,succ);
     Export_Global_Src(src,nodes);
     Export_Global_Succ(succ,edges);
-    delete[] src;
-    delete[] succ;
     Capture_Node_Degree(edge_list,deg,edges);
     Export_Degree(deg,nodes);
     unsigned int *h_ctr, *h_ptr;
@@ -99,27 +97,37 @@ int main()
             src_ctr_max=src_ctr[i];
         }
     }
+    cout<<"Unq Ptr Values"<<endl;
     cout<<"Done making src, unq and succ"<<endl;
     unsigned int* h_local_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     unsigned int* h_temp_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]]{0};
     Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
     Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,src_ctr,src_ptr,h_ctr,h_ptr);
+    cout<<"Local src values"<<endl;
     Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ,src_ctr,src_ptr,h_ptr);
     cout<<"Done generating local src and succ"<<endl;
     Determine_Master(unq_ptr,h_replica,nodes);
-    Export_Local_Src(h_local_src,src_ptr,src_ctr);
-    Export_Local_Succ(h_local_succ,h_ptr,h_ctr);
-    Export_Unq(h_unq_fin,unq_ptr,unq_ctr);
-    Export_Unq_Ctr_Ptr(unq_ptr,unq_ctr);
-    Export_Src_Ctr_Ptr(src_ptr,src_ctr);
-    Export_H_Ctr_Ptr(h_ptr,h_ctr);
-    Export_Replica_Stats(h_replica,nodes);
+    unsigned int* rank = new unsigned int[nodes];
+    unsigned int* K = new unsigned int[nodes]{0};
+    unsigned int* C = new unsigned int[nodes]{0};
+    FrogWild(h_local_succ, h_local_src, h_unq_fin, C, K, src_ptr, unq_ptr, h_ptr,deg,src,succ,h_replica, nodes,edges,unq_ctr_max,0, rank,1);
+    Export_C(C,rank,nodes);
+    Export_K(K,nodes);
+    // Export_Local_Src(h_local_src,src_ptr,src_ctr);
+    // Export_Local_Succ(h_local_succ,h_ptr,h_ctr);
+    // Export_Unq(h_unq_fin,unq_ptr,unq_ctr);
+    // Export_Unq_Ctr_Ptr(unq_ptr,unq_ctr);
+    // Export_Src_Ctr_Ptr(src_ptr,src_ctr);
+    // Export_H_Ctr_Ptr(h_ptr,h_ctr);
+    // Export_Replica_Stats(h_replica,nodes);
     cout<<"Done exporting"<<endl;
     delete[] h_temp_src;
     free(h_replica);
     free(edge_list);
     free(edge_list_2);
+    delete[] src;
+    delete[] succ;
     delete[] deg;
     delete[] replica;
     delete[] h_ctr;
@@ -136,6 +144,9 @@ int main()
     delete[] h_local_succ;
     delete[] src_ptr;
     delete[] src_ctr;
+    delete[] rank;
+    delete[] K;
+    delete[] C;
     cout<<"Done"<<endl;
     return 0;
 }

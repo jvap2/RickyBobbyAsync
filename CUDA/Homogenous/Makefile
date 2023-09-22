@@ -21,7 +21,7 @@ frog: $(BIN)/Frog
 $(BIN)/FrogWild: $(OBJ)/frog_wild.o $(OBJ)/frog_func.o $(OBJ)/frog_wild_cuda.o $(OBJ)/pagerank.o $(OBJ)/cuda_error.o
 	$(NVCC) $(LINK_FLAGS) $^ -o $@ $(INC_FLAGS)
 
-$(BIN)/Frog: $(OBJ)/frog.o $(OBJ)/frog_func.o $(OBJ)/cuda_error.o
+$(BIN)/Frog: $(OBJ)/frog.o $(OBJ)/frog_func.o $(OBJ)/frog_wild_cuda.o $(OBJ)/pagerank.o $(OBJ)/cuda_error.o
 	$(NVCC) $(LINK_FLAGS) $^ -o $@ $(INC_FLAGS)
 	
 $(OBJ)/frog.o: $(SRC)/main_data_pre.cpp $(INC)/data.h 

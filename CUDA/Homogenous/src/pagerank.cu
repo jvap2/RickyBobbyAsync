@@ -129,9 +129,13 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device"<<endl;
     }
-    cudaFree(d_edgelist);
+    if(!HandleCUDAError(cudaFree(d_edgelist))){
+        cout<<"Error freeing memory for edgelist"<<endl;
+    }
     free(h_edgelist);
-    cudaFree(d_global_src);
+    if(!HandleCUDAError(cudaFree(d_global_src))){
+        cout<<"Error freeing memory for global_src"<<endl;
+    }
     
     //Now, we need to initialize the pr_vector
     if(!HandleCUDAError(cudaMalloc((void**)&d_pr_vector, node_size*sizeof(float)))){
@@ -185,9 +189,6 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     }
     if(!HandleCUDAError(cudaFree(d_P))){
         cout<<"Error freeing memory for P"<<endl;
-    }
-    if(!HandleCUDAError(cudaFree(d_global_src))){
-        cout<<"Error freeing memory for global_src"<<endl;
     }
     if(!HandleCUDAError(cudaFree(d_global_succ))){
         cout<<"Error freeing memory for global_succ"<<endl;
