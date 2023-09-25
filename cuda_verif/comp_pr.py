@@ -35,7 +35,7 @@ print("FROG vs CUGRAPH: ", frog_cug_sim)
 frog_cub_acc=0
 frog_pr_acc=0
 
-k=51
+k=930
 for i in range(k):
     for j in range(k):
         if(frog_vertex[i]==cug_vertex[j]):
