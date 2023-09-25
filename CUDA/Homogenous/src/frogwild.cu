@@ -401,7 +401,7 @@ unsigned int* ind_rank, unsigned int debug){
     unsigned int unq_mem_size=unq_ptr[BLOCKS]*sizeof(unsigned int);
     unsigned int unq_rand_mem_size=unq_ptr[BLOCKS]*sizeof(curandState);
     p_s=.8;
-    p_t=.8;
+    p_t=.15;
     unsigned int iter = 5;
     float* d_p_t, *d_p_s;
     unsigned int unq_ctr_max=0;
@@ -913,7 +913,7 @@ __global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* un
         //Hence referencing unq[i+unq_ptr[blockIdx.x]] will give the node in the cluster, pointing to K
         //This is the node that we are going to be looking at
         if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
-            *(local_K+unq_ptr[blockIdx.x]+i)=K[unq[i+unq_ptr[blockIdx.x]]];
+            local_K[unq_ptr[blockIdx.x]+i]+=K[unq[i+unq_ptr[blockIdx.x]]];
             //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
             //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
             //Possibly a question worth experimentation
@@ -1004,7 +1004,7 @@ unsigned int* src, unsigned int* succ, unsigned int* mirror_ctr,replica_tracker*
             // printf("I am vertex %u\n",i);
             // printf("I have %u replicas\n",d_rep[i].num_replicas);
             for(int j=src[i]; j<src[i+1]; j++){
-                atomicAdd(&K[succ[j]],num_frog);
+                atomicAdd(&K[succ[j]],num_frog);//Check out src and succ
                 // K[i]-=(K[i]>num_frog)?(num_frog):(K[i]);
             }
         }
