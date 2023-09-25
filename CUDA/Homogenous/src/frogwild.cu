@@ -559,7 +559,6 @@ unsigned int* ind_rank, unsigned int debug){
         double used_db = total_db - free_db ;
         printf("GPU memory usage before PR: used = %f, free = %f MB, total = %f MB\n",
             used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
-        // cudaFuncSetAttribute(Apply_Ver0, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
         std::cout<<"CUDA Dimensions"<<endl;
         std::cout<<"No. Blocks "<<BLOCKS<<endl;  
         std::cout<<"No. Threads per block "<<t_per_block<<endl;
@@ -908,12 +907,13 @@ __global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* un
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        unsigned int index=i+unq_ptr[blockIdx.x]; 
         //unq contains the unqiue nodes in the cluster
         //unq_ptr contains the pointers to the start of each cluster
         //Hence referencing unq[i+unq_ptr[blockIdx.x]] will give the node in the cluster, pointing to K
         //This is the node that we are going to be looking at
-        if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
-            local_K[unq_ptr[blockIdx.x]+i]+=K[unq[i+unq_ptr[blockIdx.x]]];
+        if(K[unq[index]]>0){
+            local_K[index]+=K[unq[index]];
             //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
             //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
             //Possibly a question worth experimentation
@@ -935,23 +935,23 @@ __global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global,u
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
-    unsigned int* local_K = local_K_temp+unq_ptr[blockIdx.x];
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
-        local_K[i]=local_K_global[i+unq_ptr[blockIdx.x]];
+        local_K_temp[i+unq_ptr[blockIdx.x]]=local_K_global[i+unq_ptr[blockIdx.x]];
     }
     __syncthreads();
     for(unsigned int i=tid; i<len_nodes_clust; i+=blockDim.x){
         //This loop iterates throught the unique vertex values in a block
-        for(int j=0; j<local_K_global[unq_ptr[blockIdx.x]+i]; j++){
+        unsigned int index=i+unq_ptr[blockIdx.x]; 
+        for(int j=0; j<local_K_global[index]; j++){
             //This loop iterates through the number of living frogs on a vertex
-            curand_init(1234+j+iter, idx, 0, &d_state[i+unq_ptr[blockIdx.x]]);
-            float rand = curand_uniform(&d_state[i+unq_ptr[blockIdx.x]]);
+            curand_init(1234+j+iter, idx, 0, &d_state[index]);
+            float rand = curand_uniform(&d_state[index]);
             //The above section is to generate a random number for each frog
             //The index doing this seems as if it will have the same random
             //number for each frog, so incrementing the seed by j should (in theory)
             //give each frog a unique random number
             if(rand<*(p_t)){
-                atomicAdd(local_C_global+unq_ptr[blockIdx.x]+i,1);
+                atomicAdd(local_C_global+index,1);
                 //Increment the number of frogs which have died on this vertex-this will mirror the indexing of the unq ptr
                 // atomicAdd(num_loc_C+blockIdx.x,1);
                 // //Increment the number of non zero C values
@@ -960,7 +960,7 @@ __global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global,u
                 //Notice that we are using the number of non-zero C's for this
                 //The issue with the above part could exceed the values, this poses an issue- do we need this?
                 //I do not think so
-                atomicSub(local_K+i,1);
+                atomicSub(local_K_temp+index,1);
                 //Decrement the K value
             }
         }
@@ -971,7 +971,7 @@ __global__ void Apply_Ver0(unsigned int* unq_ptr, unsigned int* local_K_global,u
     //     printf("BLock %d is done with iterating\n",blockIdx.x);
     // }
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
-        local_K_global[i+unq_ptr[blockIdx.x]]=local_K[i];
+        local_K_global[i+unq_ptr[blockIdx.x]]=local_K_temp[i+unq_ptr[blockIdx.x]];
     }
 
     //This tells which vertices have frogs that have stopped
@@ -996,16 +996,16 @@ unsigned int* src, unsigned int* succ, unsigned int* mirror_ctr,replica_tracker*
             }
         }
     }
-    for(int i=idx; i<node_size; i+=gridDim.x*blockDim.x){
-        float rand = curand_uniform(&d_state[i+unq_ptr[blockIdx.x]]);
-        if(K[i]>0 && rand<*(p_s)){
-            unsigned int num_frog=(mirror_ctr[i]>0)?(K[i]/(mirror_ctr[i])+1):(0);
+    for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        unsigned int index=i+unq_ptr[blockIdx.x];   
+        float rand = curand_uniform(&d_state[index]);
+        if(K[unq[index]]>0 && rand<*(p_s)){
+            unsigned int num_frog=(mirror_ctr[unq[index]]>0)?(K[unq[index]]/(mirror_ctr[unq[index]])+1):(0);
             // printf("Im going to catch %u frogs\n",num_frog);
             // printf("I am vertex %u\n",i);
             // printf("I have %u replicas\n",d_rep[i].num_replicas);
-            for(int j=src[i]; j<src[i+1]; j++){
+            for(int j=src[unq[index]]; j<src[unq[index]+1]; j++){
                 atomicAdd(&K[succ[j]],num_frog);//Check out src and succ
-                // K[i]-=(K[i]>num_frog)?(num_frog):(K[i]);
             }
         }
     }

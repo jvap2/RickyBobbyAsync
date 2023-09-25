@@ -53,7 +53,8 @@ int main()
     for(int i = 0; i<BLOCKS;i++){
         sort(h_start+h_ptr[i],h_start+h_ptr[i]+h_ctr[i]);
         sort(h_end+h_ptr[i],h_end+h_ptr[i]+h_ctr[i]);
-        merge_sequential(h_start+h_ptr[i],h_end+h_ptr[i],h_ctr[i],h_ctr[i],h_unique_merge+2*h_ptr[i]);
+        // merge_sequential(h_start+h_ptr[i],h_end+h_ptr[i],h_ctr[i],h_ctr[i],h_unique_merge+2*h_ptr[i]);
+        merge(h_start+h_ptr[i],h_start+h_ptr[i]+h_ctr[i],h_end+h_ptr[i],h_end+h_ptr[i]+h_ctr[i],h_unique_merge+2*h_ptr[i]);
         auto ip=unique(h_unique_merge+2*h_ptr[i],h_unique_merge+2*h_ptr[i]+2*h_ctr[i]);
         unq_ctr[i]=distance(h_unique_merge+2*h_ptr[i],ip);
         unq_fin[i]=new unsigned int[unq_ctr[i]];
@@ -66,6 +67,7 @@ int main()
     }
     //No, we have new pointer to the unique array
     unsigned int* h_unq_fin = new unsigned int[unq_ptr[BLOCKS]];
+    cout<<unq_ptr[BLOCKS]<<endl;
     for(int i = 0; i<BLOCKS;i++){
         for(int j = 0; j<unq_ctr[i];j++){
             h_unq_fin[unq_ptr[i]+j]=unq_fin[i][j];
@@ -111,9 +113,6 @@ int main()
     unsigned int* rank = new unsigned int[nodes];
     unsigned int* K = new unsigned int[nodes]{0};
     unsigned int* C = new unsigned int[nodes]{0};
-    for(int i=0; i<unq_ptr[BLOCKS]-unq_ptr[BLOCKS-1];i++){
-        cout<<h_unq_fin[unq_ptr[BLOCKS-1]+i]<<endl;
-    }
     FrogWild(h_local_succ, h_local_src, h_unq_fin, C, K, src_ptr, unq_ptr, h_ptr,deg,src,succ,h_replica, nodes,edges,unq_ctr_max,0, rank,1);
     Export_C(C,rank,nodes);
     Export_K(K,nodes);
