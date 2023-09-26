@@ -681,7 +681,7 @@ unsigned int* ind_rank, unsigned int debug){
         delete[] indices;
     }
     else{
-                if(!HandleCUDAError(cudaMalloc((void**)&d_unq, unq_mem_size))){
+        if(!HandleCUDAError(cudaMalloc((void**)&d_unq, unq_mem_size))){
             std::cout<<"Error allocating memory for d_unq"<<endl;
         }
         if(!HandleCUDAError(cudaMalloc((void**)&d_c, node_size*sizeof(unsigned int)))){
@@ -816,23 +816,24 @@ unsigned int* ind_rank, unsigned int debug){
         std::cout<<"CUDA Dimensions"<<endl;
         std::cout<<"No. Blocks "<<BLOCKS<<endl;  
         std::cout<<"No. Threads per block "<<t_per_block<<endl;
+        Gather_Ver0<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
+        cudaError_t err = cudaGetLastError();
+        if (err != cudaSuccess) 
+            printf("Gather Error: %s\n", cudaGetErrorString(err));
+        if(!HandleCUDAError(cudaDeviceSynchronize())){
+            std::cout<<"Error synchronizing device"<<endl;
+        }
         for(unsigned int i=0; i<iter; i++){
             std::cout<<"Iteration "<<i<<endl;
-            Gather_Ver0<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
+            Gather_Ver1<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
             cudaError_t err = cudaGetLastError();
             if (err != cudaSuccess) 
                 printf("Gather Error: %s\n", cudaGetErrorString(err));
-            if(!HandleCUDAError(cudaDeviceSynchronize())){
-                std::cout<<"Error synchronizing device"<<endl;
-            }
-            if(!HandleCUDAError(cudaMemset(d_k,0, node_size*sizeof(unsigned int)))){
-                std::cout<<"Error initializing d_k"<<endl;
-            }
             if(!HandleCUDAError(cudaMemset(d_k_local_temp, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
                 std::cout<<"Error initializing d_k_temp"<<endl;
             }
             std::cout<<"Gathered"<<endl;
-            Apply_Ver0<<<BLOCKS, thrd_blck>>>(d_unq_ptr, local_K,d_k_local_temp, local_C, d_p_t,i, d_state_teleport);
+            Apply_Ver1<<<BLOCKS, thrd_blck>>>(d_unq_ptr,d_unq, local_K,d_k_local_temp, local_C, d_p_t,i,node_size,d_c,d_k, d_state_teleport);
             cudaError_t err1 = cudaGetLastError();
             if (err1 != cudaSuccess) 
                 printf("Apply Error: %s\n", cudaGetErrorString(err1));
@@ -840,7 +841,7 @@ unsigned int* ind_rank, unsigned int debug){
                 std::cout<<"Error synchronizing device for Apply"<<endl;
             }
             std::cout<<"Applied"<<endl;
-            Sync_Mirrors_Ver0<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_unq, d_unq_ptr, local_C, local_K, d_global_src,d_global_succ,mirror_ctr,
+            Sync_Mirrors_Ver1<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_unq, d_unq_ptr, local_C, local_K, d_global_src,d_global_succ,mirror_ctr,
             d_replica,node_size,i, d_p_s, d_state_scatter);
             cudaError_t err2 = cudaGetLastError();  
             if (err2 != cudaSuccess) 
@@ -853,9 +854,9 @@ unsigned int* ind_rank, unsigned int debug){
                 std::cout<<"Error initializing mirror_ctr"<<endl;
             }
             std::cout<<"Scattered"<<endl;
-            if(!HandleCUDAError(cudaMemset(local_K,0, unq_mem_size))){
-                std::cout<<"Error initializing local_K"<<endl;
-            }
+            // if(!HandleCUDAError(cudaMemset(local_K,0, unq_mem_size))){
+            //     std::cout<<"Error initializing local_K"<<endl;
+            // }
         }
         Final_Commit<<<b_per_grid,thrd_blck>>>(d_c, d_k, node_size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
@@ -1127,20 +1128,17 @@ __global__ void Reverse_Gather(unsigned int* K, unsigned int* local_K, replica_t
 //There should be another better way
 
 
-__global__ void Gather_Ver1(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* num_local_K,
-unsigned int* local_K, unsigned int* local_K_idx){
+__global__ void Gather_Ver1(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_K){
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
-    const unsigned int c_v_len = len_nodes_clust/blockDim.x+1;
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        unsigned int index=i+unq_ptr[blockIdx.x]; 
         //unq contains the unqiue nodes in the cluster
         //unq_ptr contains the pointers to the start of each cluster
         //Hence referencing unq[i+unq_ptr[blockIdx.x]] will give the node in the cluster, pointing to K
         //This is the node that we are going to be looking at
-        if(K[unq[i+unq_ptr[blockIdx.x]]]>0){
-            atomicAdd(num_local_K+blockIdx.x,1);
-            atomicExch(local_K+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,K[unq[i+unq_ptr[blockIdx.x]]]);
-            atomicExch(local_K_idx+unq_ptr[blockIdx.x]+num_local_K[blockIdx.x]-1,i);
+        if(local_K[index]>0){
+            atomicAdd(K+unq[index],local_K[index]);
             //We are going to have replicas of frogs as well, additional care/attention should be made for handling this
             //Do we naively divide the count at the end by the number of replicas if there are going to be mulitplicities?
             //Possibly a question worth experimentation
@@ -1158,23 +1156,29 @@ unsigned int* local_K, unsigned int* local_K_idx){
 }
 
 
-__global__ void Apply_Ver1(unsigned int* unq_ptr, unsigned int* K, unsigned int* C, unsigned int* num_loc_K, unsigned int* local_K_idx, float* p_t, curandState* d_state){
+
+__global__ void Apply_Ver1(unsigned int* unq_ptr, unsigned int* unq, unsigned int* local_K_global,unsigned int* local_K_temp, unsigned int* local_C_global, float* p_t, unsigned int iter,
+unsigned int node_size, unsigned int* C, unsigned int* K, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
-    extern __shared__ unsigned int local_K[];
-    for(int i = tid; i<num_loc_K[blockIdx.x]; i+=blockDim.x){
-        local_K[i]=K[unq_ptr[blockIdx.x]+i];
+    const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
+    for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        local_K_temp[i+unq_ptr[blockIdx.x]]=local_K_global[i+unq_ptr[blockIdx.x]];
     }
-    for(unsigned int i=tid; i<num_loc_K[blockIdx.x]; i+=blockDim.x){
-        for(int j=0; j<*(K+unq_ptr[blockIdx.x]+i); j++){
-            curand_init(1234+j, idx, 0, &d_state[idx]);
-            float rand = curand_uniform(&d_state[idx]);
+    __syncthreads();
+    for(unsigned int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        //This loop iterates throught the unique vertex values in a block
+        unsigned int index=i+unq_ptr[blockIdx.x]; 
+        for(int j=0; j<local_K_global[index]; j++){
+            //This loop iterates through the number of living frogs on a vertex
+            curand_init(1234+j+iter, index, 0, &d_state[index]);
+            float rand = curand_uniform(&d_state[index]);
             //The above section is to generate a random number for each frog
             //The index doing this seems as if it will have the same random
             //number for each frog, so incrementing the seed by j should (in theory)
             //give each frog a unique random number
             if(rand<*(p_t)){
-                atomicAdd(C+unq_ptr[blockIdx.x]+local_K_idx[i],1);
+                atomicAdd(C+unq[index],1);
                 //Increment the number of frogs which have died on this vertex-this will mirror the indexing of the unq ptr
                 // atomicAdd(num_loc_C+blockIdx.x,1);
                 // //Increment the number of non zero C values
@@ -1183,135 +1187,57 @@ __global__ void Apply_Ver1(unsigned int* unq_ptr, unsigned int* K, unsigned int*
                 //Notice that we are using the number of non-zero C's for this
                 //The issue with the above part could exceed the values, this poses an issue- do we need this?
                 //I do not think so
-                atomicSub(local_K+i,1);
+                atomicSub(local_K_temp+index,1);
                 //Decrement the K value
-                if(local_K[i]==0){
-                    atomicSub(num_loc_K+blockIdx.x,1);
-                }
             }
         }
     }
-
-    //This tells which vertices have frogs that have stopped
     __syncthreads();
+
+    // if(tid==0){
+    //     printf("BLock %d is done with iterating\n",blockIdx.x);
+    // }
+    for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        local_K_global[i+unq_ptr[blockIdx.x]]=local_K_temp[i+unq_ptr[blockIdx.x]];
+    }
 }
 
-__global__ void Sync_Mirrors_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, 
-unsigned int* local_K, float* p_s, replica_tracker* d_replica, curandState* d_state){
+__global__ void Sync_Mirrors_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, unsigned int* local_K, 
+unsigned int* src, unsigned int* succ, unsigned int* mirror_ctr,replica_tracker* d_rep, unsigned int node_size, unsigned int iter, float* p_s, curandState* d_state){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
-    curand_init(1234, idx, 0, &d_state[idx]);
+    unsigned int num_node=len_nodes_clust/blockDim.x+1;
+    float* rand_node;
+    unsigned int* idx_tracker;
+    rand_node= new float[num_node]{0};
+    idx_tracker= new unsigned int[num_node]{0};
     //We have this outside so if the if condition is satisfied, the entirety of local C can be committed
     //to the global C
-    float rand = curand_uniform(&d_state[idx]);
-    for(unsigned int i =tid; i<len_nodes_clust; i+=blockDim.x){
-        for(int j=0; j<*(local_C+unq_ptr[blockIdx.x]+i); j++){
-            //Commit to global memory
-            if(rand<*(p_s) && *(local_C+unq_ptr[blockIdx.x]+i)>0){
-                atomicAdd(C+unq[i+unq_ptr[blockIdx.x]],1);
-                *(local_C+unq_ptr[blockIdx.x]+i)-=1;
-            }
-        }
-        __syncthreads();
-    }
-}
-
-__global__ void Scatter_Ver1(unsigned int* C, unsigned int* K, unsigned int* src, unsigned int* succ,replica_tracker* d_rep, unsigned int node_size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    unsigned int tid = threadIdx.x;
-    if(idx<node_size){
-        if(K[idx]>0){
-            unsigned int num_frog=K[idx]/d_rep[idx].num_replicas+1;
-            for(int i=src[idx]; i<src[idx+1]; i++){
-                atomicAdd(&K[succ[i]],num_frog);
-            }
+    for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        unsigned int index=i+unq_ptr[blockIdx.x];   
+        curand_init(1234+iter+index, index, 0, &d_state[index]);
+        rand_node[i/blockDim.x] = curand_uniform(&d_state[index]);
+        idx_tracker[i/blockDim.x]=index;
+        if(rand_node[i/blockDim.x]<*(p_s)){
+            atomicAdd(mirror_ctr+unq[index],1);
+            atomicExch(local_K+index,K[unq[index]]);
         }
     }
-}
-
-
-__global__ void Schur_Product_Vectors(unsigned int* vect_1, unsigned int* vect_2, unsigned int* res_vec, unsigned int size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    if(idx<size){
-        res_vec[idx]=vect_1[idx]*vect_2[idx];
+    for(int i=idx; i<node_size;i+=blockDim.x*gridDim.x){
+        K[i]=0;
     }
-}
-
-__global__ void Partial_Sums(unsigned int* res_vec, unsigned int* last_val, unsigned int size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    unsigned int tid = threadIdx.x;
-    unsigned int temp=0;
-    if (idx>=size){
-        return;
-    }
-    unsigned int* blockAddress= res_vec+(blockDim.x*blockIdx.x);
-    for(int stride=blockDim.x/2; stride>0; stride>>=1){
-        if (tid<stride && tid+stride<size){
-            blockAddress[tid]+=blockAddress[tid+stride];
+    __syncthreads();
+    for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
+        unsigned int index=i+unq_ptr[blockIdx.x];   
+        if(K[unq[index]]>0 && rand_node[i/blockDim.x]<*(p_s)){
+            unsigned int num_frog=(mirror_ctr[unq[index]]>0)?(K[unq[index]]/(mirror_ctr[unq[index]])+1):(0);
+            atomicAdd(&local_K[idx_tracker[i/blockDim.x]],num_frog);
         }
-        __syncthreads();
     }
-    if(tid==0){
-        last_val[blockIdx.x]=blockAddress[0];
-    }
-}
-
-__global__ void Compute_L2_Max_u_1(unsigned int* vect_1, unsigned int* res_vec_1, unsigned int size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    if(idx<size){
-        res_vec_1[idx]=vect_1[idx]*vect_1[idx];
-    }
+    delete[] rand_node;
+    delete[] idx_tracker;
 }
 
 
-__global__ void Partial_Sum_Last_Val(unsigned int* last_val, unsigned int* res, unsigned int block_size){
-    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
-    unsigned int tid = threadIdx.x;
-    unsigned int* blockAddress=last_val;
-    for (int stride = blockDim.x / 2; stride > 0; stride >>= 1)
-	{
-		if (tid < stride)
-		{
-			//tid<stride ensures we do not try to access memory past the vector allocated to the block
-			//tid+stride<size allows for vector sizes less than blockDim
-			blockAddress[tid] += blockAddress[tid + stride];
-		}
-		__syncthreads();//Make all of the threads wait to go to the next iteration so the values are up to date
-	}
-    if(tid==0){
-        *(res)=(blockAddress[0]);
-    }
 
-}
-
-
-__host__ void Verif_Dot_Product(unsigned int* vec_1, unsigned int* vec_2, unsigned int res, unsigned int size){
-    unsigned int temp=0;
-    for(int i=0; i<size; i++){
-        temp+=vec_1[i]*vec_2[i];
-    }
-    if(temp==res){
-        std::cout<<"Dot product is correct"<<endl;
-    }
-    else{
-        std::cout<<"Dot product is incorrect"<<endl;
-        std::cout<<"GPU "<<res<<endl;
-        std::cout<<"CPU "<<temp<<endl;
-    }
-}
-
-__host__ void Verif_L2(unsigned int* vec, unsigned int res, unsigned int size){
-    unsigned int temp=0;
-    for(int i=0; i<size; i++){
-        temp+=vec[i]*vec[i];
-    }
-    if(temp==res){
-        std::cout<<"L2 norm is correct"<<endl;
-    }
-    else{
-        std::cout<<"L2 norm is incorrect"<<endl;
-        std::cout<<"GPU "<<res<<endl;
-        std::cout<<"CPU "<<temp<<endl;
-    }
-} 

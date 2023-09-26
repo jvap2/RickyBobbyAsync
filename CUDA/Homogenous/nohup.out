@@ -1,229 +1,13 @@
 Getting graph info
-Nodes: 1000000 Edges: 39992657
-Allocating memory for device variables
-GPU memory usage before PR: used = 2706.750000, free = 13364.187500 MB, total = 16070.937500 MB
-Iteration 0
-Gathered
-2924848
-Block 31 is done with copying
-Block 13 is done with copying
-Block 15 is done with copying
-Block 24 is done with copying
-Block 5 is done with copying
-Block 10 is done with copying
-Block 21 is done with copying
-Block 7 is done with copying
-Block 0 is done with copying
-Block 8 is done with copying
-Block 17 is done with copying
-Block 30 is done with copying
-Block 16 is done with copying
-Block 26 is done with copying
-Block 4 is done with copying
-Block 3 is done with copying
-Block 25 is done with copying
-Block 27 is done with copying
-Block 19 is done with copying
-Block 14 is done with copying
-Block 29 is done with copying
-Block 12 is done with copying
-Block 22 is done with copying
-Block 1 is done with copying
-Block 9 is done with copying
-Block 28 is done with copying
-Block 6 is done with copying
-Block 18 is done with copying
-Block 23 is done with copying
-Block 11 is done with copying
-Block 20 is done with copying
-Block 2 is done with copying
-BLock 0 is done with iterating
-BLock 8 is done with iterating
-BLock 10 is done with iterating
-BLock 2 is done with iterating
-BLock 16 is done with iterating
-BLock 12 is done with iterating
-BLock 1 is done with iterating
-BLock 18 is done with iterating
-BLock 4 is done with iterating
-BLock 3 is done with iterating
-BLock 24 is done with iterating
-BLock 6 is done with iterating
-BLock 20 is done with iterating
-BLock 5 is done with iterating
-BLock 9 is done with iterating
-BLock 25 is done with iterating
-BLock 28 is done with iterating
-BLock 14 is done with iterating
-BLock 7 is done with iterating
-BLock 26 is done with iterating
-BLock 11 is done with iterating
-BLock 22 is done with iterating
-BLock 30 is done with iterating
-BLock 13 is done with iterating
-BLock 17 is done with iterating
-BLock 23 is done with iterating
-BLock 19 is done with iterating
-BLock 21 is done with iterating
-BLock 15 is done with iterating
-BLock 31 is done with iterating
-BLock 29 is done with iterating
-BLock 27 is done with iterating
-Applied
-Synced
-Scattered
-Iteration 1
-Gathered
-2924848
-Block 31 is done with copying
-Block 13 is done with copying
-Block 15 is done with copying
-Block 10 is done with copying
-Block 24 is done with copying
-Block 5 is done with copying
-Block 7 is done with copying
-Block 0 is done with copying
-Block 16 is done with copying
-Block 21 is done with copying
-Block 26 is done with copying
-Block 3 is done with copying
-Block 4 is done with copying
-Block 30 is done with copying
-Block 8 is done with copying
-Block 25 is done with copying
-Block 17 is done with copying
-Block 27 is done with copying
-Block 14 is done with copying
-Block 19 is done with copying
-Block 22 is done with copying
-Block 29 is done with copying
-Block 9 is done with copying
-Block 23 is done with copying
-Block 12 is done with copying
-Block 28 is done with copying
-Block 20 is done with copying
-Block 18 is done with copying
-Block 1 is done with copying
-Block 11 is done with copying
-Block 2 is done with copying
-Block 6 is done with copying
-BLock 0 is done with iterating
-BLock 8 is done with iterating
-BLock 1 is done with iterating
-BLock 2 is done with iterating
-BLock 16 is done with iterating
-BLock 10 is done with iterating
-BLock 4 is done with iterating
-BLock 18 is done with iterating
-BLock 12 is done with iterating
-BLock 24 is done with iterating
-BLock 9 is done with iterating
-BLock 3 is done with iterating
-BLock 6 is done with iterating
-BLock 14 is done with iterating
-BLock 20 is done with iterating
-BLock 26 is done with iterating
-BLock 11 is done with iterating
-BLock 7 is done with iterating
-BLock 5 is done with iterating
-BLock 17 is done with iterating
-BLock 13 is done with iterating
-BLock 27 is done with iterating
-BLock 22 is done with iterating
-BLock 19 is done with iterating
-BLock 21 is done with iterating
-BLock 23 is done with iterating
-BLock 28 is done with iterating
-BLock 25 is done with iterating
-BLock 15 is done with iterating
-BLock 30 is done with iterating
-BLock 29 is done with iterating
-BLock 31 is done with iterating
-Applied
-Synced
-Scattered
-Iteration 2
-Gathered
-2924848
-Block 31 is done with copying
-Block 13 is done with copying
-Block 15 is done with copying
-Block 24 is done with copying
-Block 10 is done with copying
-Block 7 is done with copying
-Block 0 is done with copying
-Block 21 is done with copying
-Block 26 is done with copying
-Block 16 is done with copying
-Block 5 is done with copying
-Block 4 is done with copying
-Block 30 is done with copying
-Block 3 is done with copying
-Block 8 is done with copying
-Block 25 is done with copying
-Block 19 is done with copying
-Block 27 is done with copying
-Block 17 is done with copying
-Block 14 is done with copying
-Block 23 is done with copying
-Block 12 is done with copying
-Block 22 is done with copying
-Block 29 is done with copying
-Block 1 is done with copying
-Block 9 is done with copying
-Block 28 is done with copying
-Block 18 is done with copying
-Block 20 is done with copying
-Block 2 is done with copying
-Block 11 is done with copying
-Block 6 is done with copying
-BLock 0 is done with iterating
-BLock 8 is done with iterating
-BLock 2 is done with iterating
-BLock 1 is done with iterating
-BLock 16 is done with iterating
-BLock 10 is done with iterating
-BLock 4 is done with iterating
-BLock 18 is done with iterating
-BLock 6 is done with iterating
-BLock 12 is done with iterating
-BLock 3 is done with iterating
-BLock 14 is done with iterating
-BLock 24 is done with iterating
-BLock 20 is done with iterating
-BLock 9 is done with iterating
-BLock 11 is done with iterating
-BLock 5 is done with iterating
-BLock 26 is done with iterating
-BLock 28 is done with iterating
-BLock 19 is done with iterating
-BLock 17 is done with iterating
-BLock 21 is done with iterating
-BLock 7 is done with iterating
-BLock 13 is done with iterating
-BLock 23 is done with iterating
-BLock 15 is done with iterating
-BLock 25 is done with iterating
-BLock 27 is done with iterating
-BLock 22 is done with iterating
-BLock 30 is done with iterating
-BLock 29 is done with iterating
-BLock 31 is done with iterating
-Applied
-Synced
-Scattered
-Time elapsed FrogWild: 1.34733e+06 ms
-GPU memory usage before PR: used = 1828.750000, free = 14242.187500 MB, total = 16070.937500 MB
-Getting graph info
-10000
-125327
+50000
+629854
 Starting the edge list function
 Getting edge list
 Data is open 1
 Ending edge list function
 Starting Helper Function
-Num of blocks 490
-Second amount of blocks 4
+Num of blocks 2461
+Second amount of blocks 20
 Allocating d_edge
 Copying edge list
 Done with edge list
@@ -236,18 +20,18 @@ Ending Helper Function
 Copying the edge list
 Starting the merge function
 Ending the merge function
-78854
+395634
 Unq Ptr Values
 Done making src, unq and succ
 Local src values
 Done generating local src and succ
 Allocating memory for device variables
-Sublinear size 1001
-Node size 10000
+Sublinear size 5001
+Node size 50000
 First init device configuration parameters
-No. Blocks 2
+No. Blocks 10
 No. Threads per block 512
-GPU memory usage before PR: used = 784.187500, free = 15286.750000 MB, total = 16070.937500 MB
+GPU memory usage before PR: used = 870.562500, free = 15200.375000 MB, total = 16070.937500 MB
 CUDA Dimensions
 No. Blocks 12
 No. Threads per block 512
@@ -258,3 +42,96 @@ Synced
 Scattered
 Iteration 1
 Gathered
+Applied
+an illegal memory access was encountered
+700
+Error synchronizing device for Sync
+Synced
+an illegal memory access was encountered
+700
+Error initializing mirror_ctr
+Scattered
+Iteration 2
+Gather Error: an illegal memory access was encountered
+an illegal memory access was encountered
+700
+Error initializing d_k_temp
+Gathered
+Apply Error: an illegal memory access was encountered
+an illegal memory access was encountered
+700
+Error synchronizing device for Apply
+Applied
+Sync Error: an illegal memory access was encountered
+an illegal memory access was encountered
+700
+Error synchronizing device for Sync
+Synced
+an illegal memory access was encountered
+700
+Error initializing mirror_ctr
+Scattered
+Iteration 3
+Gather Error: an illegal memory access was encountered
+an illegal memory access was encountered
+700
+Error initializing d_k_temp
+Gathered
+Apply Error: an illegal memory access was encountered
+an illegal memory access was encountered
+700
+Error synchronizing device for Apply
+Applied
+Sync Error: an illegal memory access was encountered
+an illegal memory access was encountered
+700
+Error synchronizing device for Sync
+Synced
+an illegal memory access was encountered
+700
+Error initializing mirror_ctr
+Scattered
+Iteration 4
+Gather Error: an illegal memory access was encountered
+an illegal memory access was encountered
+700
+Error initializing d_k_temp
+Gathered
+Apply Error: an illegal memory access was encountered
+an illegal memory access was encountered
+700
+Error synchronizing device for Apply
+Applied
+Sync Error: an illegal memory access was encountered
+an illegal memory access was encountered
+700
+Error synchronizing device for Sync
+Synced
+an illegal memory access was encountered
+700
+Error initializing mirror_ctr
+Scattered
+an illegal memory access was encountered
+700
+Error synchronizing device
+an illegal memory access was encountered
+700
+Error recording stop event
+an illegal memory access was encountered
+700
+Error synchronizing stop event
+Time elapsed FrogWild: 0 ms
+an illegal memory access was encountered
+700
+Error copying memory to global_src
+an illegal memory access was encountered
+700
+Error copying memory to global_succ
+an illegal memory access was encountered
+700
+Error allocating memory for dev_ind_ptr_approx
+an illegal memory access was encountered
+700
+Error copying memory to dev_ind_ptr_approx
+terminate called after throwing an instance of 'thrust::system::detail::bad_alloc'
+  what():  std::bad_alloc: cudaErrorIllegalAddress: an illegal memory access was encountered
