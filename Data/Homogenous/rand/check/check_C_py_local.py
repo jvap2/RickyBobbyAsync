@@ -19,19 +19,19 @@ print("Successor")
 for c,py in zip(df_C[1],df_py[1]):
     for i,(c_row, py_row) in enumerate(zip(c,py)):
         if c_row==py_row:
-            check[0]=1
+            check[1]=1
         else:
             print("Row:",i,"C: ",c_row," Python: ",py_row)
-            check[0]=0
+            check[1]=0
 
 print("Unique")
 for c,py in zip(df_C[2],df_py[2]):
     for i,(c_row, py_row) in enumerate(zip(c,py)):
         if c_row==py_row:
-            check[0]=1
+            check[2]=1
         else:
             print("Row:",i,"C: ",c_row," Python: ",py_row)
-            check[0]=0
+            check[2]=0
 
 
 

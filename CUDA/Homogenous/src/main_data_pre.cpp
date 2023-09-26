@@ -27,12 +27,13 @@ int main()
     Export_Degree(deg,nodes);
     unsigned int *h_ctr, *h_ptr;
     h_ctr = new unsigned int[BLOCKS]{0};
-    h_ptr = new unsigned int[BLOCKS]{0};
+    h_ptr = new unsigned int[BLOCKS+1]{0};
     unsigned int *h_unq;
     h_unq = new unsigned int[edges];
     cout<<"Ending edge list function"<<endl;
     cout<<"Starting Helper Function"<<endl;
     Org_Vertex_Helper(edge_list,h_replica,deg,h_ctr,h_ptr,edges,nodes);
+    h_ptr[BLOCKS]=h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1];
     cout<<"Ending Helper Function"<<endl;
     cpu_radixsort(edge_list,edges);
     Check_Out_csv_edge(edge_list, edges);
@@ -76,13 +77,13 @@ int main()
     //Now, we have the unique array and the renumbering
     edge* edge_list_2;
     edge_list_2=(edge*)malloc(sizeof(edge)*edges);
-    unsigned int* src_ptr = new unsigned int[BLOCKS]{0};
+    unsigned int* src_ptr = new unsigned int[BLOCKS+1]{0};
     unsigned int* src_ctr = new unsigned int[BLOCKS]{0};
     for(int i=0; i<BLOCKS;i++){
         src_ctr[i]=unq_ctr[i]+1;
     }
     src_ptr[0]=0;
-    for(int i=1;i<BLOCKS;i++){
+    for(int i=1;i<=BLOCKS;i++){
         src_ptr[i]=src_ptr[i-1]+src_ctr[i-1];
     }
     unsigned int unq_ctr_max=0;
@@ -116,13 +117,13 @@ int main()
     FrogWild(h_local_succ, h_local_src, h_unq_fin, C, K, src_ptr, unq_ptr, h_ptr,deg,src,succ,h_replica, nodes,edges,unq_ctr_max,1, rank,1);
     Export_C(C,rank,nodes);
     Export_K(K,nodes);
-    // Export_Local_Src(h_local_src,src_ptr,src_ctr);
-    // Export_Local_Succ(h_local_succ,h_ptr,h_ctr);
-    // Export_Unq(h_unq_fin,unq_ptr,unq_ctr);
-    // Export_Unq_Ctr_Ptr(unq_ptr,unq_ctr);
-    // Export_Src_Ctr_Ptr(src_ptr,src_ctr);
-    // Export_H_Ctr_Ptr(h_ptr,h_ctr);
-    // Export_Replica_Stats(h_replica,nodes);
+    Export_Local_Src(h_local_src,src_ptr,src_ctr);
+    Export_Local_Succ(h_local_succ,h_ptr,h_ctr);
+    Export_Unq(h_unq_fin,unq_ptr,unq_ctr);
+    Export_Unq_Ctr_Ptr(unq_ptr,unq_ctr);
+    Export_Src_Ctr_Ptr(src_ptr,src_ctr);
+    Export_H_Ctr_Ptr(h_ptr,h_ctr);
+    Export_Replica_Stats(h_replica,nodes);
     cout<<"Done exporting"<<endl;
     delete[] h_temp_src;
     free(h_replica);
