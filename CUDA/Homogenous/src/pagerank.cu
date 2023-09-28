@@ -123,11 +123,11 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
 
     Init_P<<<Blocks,Threads>>>(d_P, node_size, d_damp);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-        cout<<"Error synchronizing device"<<endl;
+        cout<<"Error synchronizing device with Initializing P"<<endl;
     }
     Gen_P<<<blocks_edge,tpb>>>(d_P, d_edgelist, d_global_src, node_size, d_damp);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-        cout<<"Error synchronizing device"<<endl;
+        cout<<"Error synchronizing device with Generating P"<<endl;
     }
     if(!HandleCUDAError(cudaFree(d_edgelist))){
         cout<<"Error freeing memory for edgelist"<<endl;

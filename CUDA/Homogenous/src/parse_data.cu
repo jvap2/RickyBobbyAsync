@@ -20,6 +20,21 @@ __host__ void Check_Out_csv_edge(edge* edge_list, int size){
     myfile.close();
 }
 
+__host__ void Check_Out_Renum_Edge(edge* edge_list, int size){
+    ofstream myfile;
+    myfile.open(RENUM_PATH);
+    myfile <<"from,to,cluster\n";
+    for(int i=0; i<size;i++){
+        myfile<< to_string(edge_list[i].start);
+        myfile<< ",";
+        myfile<< to_string(edge_list[i].end);
+        myfile<< ",";
+        myfile<< to_string(edge_list[i].cluster);
+        myfile<< "\n";
+    }
+    myfile.close();
+}
+
 __host__ void Check_Out_Ptr_Ctr(unsigned int* h_ctr, unsigned int* h_ptr, int size){
     ofstream myfile;
     myfile.open(PTR_CTR_PATH);
@@ -75,7 +90,7 @@ __host__ void Check_Out_pref_sum(unsigned int* list_1, unsigned int* list_2, int
         myfile<< to_string(check[i]);
         myfile<< "\n";
         if(check[i]!=list_2[i]){
-            cout<<"Rugh rogh raggy, reheheheheh"<<endl;
+            std::cout<<"Rugh rogh raggy, reheheheheh"<<endl;
         }
     }
     myfile.close();
@@ -107,13 +122,13 @@ __host__ void check_out_replicas(string path,replica_tracker* replicas, unsigned
 
 
 __host__ void return_edge_list(string path, edge* arr){
-    cout<<"Getting edge list"<<endl;
+    std::cout<<"Getting edge list"<<endl;
     ifstream data;
     data.open(path);
     string line,word;
     unsigned int count=0;
     unsigned int column=0;
-    cout<<"Data is open "<<data.is_open()<<endl;
+    std::cout<<"Data is open "<<data.is_open()<<endl;
     if(data.is_open()){
         //Check if data is open
         while(getline(data,line)){
@@ -140,7 +155,7 @@ __host__ void return_edge_list(string path, edge* arr){
         }
     }
     else{
-        cout<<"Cannot open file"<<endl;
+        std::cout<<"Cannot open file"<<endl;
     }
     data.close();
 }
@@ -148,7 +163,7 @@ __host__ void return_edge_list(string path, edge* arr){
 __host__ void Check_Repeats(edge* edge_list, unsigned int size){
     for(int i=1; i<size;i++){
         if(edge_list[i].start==edge_list[i-1].start && edge_list[i].end==edge_list[i-1].end && edge_list[i].cluster==edge_list[i-1].cluster){
-            cout<<"Repeat at "<<i<<endl;
+            std::cout<<"Repeat at "<<i<<endl;
         }
     }
 }
@@ -185,7 +200,7 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
         }
     }
     else{
-        cout<<"Cannot open file"<<endl;
+        std::cout<<"Cannot open file"<<endl;
     }
     //Perform prefix sum of src_prt
     unsigned int* copy_ptr = new unsigned int[node_size+1];
@@ -205,11 +220,12 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
 __host__ void Capture_Node_Degree(edge* edge_list, unsigned int* deg_arr, unsigned int size){
     for(unsigned int i=0; i<size;i++){
         deg_arr[edge_list[i].start]++;
+        deg_arr[edge_list[i].end]++;
     }
 }
 
 __host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edges){
-    cout<<"Getting graph info"<<endl;
+    std::cout<<"Getting graph info"<<endl;
     ifstream data;
     data.open(path);
     string line,word;
@@ -478,42 +494,45 @@ __host__ void cpu_radixsort(edge* arr, int n)
 }
 
 
-__host__ void Gen_Local_Src(edge* edge_list, unsigned int* src_ptr,unsigned int* temp_src, unsigned int* unq, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr,
+__host__ void Gen_Local_Src_Succ(edge* edge_list, unsigned int* src,unsigned int* temp_src, unsigned int* succ, unsigned int* src_ptr, unsigned int* unq, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr,
 unsigned int* h_ctr, unsigned int* h_ptr){
     for(int i = 0; i<BLOCKS; i++){
-        //Point to the start of the edge list
-        //iterate through the starts
+        //Iterate through the edges in each cluster
         for(int j=0; j<h_ctr[i];j++){
             unsigned int start = edge_list[h_ptr[i]+j].start;
-            src_ptr[h_unq_ptr[i]+start]++;
-        }
-    }
-    //Now, we need to prefix sum the src_ptr
-    for(int i=0; i<BLOCKS; i++){
-        temp_src[h_unq_ptr[i]]=0;
-        for(int j=h_unq_ptr[i]+1; j<h_unq_ptr[i]+h_unq_ctr[i];j++){
-            temp_src[j]=src_ptr[j-1]+temp_src[j-1];
-        }
-    }
-    //Now, we need to copy the data back to src_ptr
-    for(int i=0; i<BLOCKS; i++){
-        for(int j=h_unq_ptr[i]; j<h_unq_ptr[i]+h_unq_ctr[i];j++){
-            src_ptr[j]=temp_src[j];
-        }
-    }
-}
-
-__host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr, unsigned int* h_ptr){
-    for(int i = 0; i<BLOCKS; i++){
-        //Point to the start of the edge list
-        //iterate through the starts
-        for(int j=0; j<h_unq_ctr[i]-1;j++){
-            for(int k=local_src[h_unq_ptr[i]+j]+h_ptr[i]; k<local_src[h_unq_ptr[i]+j+1]+h_ptr[i];k++){
-                local_succ[k]=edgelist[k].end;
+            unsigned int end = edge_list[h_ptr[i]+j].end;
+            if(start>=h_unq_ctr[i] || start<0 || end>=h_unq_ctr[i] || end<0){
+                std::cout<<"Error: "<<start<<", "<<h_unq_ctr[i]<<endl;
+                std::cout<<"Error: "<<end<<", "<<h_unq_ctr[i]<<endl;
+                return;
+            }
+            else{
+                //Increment the src_ptr
+                src[src_ptr[i]+start]++;
+                succ[h_ptr[i]+j]=edge_list[h_ptr[i]+j].end;
             }
         }
     }
+    std::cout<<"Done with histogram and succ"<<endl;
+    //Now, we need to prefix sum the src_ptr
+    for(int i=0; i<BLOCKS; i++){
+        temp_src[src_ptr[i]]=0;
+        for(int j=src_ptr[i]+1; j<src_ptr[i+1];j++){
+            temp_src[j]=temp_src[j-1]+src[j-1];
+        }
+    }
+    std::cout<<"Done with prefix sum"<<endl;
+    //Now, we need to copy the data back to src_ptr
+    for(int i=0; i<BLOCKS; i++){
+        for(int j=src_ptr[i]; j<src_ptr[i+1];j++){
+            src[j]=temp_src[j];
+        }
+    }
+    std::cout<<"Done with copy"<<endl;
+    //Now, we need to populate the succ array
+    
 }
+
 
 
 __host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsigned int* unq, unsigned int* h_ptr, unsigned int* h_ctr, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr){
@@ -521,12 +540,12 @@ __host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsig
         //Point to the start of the edge list
         //iterate through the starts
         for(int j=0; j<h_ctr[i];j++){
-            unsigned int start = edge_list[h_ptr[i]+j].start;
-            unsigned int end = edge_list[h_ptr[i]+j].end;
-            int start_idx = find(unq+h_unq_ptr[i], unq+h_unq_ptr[i]+h_unq_ctr[i], start)-(unq+h_unq_ptr[i]);
+            unsigned int start = edge_list[h_ptr[i]+j].start;// Get the starting node from edge j in cluster i
+            unsigned int end = edge_list[h_ptr[i]+j].end;// Get the end node from edge j in cluster i
+            int start_idx = find(unq+h_unq_ptr[i], unq+h_unq_ptr[i]+h_unq_ctr[i], start)-(unq+h_unq_ptr[i]); //Return an iterator of the index, and subtract by the start position
             int end_idx = find(unq+h_unq_ptr[i], unq+h_unq_ptr[i]+h_unq_ctr[i], end)-(unq+h_unq_ptr[i]);
-            if(start_idx>=h_unq_ctr[i] || end_idx>=h_unq_ctr[i]){
-                cout<<"Error: "<<start_idx<<", "<<end_idx<<", "<<h_unq_ctr[i]<<endl;
+            if(start_idx>=h_unq_ctr[i] || end_idx>=h_unq_ctr[i] || start_idx<0 || end_idx<0){
+                std::cout<<"Error: "<<start_idx<<", "<<end_idx<<", "<<h_unq_ctr[i]<<endl;
                 return;
             }
             else{
@@ -752,17 +771,17 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num, unsigned int
 /*CHECK THIS ONE- MAKE SURE THE CSR FORMAT IS PROPER*/
 __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num, replica_tracker* d_rep, unsigned int size){
     unsigned int idx= threadIdx.x+blockDim.x*blockIdx.x;
-    if(idx<size){
-        unsigned int start = edges[idx].start;
-        unsigned int end = edges[idx].end;
+    for(int i=idx; i<size;i+=blockDim.x*gridDim.x){
+        unsigned int start = edges[i].start;
+        unsigned int end = edges[i].end;
         unsigned int deg_start = deg_arr[start];
         unsigned int deg_end = deg_arr[end];
-        unsigned int v_hash = (deg_start>deg_end)?start:end;
+        unsigned int v_hash = (deg_start>deg_end)?end:start;
         double intpart;
         double mod_part = modf(v_hash*rand_num, &intpart);
         unsigned int hash = (unsigned int)floor(BLOCKS*mod_part);
         // int hash = v_hash%BLOCKS;
-        edges[idx].cluster=hash;
+        edges[i].cluster=hash;
         //Now, we need to update the replica tracker
         /*We are going to need to use some atomic form to be able to write correctly*/
         atomicOr(&d_rep[start].clusters[hash],1);
@@ -996,29 +1015,29 @@ __host__ void Org_Vertex_Helper(edge* h_edge, replica_tracker* h_tracker, unsign
     unsigned int threads_per_block=TPB;
     unsigned int blocks_per_grid= size/threads_per_block+1;
     unsigned int blocks_per_grid_node = node_size/threads_per_block+1;
-    cout<<"Num of blocks "<<blocks_per_grid<<endl;
+    std::cout<<"Num of blocks "<<blocks_per_grid<<endl;
     unsigned int ex_block_pg=(2*blocks_per_grid)/threads_per_block+1;
-    cout<<"Second amount of blocks "<< ex_block_pg <<endl;
-    cout<<"Allocating d_edge"<<endl;
+    std::cout<<"Second amount of blocks "<< ex_block_pg <<endl;
+    std::cout<<"Allocating d_edge"<<endl;
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge, size*sizeof(edge)))){
-        cout<<"Unable to allocate memory for vertex data"<<endl;
+        std::cout<<"Unable to allocate memory for vertex data"<<endl;
     }
-    cout<<"Copying edge list"<<endl;
+    std::cout<<"Copying edge list"<<endl;
     if(!HandleCUDAError(cudaMemcpy(d_edge,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
-        cout<<"Unable to copy cluster data"<<endl;
+        std::cout<<"Unable to copy cluster data"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**) &d_edge_2, size*sizeof(edge)))){
-        cout<<"Unable to allocate memory for vertex data"<<endl;
+        std::cout<<"Unable to allocate memory for vertex data"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(d_edge_2,h_edge,size*sizeof(edge), cudaMemcpyHostToDevice))){
-        cout<<"Unable to copy cluster data"<<endl;
+        std::cout<<"Unable to copy cluster data"<<endl;
     }
-    cout<<"Done with edge list"<<endl;
+    std::cout<<"Done with edge list"<<endl;
     if(!HandleCUDAError(cudaMalloc((void**)&d_tracker, node_size*sizeof(replica_tracker)))){
-        cout<<"Unable to allocate memory for tracker"<<endl;
+        std::cout<<"Unable to allocate memory for tracker"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**)&d_tracker_fin, node_size*sizeof(replica_tracker)))){
-        cout<<"Unable to allocate memory for tracker"<<endl;
+        std::cout<<"Unable to allocate memory for tracker"<<endl;
     }
 
     unsigned int* d_degree;
@@ -1052,50 +1071,52 @@ __host__ void Org_Vertex_Helper(edge* h_edge, replica_tracker* h_tracker, unsign
     }
 
     if(!HandleCUDAError(cudaMalloc((void**)&d_hist, BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for histogram"<<endl;
+        std::cout<<"Unable to allocate memory for histogram"<<endl;
     }
     if(!HandleCUDAError(cudaMemset(d_hist,0,BLOCKS*blocks_per_grid*sizeof(unsigned int)))){
-        cout<<"Unable to set histogram to 0"<<endl;
+        std::cout<<"Unable to set histogram to 0"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**)&max_val, sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for histogram"<<endl;
+        std::cout<<"Unable to allocate memory for histogram"<<endl;
     }
     if(!HandleCUDAError(cudaMalloc((void**)&d_degree, node_size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for degree"<<endl;
+        std::cout<<"Unable to allocate memory for degree"<<endl;
     }
     if(!HandleCUDAError(cudaMemcpy(d_degree,h_deg,node_size*sizeof(unsigned int), cudaMemcpyHostToDevice))){
-        cout<<"Unable to copy degree data"<<endl;
+        std::cout<<"Unable to copy degree data"<<endl;
     }
-    double r = ( ((double)rand())/(RAND_MAX));
-    cout<<"The random number is "<<r<<endl;
-    cout<<"Starting random edge placement"<<endl;
-    Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_degree,r,d_tracker,size);
+    srand(time(0));
+    int rand_seed = rand();
+    double r = ( ((double)rand_seed)/(RAND_MAX));
+    std::cout<<"The random number is "<<r<<endl;
+    std::cout<<"Starting random edge placement"<<endl;
+    Degree_Based_Placement<<<BLOCKS,128>>>(d_edge,d_degree,r,d_tracker,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
+            std::cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     }
     cudaFuncSetAttribute(Finalize_Replica_Tracker, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
     Finalize_Replica_Tracker<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,node_size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host with Finalize_Replica_Tracker"<<endl;
+            std::cout<<"Unable to synchronize with host with Finalize_Replica_Tracker"<<endl;
     }
     cudaFuncSetAttribute(Generate_Replica_List, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
     Generate_Replica_List<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,d_tracker_fin,node_size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host with Generate_Replica_List"<<endl;
+            std::cout<<"Unable to synchronize with host with Generate_Replica_List"<<endl;
     }    
     if(!HandleCUDAError(cudaMemcpy(h_tracker,d_tracker_fin,node_size*sizeof(replica_tracker), cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy tracker data"<<endl;
+        std::cout<<"Unable to copy tracker data"<<endl;
     }
     unsigned int* d_cluster;
     if(!HandleCUDAError(cudaMalloc((void**)&d_cluster, size*sizeof(unsigned int)))){
-        cout<<"Unable to allocate memory for cluster"<<endl;
+        std::cout<<"Unable to allocate memory for cluster"<<endl;
     }
     if(!HandleCUDAError(cudaMemset(d_cluster,0,size*sizeof(unsigned int)))){
-        cout<<"Unable to set cluster to 0"<<endl;
+        std::cout<<"Unable to set cluster to 0"<<endl;
     }
     Copy_Clusters<<<blocks_per_grid,threads_per_block>>>(d_edge,d_cluster,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
-            cout<<"Unable to synchronize with host with Copy_Clusters"<<endl;
+            std::cout<<"Unable to synchronize with host with Copy_Clusters"<<endl;
     }
     for(int i = 0; i<BLOCKS; i++){
         h_ctr[i]=thrust::count(thrust::device, d_cluster, d_cluster+size, i);
@@ -1104,7 +1125,7 @@ __host__ void Org_Vertex_Helper(edge* h_edge, replica_tracker* h_tracker, unsign
     HandleCUDAError(cudaFree(d_hist));
     thrust::exclusive_scan(thrust::host, h_ctr, h_ctr+BLOCKS, h_ptr);
     if(!HandleCUDAError(cudaMemcpy(h_edge,d_edge,size*sizeof(edge),cudaMemcpyDeviceToHost))){
-        cout<<"Unable to copy back edge data"<<endl;
+        std::cout<<"Unable to copy back edge data"<<endl;
     }
 
     HandleCUDAError(cudaFree(d_edge));

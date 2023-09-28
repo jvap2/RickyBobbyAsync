@@ -38,13 +38,15 @@ int main()
     cpu_radixsort(edge_list,edges);
     Check_Out_csv_edge(edge_list, edges);
     check_out_replicas(REPLICA_PATH,h_replica,nodes);
-    unsigned int* h_start = new unsigned int[edges]{0};
-    unsigned int* h_end = new unsigned int[edges]{0};
-    unsigned int* h_unique_merge = new unsigned int[2*edges]{0};
+    unsigned int* h_start = new unsigned int[edges]{0}; //Collect all starting node values
+    unsigned int* h_end = new unsigned int[edges]{0}; //collect all ending node values 
+    unsigned int* h_unique_merge = new unsigned int[2*edges]{0}; // used to merge these two arrays
     unsigned int* unq_ctr = new unsigned int[BLOCKS]{0};
     unsigned int* unq_ptr = new unsigned int[BLOCKS+1]{0};
     unsigned int** unq_fin = new unsigned int*[BLOCKS]{0};
-
+    for(int i=0; i<BLOCKS;i++){
+        cout<<h_ctr[i]<<endl;
+    }
     cout<<"Copying the edge list"<<endl;
     for(int i=0;i<edges;i++){
         h_start[i]=edge_list[i].start;
@@ -58,7 +60,7 @@ int main()
         merge(h_start+h_ptr[i],h_start+h_ptr[i]+h_ctr[i],h_end+h_ptr[i],h_end+h_ptr[i]+h_ctr[i],h_unique_merge+2*h_ptr[i]);
         auto ip=unique(h_unique_merge+2*h_ptr[i],h_unique_merge+2*h_ptr[i]+2*h_ctr[i]);
         unq_ctr[i]=distance(h_unique_merge+2*h_ptr[i],ip);
-        unq_fin[i]=new unsigned int[unq_ctr[i]];
+        unq_fin[i]=new unsigned int[unq_ctr[i]]{0};
         copy(h_unique_merge+2*h_ptr[i],ip,unq_fin[i]);
     }
     cout<<"Ending the merge function"<<endl;
@@ -105,12 +107,16 @@ int main()
     unsigned int* h_local_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     unsigned int* h_temp_src = new unsigned int[src_ptr[BLOCKS-1]+src_ctr[BLOCKS-1]]{0};
     unsigned int* h_local_succ = new unsigned int[h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1]]{0};
+    cout<<"Starting the generate renum edgelists"<<endl;
     Generate_Renum_Edgelists(edge_list, edge_list_2, h_unq_fin,h_ptr,h_ctr,unq_ctr,unq_ptr);
-    Gen_Local_Src(edge_list_2, h_local_src, h_temp_src, h_unq_fin,src_ctr,src_ptr,h_ctr,h_ptr);
+    Check_Out_Renum_Edge(edge_list_2,edges);
+    cout<<"Done generating renum edgelists"<<endl;
+    cout<<"Starting the generate local src and succ"<<endl;
+    Gen_Local_Src_Succ(edge_list_2, h_local_src, h_temp_src, h_local_succ,src_ptr, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
     cout<<"Local src values"<<endl;
-    Generate_Local_Succ(edge_list_2, h_local_src, h_local_succ,src_ctr,src_ptr,h_ptr);
+    // Generate_Local_Succ(edge_list_2, h_local_src, src_ptr, h_local_succ,src_ctr,src_ptr,h_ptr,edges);
     cout<<"Done generating local src and succ"<<endl;
-    Determine_Master(unq_ptr,h_replica,nodes);
+    // Determine_Master(unq_ptr,h_replica,nodes);
     unsigned int* rank = new unsigned int[nodes];
     unsigned int* K = new unsigned int[nodes]{0};
     unsigned int* C = new unsigned int[nodes]{0};

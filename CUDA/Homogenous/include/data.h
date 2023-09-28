@@ -28,7 +28,7 @@ using namespace std;
 
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 12
+#define BLOCKS 20
 #if BLOCKS>=48
 #define TPB 128
 #else
@@ -43,6 +43,7 @@ using namespace std;
 #define EDGE_PATH "../../Data/Homogenous/rand/rand_net.csv"
 #define GRAPH_DATA_PATH "../../Data/Homogenous/rand/rand_net_info.csv"
 #define CLUSTER_PATH "../../Data/Homogenous/rand/Cluster_Assignment_Norm.csv"
+#define RENUM_PATH "../../Data/Homogenous/rand/renum_edge_list.csv"
 #define PTR_PATH "../../Data/Homogenous/google/ptr_Assignment.csv"
 #define LIST_PATH "../../Data/Homogenous/google/list_check.csv"
 #define REPLICA_PATH "../../Data/Homogenous/replica_counts.csv"
@@ -86,6 +87,8 @@ struct replica_tracker{
 
 __host__ void Check_Out_csv_edge(edge* edge_list, int size);
 
+__host__ void Check_Out_Renum_Edge(edge* edge_list, int size);
+
 __host__ void return_edge_list(string path, edge* arr);
 
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size);
@@ -114,12 +117,13 @@ __host__ void Check_Out_Ptr_Ctr(unsigned int* h_ctr, unsigned int* h_ptr, int si
 
 __host__ void Check_Repeats(edge* edge_list, unsigned int size);
 
-__host__ void Gen_Local_Src(edge* edge_list, unsigned int* src_ptr,unsigned int* temp_src, unsigned int* unq, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr,
+__host__ void Gen_Local_Src_Succ(edge* edge_list, unsigned int* src,unsigned int* temp_src, unsigned int* succ, unsigned int* src_ptr, unsigned int* unq, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr,
 unsigned int* h_ctr, unsigned int* h_ptr);
 
 __host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsigned int* unq, unsigned int* h_ptr, unsigned int* h_ctr, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr);
 
-__host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr, unsigned int* h_ptr);
+__host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* src_ptr, unsigned int* local_succ, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr, unsigned int* h_ptr,
+unsigned int edge_size);
 
 __host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, unsigned int* h_ctr);
 
@@ -237,6 +241,8 @@ __global__ void Gather_Ver0(unsigned int* K, unsigned int* unq, unsigned int* un
 __global__ void Sync_Mirrors_Ver0(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_C, unsigned int* local_K, 
 unsigned int* src, unsigned int* succ, unsigned int* mirror_ctr,replica_tracker* d_rep, unsigned int node_size, unsigned int iter, float* p_s, curandState* d_state);
 
+__global__ void Copy_Init_Vector(unsigned int* k, float* k_init_guess, unsigned int node_size);
+
 __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src, unsigned int* succ,replica_tracker* d_rep, unsigned int node_size);
 
 __global__ void Reverse_Gather(unsigned int* K, unsigned int* local_K, replica_tracker* d_rep, unsigned int* unq, unsigned int* unq_ptr, unsigned int node_size);
@@ -246,8 +252,11 @@ __global__ void Gather_Ver1(unsigned int* K, unsigned int* unq, unsigned int* un
 __global__ void Apply_Ver1(unsigned int* unq_ptr, unsigned int* unq, unsigned int* local_K_global,unsigned int* local_K_temp, unsigned int* local_C_global, float* p_t, unsigned int iter,
 unsigned int node_size, unsigned int* C, unsigned int* K, curandState* d_state);
 
-__global__ void Sync_Mirrors_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_ptr,
-unsigned int* local_C, unsigned int* local_K, unsigned int* src, unsigned int* succ, unsigned int* mirror_ctr,replica_tracker* d_rep, unsigned int node_size, unsigned int iter, float* p_s, curandState* d_state);
+__global__ void Sync_Mirrors_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_ptr,unsigned int* src_ptr,
+unsigned int* local_C, unsigned int* local_K, unsigned int* src, unsigned int* succ, unsigned int* mirror_ctr,replica_tracker* d_rep, unsigned int node_size, unsigned int iter, float* p_s, curandState* d_state,
+float* rand_node, int* idx_tracker);
+
+__global__ void Reverse_Gather_V1(unsigned int* K, unsigned int* local_K, unsigned int* unq, unsigned int* unq_ptr, unsigned int node_size);
 
 __global__ void Final_Commit(unsigned int* C, unsigned int* K, unsigned int node_size);
 

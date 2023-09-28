@@ -3,6 +3,7 @@ import os
 import sys
 import numpy as np
 import cudf
+import random
 
 folder=os.getcwd()
 df_cublas=pl.read_csv(os.path.join(os.path.dirname(folder),"Data/Homogenous/rand/check/CUBLAS_PR.csv"))
@@ -31,25 +32,41 @@ print("CUBLAS vs CUGRAPH: ", cub_cug_sim)
 print("FROG vs CUGRAPH: ", frog_cug_sim)
 
 ## Compare the accuraccy of the three methods
+rand_chance = np.arange(no_nodes)
+np.random.shuffle(rand_chance)
+
+
+
 
 frog_cub_acc=0
 frog_pr_acc=0
+rand_cub_acc=0
+rand_pr_acc=0
 
-k=300
+k=(int)(.1*no_nodes)
 for i in range(k):
     for j in range(k):
         if(frog_vertex[i]==cug_vertex[j]):
             frog_pr_acc+=1
-            print("FROG vs CUGRAPH: ", frog_vertex[i],cug_vertex[j])
+            # print("FROG vs CUGRAPH: ", frog_vertex[i],cug_vertex[j])
         if(frog_vertex[i]==cub_vertex[j]):
             frog_cub_acc+=1
-            print("FROG vs CUBLAS: ", frog_vertex[i],cub_vertex[j])
+            # print("FROG vs CUBLAS: ", frog_vertex[i],cub_vertex[j])
+        if(rand_chance[i]==cug_vertex[j]):
+            rand_pr_acc+=1
+            # print("RAND vs CUGRAPH: ", rand_chance[i],cug_vertex[j])
+        if(rand_chance[i]==cub_vertex[j]):
+            rand_cub_acc+=1
+            # print("RAND vs CUBLAS: ", rand_chance[i],cub_vertex[j])
+        
 
 frog_pr_acc=frog_pr_acc/k
 frog_cub_acc=frog_cub_acc/k
+rand_pr_acc=rand_pr_acc/k
+rand_cub_acc=rand_cub_acc/k
 
-print("FROG vs CUBLAS accuracy: ", frog_cub_acc)
-print("FROG vs CUGRAPH accuracy: ", frog_pr_acc)
+print("FROG vs CUBLAS accuracy: {:.4f}, RAND vs CUBLAS accuracy: {:.4f}".format(frog_cub_acc,rand_cub_acc))
+print("FROG vs CUGRAPH accuracy: {:.4f}, RAND vs CUGRAPH accuracy: {:.4f}".format(frog_pr_acc,rand_pr_acc))
 
 
 
