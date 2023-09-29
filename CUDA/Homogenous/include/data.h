@@ -28,7 +28,7 @@ using namespace std;
 
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 16
+#define BLOCKS 1
 #if BLOCKS>=48
 #define TPB 128
 #else
@@ -262,6 +262,8 @@ float* rand_node, int* idx_tracker);
 
 __global__ void Scatter_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_ptr,unsigned int* src_ptr,
  unsigned int* mirror_ctr,unsigned int* local_K,float* rand_node, int* idx_tracker,float* p_s, unsigned int node_size, unsigned int iter, curandState* d_state);
+
+__global__ void Apply_Ver2(unsigned int* K_global,unsigned int* C_global, float* p_t, unsigned int iter, curandState* d_state, unsigned int node_size);
 
 __global__ void Gen_P_Mem_eff(float* weight_P, unsigned int* src, unsigned int* succ, unsigned int node_size, float* damp);
 

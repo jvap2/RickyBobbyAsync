@@ -403,9 +403,9 @@ unsigned int* ind_rank, unsigned int debug){
     unsigned int unq_ptr_size = unq_ptr[BLOCKS];
     unsigned int unq_rand_mem_size=unq_ptr[BLOCKS]*sizeof(curandState);
     unsigned int succ_size = h_ptr[BLOCKS]*sizeof(unsigned int);
-    p_s=.85;
+    p_s=.8;
     p_t=.15;
-    unsigned int iter = 10;
+    unsigned int iter = 4;
     float* d_p_t, *d_p_s;
     unsigned int unq_ctr_max=0;
     unsigned int src_ctr_max=0;
@@ -870,27 +870,28 @@ unsigned int* ind_rank, unsigned int debug){
         if(!HandleCUDAError(cudaMemset(local_K,0,unq_mem_size))){
             std::cout<<"Error initializing local_K"<<endl;
         }
-        for(unsigned int i=0; i<iter; i++){
+        for(unsigned int i=0; i<3; i++){
             std::cout<<"Iteration "<<i<<endl;
             if(i==0){
                 Gather_Ver0<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
                 //Take the frogs from the random initialization, and then place that many on the mirrors
             }
-            else{
-                Gather_Ver1<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
-                //Take the frogs on the mirrors, and accumulate them so that the global version of K is accurate
-            }
+            // else{
+            //     Gather_Ver1<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
+            //     //Take the frogs on the mirrors, and accumulate them so that the global version of K is accurate
+            // }
             cudaError_t err = cudaGetLastError();
             if (err != cudaSuccess) 
                 printf("Gather Error: %s\n", cudaGetErrorString(err));
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 std::cout<<"Error synchronizing device"<<endl;
             }
-            if(!HandleCUDAError(cudaMemset(d_k_local_temp, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
-                std::cout<<"Error initializing d_k_temp"<<endl;
-            }
-            std::cout<<"Gathered"<<endl;
-            Apply_Ver1<<<BLOCKS, thrd_blck>>>(d_unq_ptr,d_unq, local_K,d_k_local_temp, local_C, d_p_t,i,node_size,d_c,d_k, d_state_teleport);
+            // if(!HandleCUDAError(cudaMemset(d_k_local_temp, 0, unq_ptr[BLOCKS]*sizeof(unsigned int)))){
+            //     std::cout<<"Error initializing d_k_temp"<<endl;
+            // }
+            // std::cout<<"Gathered"<<endl;
+            // // Apply_Ver1<<<BLOCKS, thrd_blck>>>(d_unq_ptr,d_unq, local_K,d_k_local_temp, local_C, d_p_t,i,node_size,d_c,d_k, d_state_teleport);
+            Apply_Ver2<<<b_per_grid,thrd_blck>>>(d_k,d_c,d_p_t,i,d_state_teleport,node_size);
             //Iterate through the mirrors, and with 15% probability, C(i) will get incremented and K(i) will get decremented
             cudaError_t err1 = cudaGetLastError();
             if (err1 != cudaSuccess) 
@@ -898,17 +899,17 @@ unsigned int* ind_rank, unsigned int debug){
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 std::cout<<"Error synchronizing device for Apply"<<endl;
             }
-            std::cout<<"Applied"<<endl;
+            // std::cout<<"Applied"<<endl;
             Sync_Mirrors_Ver1<<<BLOCKS,thrd_blck>>>(d_c, d_k, d_unq, d_unq_ptr,d_local_src,d_local_succ,d_h_ptr,d_scr_ptr, local_C, local_K, 
             d_global_src,d_global_succ,mirror_ctr,d_replica,node_size,i, d_p_s, d_state_scatter,rand_node,idx_tracker);
-            //Decide as to which mirrors are synchronized with the global version of the graph, and then send frogs to the edges of the mirrors
+            // //Decide as to which mirrors are synchronized with the global version of the graph, and then send frogs to the edges of the mirrors
             cudaError_t err2 = cudaGetLastError();  
             if (err2 != cudaSuccess) 
                 printf("Sync Error: %s\n", cudaGetErrorString(err2));
             if(!HandleCUDAError(cudaDeviceSynchronize())){
                 std::cout<<"Error synchronizing device for Sync"<<endl;
             }
-            std::cout<<"Synced"<<endl;
+            // std::cout<<"Synced"<<endl;
             Scatter_Ver1<<<BLOCKS,thrd_blck>>>(d_c,d_k,d_unq,d_unq_ptr,d_local_src,d_local_succ,d_h_ptr,
             d_scr_ptr,mirror_ctr,local_K,rand_node,idx_tracker,d_p_s,node_size,i,d_state_scatter);
             if(!HandleCUDAError(cudaDeviceSynchronize())){
@@ -917,10 +918,10 @@ unsigned int* ind_rank, unsigned int debug){
             if(!HandleCUDAError(cudaMemset(mirror_ctr, 0, node_size*sizeof(unsigned int)))){
                 std::cout<<"Error initializing mirror_ctr"<<endl;
             }
-            std::cout<<"Scattered"<<endl;
-            if(!HandleCUDAError(cudaMemset(d_k,0,node_size*sizeof(unsigned int)))){
-                std::cout<<"Error initializing d_k"<<endl;
-            }
+            // std::cout<<"Scattered"<<endl;
+            // // if(!HandleCUDAError(cudaMemset(d_k,0,node_size*sizeof(unsigned int)))){
+            // //     std::cout<<"Error initializing d_k"<<endl;
+            // // }
             if(!HandleCUDAError(cudaMemset(idx_tracker,-1, unq_ptr_size*sizeof(int)))){
                 std::cout<<"Error initializing idx_tracker"<<endl;
             }
@@ -929,10 +930,10 @@ unsigned int* ind_rank, unsigned int debug){
             }
 
         }
-        Reverse_Gather_V1<<<BLOCKS,thrd_blck>>>(d_k, local_K,  d_unq, d_unq_ptr,node_size);
-        if(!HandleCUDAError(cudaDeviceSynchronize())){
-            std::cout<<"Error synchronizing device"<<endl;
-        }
+        // Reverse_Gather_V1<<<BLOCKS,thrd_blck>>>(d_k, local_K,  d_unq, d_unq_ptr,node_size);
+        // if(!HandleCUDAError(cudaDeviceSynchronize())){
+        //     std::cout<<"Error synchronizing device"<<endl;
+        // }
         Final_Commit<<<b_per_grid,thrd_blck>>>(d_c, d_k, node_size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             std::cout<<"Error synchronizing device"<<endl;
@@ -1261,7 +1262,7 @@ unsigned int node_size, unsigned int* C, unsigned int* K, curandState* d_state){
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
         local_K_temp[i+unq_ptr[blockIdx.x]]=local_K_global[i+unq_ptr[blockIdx.x]];
-        atomicExch(K+unq[unq_ptr[blockIdx.x]+i],0);
+        *(K+unq[unq_ptr[blockIdx.x]+i])=0;
     }
     __syncthreads();
     for(unsigned int i=tid; i<len_nodes_clust; i+=blockDim.x){
@@ -1305,7 +1306,6 @@ float* rand_node, int* idx_tracker){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     unsigned int tid = threadIdx.x;
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
-    unsigned int num_node=len_nodes_clust/blockDim.x+1;
     //We have this outside so if the if condition is satisfied, the entirety of local C can be committed
     //to the global C
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
@@ -1318,10 +1318,8 @@ float* rand_node, int* idx_tracker){
             //Save the vertex which will then send frogs to the next vertex in its cluster
             if(rand_node[index]<=*(p_s)){
                 atomicAdd(mirror_ctr+unq[index],1);
-                // atomicExch(local_K+index,K[unq[index]]);
-                if(local_src[src_index+1]-local_src[src_index]>0){
-                    idx_tracker[index]=src_index;
-                }
+                atomicExch(local_K+index,K[unq[index]]);
+                idx_tracker[index]=src_index;
             }
             else{
                 idx_tracker[index]=-1;
@@ -1346,60 +1344,44 @@ __global__ void Scatter_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq
         unsigned int src_index = i+src_ptr[blockIdx.x]; 
         if(rand_node[index]<=*(p_s) && mirror_ctr[unq[index]]>0){
             //Check if the random number is less than the probability of scattering, and that there are more than one mirror which is synchronized
-            unsigned int num_frog=(K[unq[index]]/(mirror_ctr[unq[index]])+1);
+            unsigned int num_frog=(K[unq[index]]/(mirror_ctr[unq[index]]));
             //Find the number of frogs to send based on the value of the frogs already on the vertex and the number of mirrors
-            if(idx_tracker[index]!=-1){
-                if(local_src[idx_tracker[index]+1]-local_src[idx_tracker[index]]>0){
+            if(idx_tracker[index]>0){
+                if(local_src[idx_tracker[index]+1]-local_src[idx_tracker[index]]!=0){
                     for(int j=local_src[idx_tracker[index]]; j<local_src[idx_tracker[index]+1]; j++){
                         unsigned int local_succ_val=local_succ[j+h_ptr[blockIdx.x]];//Gives the index of the local succ within
-                        atomicAdd(&local_K[local_succ_val+unq_ptr[blockIdx.x]],num_frog);//Check out src and succ
-                        if(num_frog<local_K[index]){
-                            atomicSub(&local_K[index],num_frog);
-                        }
-                        else{
-                            atomicExch(&local_K[index],0);
-                        }
+                        atomicAdd(&K[unq[local_succ_val+unq_ptr[blockIdx.x]]],num_frog);
                     }
                 }
                 else{
                     curand_init(42+iter+index,0, i, &d_state[index]);
                     rand_node[index] = curand_uniform(&d_state[index]);
                     unsigned int new_index = (unsigned int)floorf(rand_node[index]*unq_ptr[BLOCKS]);
-                    atomicAdd(&local_K[new_index],1);
-                    if(1<local_K[index]){
-                        atomicSub(&local_K[index],1);
-                    }
-                    else{
-                        atomicExch(&local_K[index],0);
-                    }
+                    atomicAdd(&K[unq[new_index]],1);
                 }
             }
         }
-        // else{
-        //     curand_init(iter+index,0, i, &d_state[index]);
-        //     rand_node[index] = curand_uniform(&d_state[index]);
-        //     if(local_src[src_index+1]-local_src[src_index]>0){
-        //         unsigned int succ_offset = (unsigned int)floorf(rand_node[index]*(local_src[src_index+1]-local_src[src_index]));
-        //         unsigned int num_frog = (local_K[index]/(local_src[src_index+1]-local_src[src_index])+1);
-        //         unsigned int local_succ_val=local_succ[succ_offset+h_ptr[blockIdx.x]];
-        //         atomicAdd(&local_K[local_succ_val+unq_ptr[blockIdx.x]],num_frog);
-        //         if(num_frog<local_K[index]){
-        //             atomicSub(&local_K[index],num_frog);
-        //         }
-        //         else{
-        //             atomicExch(&local_K[index],0);
-        //         }
-        //     }
-        //     else{
-        //         unsigned int new_index = (unsigned int)floorf(rand_node[index]*unq_ptr[BLOCKS]);
-        //         atomicAdd(&local_K[new_index],1);
-        //         if(1<local_K[index]){
-        //             atomicSub(&local_K[index],1);
-        //         }
-        //         else{
-        //             atomicExch(&local_K[index],0);
-        //         }
-        //     }
-        // }
     }
  }
+
+
+ __global__ void Apply_Ver2(unsigned int* K_global,unsigned int* C_global, float* p_t, unsigned int iter, curandState* d_state, unsigned int node_size){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    if(idx<node_size){
+        if(K_global[idx]>=0){
+            unsigned int k_count = K_global[idx];
+            for(int i = 0; i< k_count;i++){
+                curand_init(1234+i+iter, idx, 0, &d_state[idx]);
+                float rand = curand_uniform(&d_state[idx]);
+                if(rand<*(p_t)){
+                    *(C_global+idx)+=1;
+                    *(K_global+idx)-=1;
+                }
+            }
+        }
+    }
+    if(tid==0)
+        printf("Block %d is done with iterating\n",blockIdx.x);
+
+}
