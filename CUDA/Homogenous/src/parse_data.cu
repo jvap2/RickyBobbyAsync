@@ -217,10 +217,31 @@ __host__ void CSR_Graph(string path, unsigned int node_size, unsigned int edge_s
     data.close();
 }
 
+__host__ void Generate_Global_Src_Succ(unsigned int* start, unsigned int* end, unsigned int* src, unsigned int* succ, unsigned int node_size, unsigned int edge_size){
+    for(int i=0; i<edge_size;i++){
+        src[start[i]]++;
+        succ[i]=end[i];
+    }
+    //Now, we need to prefix sum the src_ptr
+    unsigned int* src_temp = new unsigned int[node_size+1]{0};
+    for(int i=1; i<node_size;i++){
+        src_temp[i]=src_temp[i-1]+src[i-1];
+    }
+    copy(src_temp, src_temp+node_size+1, src);
+    delete[] src_temp;
+}
+
+__host__ void Sort_Edge_Start(edge* edge_list, unsigned int edge_size){
+    std::stable_sort(edge_list, edge_list+edge_size, [](edge const& a, edge const& b){
+        return a.start<=b.start;
+    });
+}
+
+
 __host__ void Capture_Node_Degree(edge* edge_list, unsigned int* deg_arr, unsigned int size){
     for(unsigned int i=0; i<size;i++){
         deg_arr[edge_list[i].start]++;
-        deg_arr[edge_list[i].end]++;
+        // deg_arr[edge_list[i].end]++;
     }
 }
 
@@ -771,17 +792,17 @@ __global__ void Random_Edge_Placement(edge *edges, double rand_num, unsigned int
 /*CHECK THIS ONE- MAKE SURE THE CSR FORMAT IS PROPER*/
 __global__ void Degree_Based_Placement(edge* edges, unsigned int* deg_arr, double rand_num, replica_tracker* d_rep, unsigned int size){
     unsigned int idx= threadIdx.x+blockDim.x*blockIdx.x;
-    for(int i=idx; i<size;i+=blockDim.x*gridDim.x){
-        unsigned int start = edges[i].start;
-        unsigned int end = edges[i].end;
+    if(idx<size){
+        unsigned int start = edges[idx].start;
+        unsigned int end = edges[idx].end;
         unsigned int deg_start = deg_arr[start];
         unsigned int deg_end = deg_arr[end];
-        unsigned int v_hash = (deg_start>deg_end)?end:start;
+        unsigned int v_hash = (deg_start>deg_end)?start:end;
         double intpart;
         double mod_part = modf(v_hash*rand_num, &intpart);
         unsigned int hash = (unsigned int)floor(BLOCKS*mod_part);
         // int hash = v_hash%BLOCKS;
-        edges[i].cluster=hash;
+        edges[idx].cluster=hash;
         //Now, we need to update the replica tracker
         /*We are going to need to use some atomic form to be able to write correctly*/
         atomicOr(&d_rep[start].clusters[hash],1);
@@ -1090,10 +1111,14 @@ __host__ void Org_Vertex_Helper(edge* h_edge, replica_tracker* h_tracker, unsign
     double r = ( ((double)rand_seed)/(RAND_MAX));
     std::cout<<"The random number is "<<r<<endl;
     std::cout<<"Starting random edge placement"<<endl;
-    Degree_Based_Placement<<<BLOCKS,128>>>(d_edge,d_degree,r,d_tracker,size);
+    Degree_Based_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,d_degree,r,d_tracker,size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
             std::cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
     }
+    // Random_Edge_Placement<<<blocks_per_grid,threads_per_block>>>(d_edge,r,size);
+    // if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //     cout<<"Unable to synchronize with host with Rand_Edge Place"<<endl;
+    // }
     cudaFuncSetAttribute(Finalize_Replica_Tracker, cudaFuncAttributeMaxDynamicSharedMemorySize, 102400);
     Finalize_Replica_Tracker<<<blocks_per_grid_node,threads_per_block>>>(d_tracker,node_size);
     if(!HandleCUDAError(cudaDeviceSynchronize())){

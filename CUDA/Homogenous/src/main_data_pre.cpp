@@ -20,9 +20,6 @@ int main()
     unsigned int* replica = new unsigned int[edges];
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
-    CSR_Graph(EDGE_PATH,nodes,edges,src,succ);
-    Export_Global_Src(src,nodes);
-    Export_Global_Succ(succ,edges);
     Capture_Node_Degree(edge_list,deg,edges);
     Export_Degree(deg,nodes);
     unsigned int *h_ctr, *h_ptr;
@@ -40,6 +37,8 @@ int main()
     check_out_replicas(REPLICA_PATH,h_replica,nodes);
     unsigned int* h_start = new unsigned int[edges]{0}; //Collect all starting node values
     unsigned int* h_end = new unsigned int[edges]{0}; //collect all ending node values 
+    unsigned int* h_start_global = new unsigned int[edges]{0}; //Collect all starting node values
+    unsigned int* h_end_global = new unsigned int[edges]{0}; //collect all ending node values
     unsigned int* h_unique_merge = new unsigned int[2*edges]{0}; // used to merge these two arrays
     unsigned int* unq_ctr = new unsigned int[BLOCKS]{0};
     unsigned int* unq_ptr = new unsigned int[BLOCKS+1]{0};
@@ -51,7 +50,13 @@ int main()
     for(int i=0;i<edges;i++){
         h_start[i]=edge_list[i].start;
         h_end[i]=edge_list[i].end;
+        h_start_global[i]=edge_list[i].start;
+        h_end_global[i]=edge_list[i].end;
     }
+    thrust::stable_sort_by_key(h_start_global,h_start_global+edges,h_end_global);
+    Generate_Global_Src_Succ(h_start_global,h_end_global,src,succ,nodes,edges);
+    delete[] h_start_global;
+    delete[] h_end_global;
     cout<<"Starting the merge function"<<endl;
     for(int i = 0; i<BLOCKS;i++){
         sort(h_start+h_ptr[i],h_start+h_ptr[i]+h_ctr[i]);

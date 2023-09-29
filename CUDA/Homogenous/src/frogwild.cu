@@ -405,7 +405,7 @@ unsigned int* ind_rank, unsigned int debug){
     unsigned int succ_size = h_ptr[BLOCKS]*sizeof(unsigned int);
     p_s=.85;
     p_t=.15;
-    unsigned int iter = 4;
+    unsigned int iter = 10;
     float* d_p_t, *d_p_s;
     unsigned int unq_ctr_max=0;
     unsigned int src_ctr_max=0;
@@ -488,7 +488,7 @@ unsigned int* ind_rank, unsigned int debug){
             std::cout<<"Error copying memory to d_global_succ"<<endl;
         }
         float* rand_frog;
-        int sublinear_size=node_size/8+1;
+        int sublinear_size=node_size/10+1;
         std::cout<<"Sublinear size "<<sublinear_size<<endl;
         std::cout<<"Node size "<<node_size<<endl;
         if(!HandleCUDAError(cudaMalloc((void**)&rand_frog, sublinear_size*sizeof(float)))){
@@ -870,7 +870,7 @@ unsigned int* ind_rank, unsigned int debug){
         if(!HandleCUDAError(cudaMemset(local_K,0,unq_mem_size))){
             std::cout<<"Error initializing local_K"<<endl;
         }
-        for(unsigned int i=0; i<4; i++){
+        for(unsigned int i=0; i<iter; i++){
             std::cout<<"Iteration "<<i<<endl;
             if(i==0){
                 Gather_Ver0<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
@@ -909,6 +909,11 @@ unsigned int* ind_rank, unsigned int debug){
                 std::cout<<"Error synchronizing device for Sync"<<endl;
             }
             std::cout<<"Synced"<<endl;
+            Scatter_Ver1<<<BLOCKS,thrd_blck>>>(d_c,d_k,d_unq,d_unq_ptr,d_local_src,d_local_succ,d_h_ptr,
+            d_scr_ptr,mirror_ctr,local_K,rand_node,idx_tracker,d_p_s,node_size,i,d_state_scatter);
+            if(!HandleCUDAError(cudaDeviceSynchronize())){
+                std::cout<<"Error synchronizing device for Scatter"<<endl;
+            }
             if(!HandleCUDAError(cudaMemset(mirror_ctr, 0, node_size*sizeof(unsigned int)))){
                 std::cout<<"Error initializing mirror_ctr"<<endl;
             }
@@ -1247,7 +1252,7 @@ __global__ void Gather_Ver1(unsigned int* K, unsigned int* unq, unsigned int* un
     }
 }
 
-
+//Do we send frogs within the cluster?
 
 __global__ void Apply_Ver1(unsigned int* unq_ptr, unsigned int* unq, unsigned int* local_K_global,unsigned int* local_K_temp, unsigned int* local_C_global, float* p_t, unsigned int iter,
 unsigned int node_size, unsigned int* C, unsigned int* K, curandState* d_state){
@@ -1256,6 +1261,7 @@ unsigned int node_size, unsigned int* C, unsigned int* K, curandState* d_state){
     const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
         local_K_temp[i+unq_ptr[blockIdx.x]]=local_K_global[i+unq_ptr[blockIdx.x]];
+        atomicExch(K+unq[unq_ptr[blockIdx.x]+i],0);
     }
     __syncthreads();
     for(unsigned int i=tid; i<len_nodes_clust; i+=blockDim.x){
@@ -1280,22 +1286,17 @@ unsigned int node_size, unsigned int* C, unsigned int* K, curandState* d_state){
                 //The issue with the above part could exceed the values, this poses an issue- do we need this?
                 //I do not think so
                 atomicSub(local_K_temp+index,1);
-                //Decrement the K value
+                //Decrement the K 
             }
         }
     }
     __syncthreads();
 
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
-        unsigned int diff=local_K_global[i+unq_ptr[blockIdx.x]]-local_K_temp[i+unq_ptr[blockIdx.x]];
-        if(diff<K[unq[i+unq_ptr[blockIdx.x]]]){
-            atomicSub(&K[unq[i+unq_ptr[blockIdx.x]]],diff);
-        }
-        else{
-            atomicExch(&K[unq[i+unq_ptr[blockIdx.x]]],0);
-        }
         local_K_global[i+unq_ptr[blockIdx.x]]=local_K_temp[i+unq_ptr[blockIdx.x]];
+        atomicAdd(K+unq[unq_ptr[blockIdx.x]+i],local_K_global[i+unq_ptr[blockIdx.x]]);
     }
+
 }
 
 __global__ void Sync_Mirrors_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_ptr,unsigned int* src_ptr,
@@ -1317,27 +1318,56 @@ float* rand_node, int* idx_tracker){
             //Save the vertex which will then send frogs to the next vertex in its cluster
             if(rand_node[index]<=*(p_s)){
                 atomicAdd(mirror_ctr+unq[index],1);
-                atomicExch(local_K+index,K[unq[index]]);
+                // atomicExch(local_K+index,K[unq[index]]);
                 if(local_src[src_index+1]-local_src[src_index]>0){
                     idx_tracker[index]=src_index;
                 }
+            }
+            else{
+                idx_tracker[index]=-1;
+                rand_node[index]=1.1f;
             }
         }
 
     }
     __syncthreads();
+}
+
+
+
+__global__ void Scatter_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_ptr,unsigned int* src_ptr,
+ unsigned int* mirror_ctr,unsigned int* local_K,float* rand_node, int* idx_tracker,float* p_s, unsigned int node_size, unsigned int iter, curandState* d_state){
+    unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+    unsigned int tid = threadIdx.x;
+    const unsigned int len_nodes_clust=unq_ptr[blockIdx.x+1]-unq_ptr[blockIdx.x];
+    unsigned int num_node=len_nodes_clust/blockDim.x+1;
     for(int i=tid; i<len_nodes_clust; i+=blockDim.x){
-        unsigned int index=i+unq_ptr[blockIdx.x];  
+        unsigned int index=i+unq_ptr[blockIdx.x]; 
+        unsigned int src_index = i+src_ptr[blockIdx.x]; 
         if(rand_node[index]<=*(p_s) && mirror_ctr[unq[index]]>0){
             //Check if the random number is less than the probability of scattering, and that there are more than one mirror which is synchronized
             unsigned int num_frog=(K[unq[index]]/(mirror_ctr[unq[index]])+1);
             //Find the number of frogs to send based on the value of the frogs already on the vertex and the number of mirrors
             if(idx_tracker[index]!=-1){
-                for(int j=local_src[idx_tracker[index]]; j<local_src[idx_tracker[index]+1]; j++){
-                    unsigned int local_succ_val=local_succ[j+h_ptr[blockIdx.x]];//Gives the index of the local succ within
-                    atomicAdd(&local_K[local_succ_val+unq_ptr[blockIdx.x]],num_frog);//Check out src and succ
-                    if(num_frog<local_K[index]){
-                        atomicSub(&local_K[index],num_frog);
+                if(local_src[idx_tracker[index]+1]-local_src[idx_tracker[index]]>0){
+                    for(int j=local_src[idx_tracker[index]]; j<local_src[idx_tracker[index]+1]; j++){
+                        unsigned int local_succ_val=local_succ[j+h_ptr[blockIdx.x]];//Gives the index of the local succ within
+                        atomicAdd(&local_K[local_succ_val+unq_ptr[blockIdx.x]],num_frog);//Check out src and succ
+                        if(num_frog<local_K[index]){
+                            atomicSub(&local_K[index],num_frog);
+                        }
+                        else{
+                            atomicExch(&local_K[index],0);
+                        }
+                    }
+                }
+                else{
+                    curand_init(42+iter+index,0, i, &d_state[index]);
+                    rand_node[index] = curand_uniform(&d_state[index]);
+                    unsigned int new_index = (unsigned int)floorf(rand_node[index]*unq_ptr[BLOCKS]);
+                    atomicAdd(&local_K[new_index],1);
+                    if(1<local_K[index]){
+                        atomicSub(&local_K[index],1);
                     }
                     else{
                         atomicExch(&local_K[index],0);
@@ -1345,8 +1375,31 @@ float* rand_node, int* idx_tracker){
                 }
             }
         }
+        // else{
+        //     curand_init(iter+index,0, i, &d_state[index]);
+        //     rand_node[index] = curand_uniform(&d_state[index]);
+        //     if(local_src[src_index+1]-local_src[src_index]>0){
+        //         unsigned int succ_offset = (unsigned int)floorf(rand_node[index]*(local_src[src_index+1]-local_src[src_index]));
+        //         unsigned int num_frog = (local_K[index]/(local_src[src_index+1]-local_src[src_index])+1);
+        //         unsigned int local_succ_val=local_succ[succ_offset+h_ptr[blockIdx.x]];
+        //         atomicAdd(&local_K[local_succ_val+unq_ptr[blockIdx.x]],num_frog);
+        //         if(num_frog<local_K[index]){
+        //             atomicSub(&local_K[index],num_frog);
+        //         }
+        //         else{
+        //             atomicExch(&local_K[index],0);
+        //         }
+        //     }
+        //     else{
+        //         unsigned int new_index = (unsigned int)floorf(rand_node[index]*unq_ptr[BLOCKS]);
+        //         atomicAdd(&local_K[new_index],1);
+        //         if(1<local_K[index]){
+        //             atomicSub(&local_K[index],1);
+        //         }
+        //         else{
+        //             atomicExch(&local_K[index],0);
+        //         }
+        //     }
+        // }
     }
-}
-
-
-
+ }

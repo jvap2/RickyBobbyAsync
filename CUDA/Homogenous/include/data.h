@@ -28,7 +28,7 @@ using namespace std;
 
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 20
+#define BLOCKS 16
 #if BLOCKS>=48
 #define TPB 128
 #else
@@ -124,6 +124,10 @@ __host__ void Generate_Renum_Edgelists(edge* edge_list, edge* edge_list_2, unsig
 
 __host__ void Generate_Local_Succ(edge* edgelist, unsigned int* local_src, unsigned int* src_ptr, unsigned int* local_succ, unsigned int* h_unq_ctr, unsigned int* h_unq_ptr, unsigned int* h_ptr,
 unsigned int edge_size);
+
+__host__ void Sort_Edge_Start(edge* edge_list, unsigned int edge_size);
+
+__host__ void Generate_Global_Src_Succ(unsigned int* start, unsigned int* end, unsigned int* src, unsigned int* succ, unsigned int node_size, unsigned int edge_size);
 
 __host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, unsigned int* h_ctr);
 
@@ -255,6 +259,11 @@ unsigned int node_size, unsigned int* C, unsigned int* K, curandState* d_state);
 __global__ void Sync_Mirrors_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_ptr,unsigned int* src_ptr,
 unsigned int* local_C, unsigned int* local_K, unsigned int* src, unsigned int* succ, unsigned int* mirror_ctr,replica_tracker* d_rep, unsigned int node_size, unsigned int iter, float* p_s, curandState* d_state,
 float* rand_node, int* idx_tracker);
+
+__global__ void Scatter_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_src, unsigned int* local_succ, unsigned int* h_ptr,unsigned int* src_ptr,
+ unsigned int* mirror_ctr,unsigned int* local_K,float* rand_node, int* idx_tracker,float* p_s, unsigned int node_size, unsigned int iter, curandState* d_state);
+
+__global__ void Gen_P_Mem_eff(float* weight_P, unsigned int* src, unsigned int* succ, unsigned int node_size, float* damp);
 
 __global__ void Reverse_Gather_V1(unsigned int* K, unsigned int* local_K, unsigned int* unq, unsigned int* unq_ptr, unsigned int node_size);
 

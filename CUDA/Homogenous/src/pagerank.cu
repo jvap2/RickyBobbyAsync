@@ -17,7 +17,7 @@ __global__ void Init_P(float* P, unsigned int node_size, float* damp){
 __global__ void Gen_P(float* weight_P,edge* edgelist, unsigned int* src, unsigned int node_size, float* damp){
     unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
     if(x < node_size){
-        unsigned int start =edgelist[x].start;
+        unsigned int start = edgelist[x].start;
         unsigned int end = edgelist[x].end;
         unsigned int out = src[start+1]-src[start];
         if(out!=0){
@@ -25,6 +25,23 @@ __global__ void Gen_P(float* weight_P,edge* edgelist, unsigned int* src, unsigne
         }
     }
 
+}
+
+
+__global__ void Gen_P_Mem_eff(float* weight_P, unsigned int* src, unsigned int* succ, unsigned int node_size, float* damp){
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if(idx<node_size){
+        //We need to find a node in the src
+        //We will then iterate through the succ, and access the src[succ+1] to src[succ] to 
+        // get the out degree
+        unsigned int num_succ=src[idx+1]-src[idx];
+        if(num_succ!=0){
+            for(unsigned int i=src[idx]; i<src[idx+1]; i++){
+                unsigned int succ_node = succ[i];//Get the node number of the successor
+                weight_P[succ_node*node_size+idx]+=(1.0-*damp)/(1.0f*num_succ);
+            }
+        }
+    }
 }
 
 __global__ void Init_Pr(float* pr_vector, unsigned int node_size){
@@ -57,11 +74,11 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     if(!HandleCUDAError(cudaMalloc((void**)&d_edgelist, edge_size*sizeof(edge)))){
         cout<<"Error allocating memory for edgelist"<<endl;
     }
-    edge* h_edgelist = (edge*)malloc(sizeof(edge)*edge_size);
-    return_edge_list(EDGE_PATH,h_edgelist);
-    if(!HandleCUDAError(cudaMemcpy(d_edgelist, h_edgelist, edge_size*sizeof(edge), cudaMemcpyHostToDevice))){
-        cout<<"Error copying edgelist to device"<<endl;
-    }
+    // edge* h_edgelist = (edge*)malloc(sizeof(edge)*edge_size);
+    // return_edge_list(EDGE_PATH,h_edgelist);
+    // if(!HandleCUDAError(cudaMemcpy(d_edgelist, h_edgelist, edge_size*sizeof(edge), cudaMemcpyHostToDevice))){
+    //     cout<<"Error copying edgelist to device"<<endl;
+    // }
     if(!HandleCUDAError(cudaMalloc((void**)&d_P, node_size*node_size*sizeof(float)))){
         cout<<"Error allocating memory for P"<<endl;
     }
@@ -125,14 +142,18 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device with Initializing P"<<endl;
     }
-    Gen_P<<<blocks_edge,tpb>>>(d_P, d_edgelist, d_global_src, node_size, d_damp);
+    // Gen_P<<<blocks_edge,tpb>>>(d_P, d_edgelist, d_global_src, edge_size, d_damp);
+    // if(!HandleCUDAError(cudaDeviceSynchronize())){
+    //     cout<<"Error synchronizing device with Generating P"<<endl;
+    // }
+    // if(!HandleCUDAError(cudaFree(d_edgelist))){
+    //     cout<<"Error freeing memory for edgelist"<<endl;
+    // }
+    // free(h_edgelist);
+    Gen_P_Mem_eff<<<blocks,tpb>>>(d_P, d_global_src, d_global_succ, node_size, d_damp);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device with Generating P"<<endl;
     }
-    if(!HandleCUDAError(cudaFree(d_edgelist))){
-        cout<<"Error freeing memory for edgelist"<<endl;
-    }
-    free(h_edgelist);
     if(!HandleCUDAError(cudaFree(d_global_src))){
         cout<<"Error freeing memory for global_src"<<endl;
     }
