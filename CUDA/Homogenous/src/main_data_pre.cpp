@@ -119,7 +119,6 @@ int main()
     cout<<"Starting the generate local src and succ"<<endl;
     Gen_Local_Src_Succ(edge_list_2, h_local_src, h_temp_src, h_local_succ,src_ptr, h_unq_fin,unq_ctr,unq_ptr,h_ctr,h_ptr);
     cout<<"Local src values"<<endl;
-    // Generate_Local_Succ(edge_list_2, h_local_src, src_ptr, h_local_succ,src_ctr,src_ptr,h_ptr,edges);
     cout<<"Done generating local src and succ"<<endl;
     // Determine_Master(unq_ptr,h_replica,nodes);
     unsigned int* rank = new unsigned int[nodes];
@@ -141,7 +140,7 @@ int main()
     free(edge_list);
     free(edge_list_2);
     delete[] src;
-    delete[] succ;
+    // delete[] succ;
     delete[] deg;
     delete[] replica;
     delete[] h_ctr;

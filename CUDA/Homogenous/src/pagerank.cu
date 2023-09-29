@@ -74,11 +74,6 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     if(!HandleCUDAError(cudaMalloc((void**)&d_edgelist, edge_size*sizeof(edge)))){
         cout<<"Error allocating memory for edgelist"<<endl;
     }
-    // edge* h_edgelist = (edge*)malloc(sizeof(edge)*edge_size);
-    // return_edge_list(EDGE_PATH,h_edgelist);
-    // if(!HandleCUDAError(cudaMemcpy(d_edgelist, h_edgelist, edge_size*sizeof(edge), cudaMemcpyHostToDevice))){
-    //     cout<<"Error copying edgelist to device"<<endl;
-    // }
     if(!HandleCUDAError(cudaMalloc((void**)&d_P, node_size*node_size*sizeof(float)))){
         cout<<"Error allocating memory for P"<<endl;
     }
@@ -142,14 +137,6 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device with Initializing P"<<endl;
     }
-    // Gen_P<<<blocks_edge,tpb>>>(d_P, d_edgelist, d_global_src, edge_size, d_damp);
-    // if(!HandleCUDAError(cudaDeviceSynchronize())){
-    //     cout<<"Error synchronizing device with Generating P"<<endl;
-    // }
-    // if(!HandleCUDAError(cudaFree(d_edgelist))){
-    //     cout<<"Error freeing memory for edgelist"<<endl;
-    // }
-    // free(h_edgelist);
     Gen_P_Mem_eff<<<blocks,tpb>>>(d_P, d_global_src, d_global_succ, node_size, d_damp);
     if(!HandleCUDAError(cudaDeviceSynchronize())){
         cout<<"Error synchronizing device with Generating P"<<endl;
@@ -194,6 +181,7 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     cout<<"Time elapsed PageRank: "<<milliseconds<<" ms"<<endl;
     cout<<"Converged in "<<iter_temp-max_iter<<" iterations"<<endl;
     cout<<"Tolerance: "<<tol_temp<<endl;
+    Export_Tol(tol_temp);
     unsigned int *d_indices;
 
     if(!HandleCUDAError(cudaMalloc((void**)&d_indices, node_size*sizeof(unsigned int)))){
@@ -208,6 +196,7 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     if(!HandleCUDAError(cudaMemcpy(pr_vector, d_pr_vector, node_size*sizeof(float), cudaMemcpyDeviceToHost))){
         cout<<"Error copying pr_vector to host"<<endl;
     }
+    cout<<"Copied pr_vector to host"<<endl;
     if(!HandleCUDAError(cudaFree(d_P))){
         cout<<"Error freeing memory for P"<<endl;
     }

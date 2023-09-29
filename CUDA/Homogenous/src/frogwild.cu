@@ -341,7 +341,20 @@ __host__ void Import_Global_Succ(unsigned int* succ){
         }
     }
 }
-
+__host__ void Export_Guess(float* init_guess, unsigned int node_size){
+    ofstream myfile;
+    myfile.open(GUESS_PATH);
+    myfile<<"vertex,values"<<endl;
+    if(!myfile.is_open()){
+        std::cout << "Error opening file" << endl;
+        exit(1);
+    }
+    else{
+        for(unsigned int i=0; i<node_size; i++){
+            myfile<<i<<","<<init_guess[i]<<endl;
+        }
+    }
+}
 
 __host__ void Export_C(unsigned int* c, unsigned int* indices, unsigned int node_size){
     ofstream myfile;
@@ -684,6 +697,11 @@ unsigned int* ind_rank, unsigned int debug){
         delete[] indices;
     }
     else{
+        float* d_export_guess;
+        float* export_guess=new float[node_size];
+        if(!HandleCUDAError(cudaMalloc((void**)&d_export_guess, node_size*sizeof(float)))){
+            std::cout<<"Error allocating memory for d_export_guess"<<endl;
+        }
         if(!HandleCUDAError(cudaMalloc((void**)&d_local_src,src_ptr[BLOCKS]*sizeof(unsigned int)))){
             std::cout<<"Error allocating memory for d_local_src"<<endl;
         }
@@ -766,7 +784,7 @@ unsigned int* ind_rank, unsigned int debug){
             std::cout<<"Error copying memory to d_global_succ"<<endl;
         }
         float* rand_frog;
-        int sublinear_size=node_size/10+1;
+        int sublinear_size=node_size/8;
         std::cout<<"Sublinear size "<<sublinear_size<<endl;
         std::cout<<"Node size "<<node_size<<endl;
         if(!HandleCUDAError(cudaMalloc((void**)&rand_frog, sublinear_size*sizeof(float)))){
@@ -836,6 +854,15 @@ unsigned int* ind_rank, unsigned int debug){
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             std::cout<<"Error synchronizing device"<<endl;
         }
+        thrust::copy(thrust::device, d_k_init_guess, d_k_init_guess+node_size, d_export_guess);
+        if(!HandleCUDAError(cudaMemcpy(export_guess, d_export_guess, node_size*sizeof(float), cudaMemcpyDeviceToHost))){
+            std::cout<<"Error copying memory to export_guess"<<endl;
+        }
+        Export_Guess(export_guess, node_size);
+        delete[] export_guess;
+        if(!HandleCUDAError(cudaFree(d_export_guess))){
+            std::cout<<"Error freeing memory for d_export_guess"<<endl;
+        }
         cudaError_t err_0= cudaGetLastError();
         if (err_0 != cudaSuccess) 
             printf("First_Init Error: %s\n", cudaGetErrorString(err_0));
@@ -870,7 +897,7 @@ unsigned int* ind_rank, unsigned int debug){
         if(!HandleCUDAError(cudaMemset(local_K,0,unq_mem_size))){
             std::cout<<"Error initializing local_K"<<endl;
         }
-        for(unsigned int i=0; i<3; i++){
+        for(unsigned int i=0; i<iter; i++){
             std::cout<<"Iteration "<<i<<endl;
             if(i==0){
                 Gather_Ver0<<<BLOCKS,thrd_blck>>>(d_k, d_unq, d_unq_ptr, local_K);
@@ -1027,6 +1054,13 @@ __global__ void Copy_Init_Vector(unsigned int* k, float* k_init_guess, unsigned 
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
     if(idx<node_size)
         k_init_guess[idx]=(float)k[idx];
+}
+
+__host__ void Export_Tol(float tol){
+    std::ofstream myfile;
+    myfile.open(TOL_PATH);
+    myfile<<tol;
+    myfile.close();
 }
 
 
@@ -1381,7 +1415,5 @@ __global__ void Scatter_Ver1(unsigned int* C, unsigned int* K, unsigned int* unq
             }
         }
     }
-    if(tid==0)
-        printf("Block %d is done with iterating\n",blockIdx.x);
 
 }

@@ -28,7 +28,7 @@ using namespace std;
 
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 1
+#define BLOCKS 16
 #if BLOCKS>=48
 #define TPB 128
 #else
@@ -66,6 +66,8 @@ using namespace std;
 #define C_PATH "../../Data/Homogenous/rand/check/C.csv"
 #define K_PATH "../../Data/Homogenous/rand/check/K.csv"
 #define CUBLAS_PR_PATH "../../Data/Homogenous/rand/check/CUBLAS_PR.csv"
+#define GUESS_PATH "../../Data/Homogenous/rand/check/Guess.csv"
+#define TOL_PATH "../../Data/Homogenous/rand/check/Tol.txt"
 
 struct edge{
     unsigned int end, start;
@@ -182,6 +184,10 @@ __host__ void Verif_L2(unsigned int* vec, unsigned int res, unsigned int size);
 __host__ void Verif_Dot_Product(unsigned int* vec_1, unsigned int* vec_2, unsigned int res, unsigned int size);
 
 __host__ void Determine_Master(unsigned int* unq_ptr, replica_tracker* h_replica, unsigned int node_size);
+
+__host__ void Export_Guess(float* init_guess, unsigned int node_size);
+
+__host__ void Export_Tol(float tol);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
