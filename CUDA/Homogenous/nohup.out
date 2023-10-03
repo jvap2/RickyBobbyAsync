@@ -1,0 +1,50 @@
+make: Nothing to be done for 'frog'.
+Getting graph info
+2000
+150531
+Starting the edge list function
+Getting edge list
+Data is open 1
+Finished the edge list function
+Ending edge list function
+Starting Helper Function
+Num of blocks 589
+Second amount of blocks 5
+Allocating d_edge
+Copying edge list
+Done with edge list
+  Total amount of constant memory:               65536 bytes
+  Total amount of shared memory per block:       49152 bytes
+  Total shared memory per multiprocessor:        102400 bytes
+The random number is 0.742547
+Starting random edge placement
+Ending Helper Function
+150531
+Copying the edge list
+Starting the merge function
+Ending the merge function
+2000
+Unq Ptr Values
+Done making src, unq and succ
+Starting the generate renum edgelists
+Done generating renum edgelists
+Starting the generate local src and succ
+Done with histogram and succ
+Done with prefix sum
+Done with copy
+Local src values
+Done generating local src and succ
+Allocating memory for device variables
+Sublinear size 250
+Node size 2000
+First init device configuration parameters
+No. Blocks 1
+No. Threads per block 384
+GPU memory usage before PR: used = 1100.375000, free = 14970.562500 MB, total = 16070.937500 MB
+CUDA Dimensions
+No. Blocks 1
+No. Threads per block 384
+Initial Gather Complete
+Iteration 0
+Iteration 1
+Iteration 2

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-nodes=20000
-m=100
+nodes=2000
+m=80
 p=.6
 seed=42
 

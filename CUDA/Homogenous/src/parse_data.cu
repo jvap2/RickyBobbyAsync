@@ -245,6 +245,115 @@ __host__ void Capture_Node_Degree(edge* edge_list, unsigned int* deg_arr, unsign
     }
 }
 
+__host__ void Greedy_Vertex_Cuts(edge* edgelist, replica_tracker* rep, unsigned int size){
+    unsigned int* clust_mask = new unsigned int[BLOCKS]{0};
+    unsigned int* cluster_count = new unsigned int[BLOCKS]{0};
+    unsigned int count;
+    unsigned int min_edges;
+    unsigned int case_1_flag=0;
+    unsigned int case_2_flag=0;
+    unsigned int case_3_flag=0;
+    unsigned int case_4_flag=0;
+    for(int i=0; i<size;i++){
+        unsigned int start = edgelist[i].start;
+        unsigned int end = edgelist[i].end;
+        unsigned int start_rep = rep[start].num_replicas;
+        unsigned int end_rep = rep[end].num_replicas;
+        unsigned int* start_clusters = rep[start].clusters;
+        unsigned int* end_clusters = rep[end].clusters;
+        unsigned int num_intersect = 0;
+        //Case 1, pick where the nodes intersect and place the edge there
+        count=0;
+        for(int j=0;j<BLOCKS;j++){
+            if(start_clusters[j]==end_clusters[j]){
+                clust_mask[count]=j;
+                count++;
+                num_intersect++;
+                case_1_flag=1;
+            }
+        }
+        if(start_rep!=0 && end_rep!=0 && num_intersect==0){
+            case_2_flag=1;
+        }
+        else if((start_rep!=0 && end_rep==0)|| (start_rep==0 && end_rep!=0)){
+            case_3_flag=1;
+        }
+        else if(start_rep==0 && end_rep==0){
+            case_4_flag=1;
+        }
+        min_edges=4294967290;
+        if(case_1_flag){
+            for(int j=0; j<num_intersect;j++){
+                if(cluster_count[clust_mask[j]]<min_edges){
+                    min_edges=cluster_count[clust_mask[j]];
+                    edgelist[i].cluster=clust_mask[j];
+                }
+            }
+            rep[start].num_replicas++;
+            rep[end].num_replicas++;
+            cluster_count[edgelist[i].cluster]++;
+        }
+        //Need to check cases 2 through 4
+        if(case_2_flag){
+            for(int j=0; j<BLOCKS;j++){
+                //Find the cluster with the least amount of between start and end
+                if(rep[start].clusters[j]==1 || rep[end].clusters[j]==1){
+                    if(cluster_count[j]<min_edges){
+                        min_edges=cluster_count[j];
+                        edgelist[i].cluster=j;
+                    }
+                }
+            }
+            rep[start].num_replicas++;
+            rep[end].num_replicas++;
+            cluster_count[edgelist[i].cluster]++;
+        }
+        if(case_3_flag){
+            if(start_rep==0){
+                for(int j=0; j<BLOCKS;j++){
+                    if(rep[end].clusters[j]==1){
+                        if(cluster_count[j]<min_edges){
+                            min_edges=cluster_count[j];
+                            edgelist[i].cluster=j;
+                        }
+                    }
+                }
+                rep[start].num_replicas++;
+                cluster_count[edgelist[i].cluster]++;
+            }
+            else{
+                for(int j=0; j<BLOCKS;j++){
+                    if(rep[start].clusters[j]==1){
+                        if(cluster_count[j]<min_edges){
+                            min_edges=cluster_count[j];
+                            edgelist[i].cluster=j;
+                        }
+                    }
+                }
+                rep[end].num_replicas++;
+                cluster_count[edgelist[i].cluster]++;
+            }
+        }
+        if(case_4_flag){
+            for(int j=0; j<BLOCKS;j++){
+                if(cluster_count[j]<min_edges){
+                    min_edges=cluster_count[j];
+                    edgelist[i].cluster=j;
+                }
+            }
+            rep[start].num_replicas++;
+            rep[end].num_replicas++;
+            cluster_count[edgelist[i].cluster]++;
+        }
+        case_1_flag=0;
+        case_2_flag=0;
+        case_3_flag=0;
+        case_4_flag=0;
+        memset(clust_mask, 0, BLOCKS*sizeof(unsigned int));
+        count=0;
+    }
+}
+
 __host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edges){
     std::cout<<"Getting graph info"<<endl;
     ifstream data;

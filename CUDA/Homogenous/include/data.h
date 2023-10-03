@@ -28,7 +28,7 @@ using namespace std;
 
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 16
+#define BLOCKS 4
 #if BLOCKS>=48
 #define TPB 128
 #else
@@ -188,6 +188,8 @@ __host__ void Determine_Master(unsigned int* unq_ptr, replica_tracker* h_replica
 __host__ void Export_Guess(float* init_guess, unsigned int node_size);
 
 __host__ void Export_Tol(float tol);
+
+__host__ void Greedy_Vertex_Cuts(edge* edgelist, replica_tracker* rep, unsigned int size);
 /*HELPER FUNCTION AND KERNELS*/
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
@@ -257,7 +259,7 @@ __global__ void Scatter_Ver0(unsigned int* C, unsigned int* K, unsigned int* src
 
 __global__ void Reverse_Gather(unsigned int* K, unsigned int* local_K, replica_tracker* d_rep, unsigned int* unq, unsigned int* unq_ptr, unsigned int node_size);
 
-__global__ void Gather_Ver1(unsigned int* K, unsigned int* unq, unsigned int* unq_ptr, unsigned int* local_K);
+__global__ void Gather_Ver1(unsigned int* K, unsigned int* loss, unsigned int node_size);
 
 __global__ void Apply_Ver1(unsigned int* unq_ptr, unsigned int* unq, unsigned int* local_K_global,unsigned int* local_K_temp, unsigned int* local_C_global, float* p_t, unsigned int iter,
 unsigned int node_size, unsigned int* C, unsigned int* K, curandState* d_state);

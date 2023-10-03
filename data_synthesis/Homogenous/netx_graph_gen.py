@@ -16,16 +16,17 @@ seed = int(sys.argv[4])
 G=nx.powerlaw_cluster_graph(num_node, m, p, seed=seed)
 Network_Info = open(os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/rand_net.csv"), 'w')
 Network_Info.write("from,to\n")
+edge_count =0
 # nx.write_edgelist(G, os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/rand_net.csv"), delimiter=",", data=False)
 for edge in G.edges:
+    edge_count +=1
     Network_Info.write(str(edge[0]) + "," + str(edge[1]) + "\n")
 
 
 df=pl.read_csv(os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/rand_net.csv"))
-edges=df.height
-print(edges)
+print(edge_count)
 Network_Info = open(os.path.join(os.path.dirname(folder)[:-14],"Data/Homogenous/rand/rand_net_info.csv"), 'w')
 Network_Info.write("No. Nodes,No. Edges \n")
-Network_Info.write(str(sys.argv[1]) + "," + str(edges))
+Network_Info.write(str(sys.argv[1]) + "," + str(edge_count))
 
 Network_Info.close()

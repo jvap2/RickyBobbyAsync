@@ -20,7 +20,7 @@ file.close()
 tol = float(tol)
 
 #Perform PageRank on the graph
-df_pagerank = cugraph.pagerank(G,tol=tol,nstart=init_guess_df)
+df_pagerank = cugraph.pagerank(G,nstart=init_guess_df)
 print(df_pagerank)
 #Print the top 5 connections
 print(df_pagerank.nlargest(5, 'pagerank'))

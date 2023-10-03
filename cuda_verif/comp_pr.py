@@ -42,8 +42,9 @@ frog_cub_acc=0
 frog_pr_acc=0
 rand_cub_acc=0
 rand_pr_acc=0
+pr_cub_acc=0
 
-k=1000
+k=int(.1*no_nodes)
 for i in range(k):
     for j in range(k):
         if(frog_vertex[i]==cug_vertex[j]):
@@ -58,15 +59,20 @@ for i in range(k):
         if(rand_chance[i]==cub_vertex[j]):
             rand_cub_acc+=1
             # print("RAND vs CUBLAS: ", rand_chance[i],cub_vertex[j])
+        if(cug_vertex[i]==cub_vertex[j]):
+            pr_cub_acc+=1
+            # print("CUGRAPH vs CUBLAS: ", cug_vertex[i],cub_vertex[j])
         
 
 frog_pr_acc=frog_pr_acc/k
 frog_cub_acc=frog_cub_acc/k
 rand_pr_acc=rand_pr_acc/k
 rand_cub_acc=rand_cub_acc/k
+pr_cub_acc=pr_cub_acc/k
 
 print("FROG vs CUBLAS accuracy: {:.4f}, RAND vs CUBLAS accuracy: {:.4f}".format(frog_cub_acc,rand_cub_acc))
 print("FROG vs CUGRAPH accuracy: {:.4f}, RAND vs CUGRAPH accuracy: {:.4f}".format(frog_pr_acc,rand_pr_acc))
+print("CUGRAPH vs CUBLAS accuracy: {:.4f}".format(pr_cub_acc))
 
 
 

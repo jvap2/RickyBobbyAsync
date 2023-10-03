@@ -20,6 +20,7 @@ int main()
     unsigned int* replica = new unsigned int[edges];
     cout<<"Starting the edge list function"<<endl;
     return_edge_list(EDGE_PATH,edge_list);
+    cout<<"Finished the edge list function"<<endl;
     Capture_Node_Degree(edge_list,deg,edges);
     Export_Degree(deg,nodes);
     unsigned int *h_ctr, *h_ptr;
