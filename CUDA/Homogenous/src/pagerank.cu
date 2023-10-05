@@ -51,7 +51,7 @@ __global__ void Init_Pr(float* pr_vector, unsigned int node_size){
     }
 }
 
-__host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol){
+__host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol, float* time){
     float alpha = 1.0; 
     float beta = 0.0;
     float tol_temp=100.0f;
@@ -181,6 +181,7 @@ __host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* 
     cout<<"Time elapsed PageRank: "<<milliseconds<<" ms"<<endl;
     cout<<"Converged in "<<iter_temp-max_iter<<" iterations"<<endl;
     cout<<"Tolerance: "<<tol_temp<<endl;
+    *time=milliseconds;
     Export_Tol(tol_temp);
     unsigned int *d_indices;
 

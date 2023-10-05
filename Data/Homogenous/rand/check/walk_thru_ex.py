@@ -1,6 +1,10 @@
+import polars as pl
+import os
 
-file = open("Tol.txt", "r")
-tol = file.read()
-file.close()
-tol = float(tol)
-print(tol)
+
+df = pl.read_csv(os.path.join(os.path.dirname(os.getcwd()),"Cluster_Assignment_Norm.csv"))
+
+
+
+
+    

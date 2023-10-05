@@ -30,16 +30,34 @@ int main()
     h_unq = new unsigned int[edges];
     cout<<"Ending edge list function"<<endl;
     cout<<"Starting Helper Function"<<endl;
+
+    unsigned int* h_start = new unsigned int[edges]{0}; //Collect all starting node values
+    unsigned int* h_end = new unsigned int[edges]{0}; //collect all ending node values 
+    unsigned int* h_start_global = new unsigned int[edges]{0}; //Collect all starting node values
+    unsigned int* h_end_global = new unsigned int[edges]{0}; //collect all ending node values
+    unsigned int* h_cluster = new unsigned int[edges]{0};
+    unsigned int* h_start_global_2= new unsigned int[edges]{0};
+    for(int i=0;i<edges;i++){
+        h_start_global[i]=edge_list[i].start;
+        h_end_global[i]=edge_list[i].end;    // Greedy_Vertex_Cuts(edge_list,h_replica,edges);
+        h_cluster[i]=edge_list[i].cluster;
+        h_start_global_2[i]=edge_list[i].start;
+    }
+    thrust::stable_sort_by_key(h_start_global,h_start_global+edges,h_end_global);
+    thrust::stable_sort_by_key(h_start_global_2,h_start_global_2+edges,h_cluster);
+    for(int i=0; i<edges;i++){
+        edge_list[i].start=h_start_global[i];
+        edge_list[i].end=h_end_global[i];
+        edge_list[i].cluster=h_cluster[i];
+    }
+    delete [] h_start_global_2;
+    delete [] h_cluster;
     Org_Vertex_Helper(edge_list,h_replica,deg,h_ctr,h_ptr,edges,nodes);
     h_ptr[BLOCKS]=h_ptr[BLOCKS-1]+h_ctr[BLOCKS-1];
     cout<<"Ending Helper Function"<<endl;
     cpu_radixsort(edge_list,edges);
     Check_Out_csv_edge(edge_list, edges);
     check_out_replicas(REPLICA_PATH,h_replica,nodes);
-    unsigned int* h_start = new unsigned int[edges]{0}; //Collect all starting node values
-    unsigned int* h_end = new unsigned int[edges]{0}; //collect all ending node values 
-    unsigned int* h_start_global = new unsigned int[edges]{0}; //Collect all starting node values
-    unsigned int* h_end_global = new unsigned int[edges]{0}; //collect all ending node values
     unsigned int* h_unique_merge = new unsigned int[2*edges]{0}; // used to merge these two arrays
     unsigned int* unq_ctr = new unsigned int[BLOCKS]{0};
     unsigned int* unq_ptr = new unsigned int[BLOCKS+1]{0};
@@ -47,17 +65,13 @@ int main()
     for(int i=0; i<BLOCKS;i++){
         cout<<h_ctr[i]<<endl;
     }
-    cout<<"Copying the edge list"<<endl;
-    for(int i=0;i<edges;i++){
-        h_start[i]=edge_list[i].start;
-        h_end[i]=edge_list[i].end;
-        h_start_global[i]=edge_list[i].start;
-        h_end_global[i]=edge_list[i].end;
-    }
-    thrust::stable_sort_by_key(h_start_global,h_start_global+edges,h_end_global);
     Generate_Global_Src_Succ(h_start_global,h_end_global,src,succ,nodes,edges);
     delete[] h_start_global;
     delete[] h_end_global;
+    for(int i=0; i<edges;i++){
+        h_start[i]=edge_list[i].start;
+        h_end[i]=edge_list[i].end;
+    }
     cout<<"Starting the merge function"<<endl;
     for(int i = 0; i<BLOCKS;i++){
         sort(h_start+h_ptr[i],h_start+h_ptr[i]+h_ctr[i]);
@@ -141,7 +155,7 @@ int main()
     free(edge_list);
     free(edge_list_2);
     delete[] src;
-    // delete[] succ;
+    delete[] succ;
     delete[] deg;
     delete[] replica;
     delete[] h_ctr;

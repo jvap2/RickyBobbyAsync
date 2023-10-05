@@ -385,11 +385,22 @@ __host__ void Export_K(unsigned int* k, unsigned int node_size){
     }
 }
 
+__host__ void Capture_Top_Degree(unsigned int* degree, unsigned int* top_nodes, unsigned int node_size, unsigned int sublinear_size){
+    unsigned int* nodes= new unsigned int[node_size];
+    thrust::sequence(nodes, nodes+node_size,0);
+    thrust::sort_by_key(thrust::host, degree, degree+node_size, nodes, thrust::greater<int>());
+    thrust::copy(thrust::host, nodes, nodes+sublinear_size, top_nodes);
+    delete[] nodes;
+}
+
 
 __host__ void FrogWild(unsigned int* local_succ, unsigned int* local_src, unsigned int* unq, unsigned int* c, unsigned int* k, unsigned int* src_ptr, 
 unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, unsigned int* global_src, unsigned int* global_succ,
 replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int version,
 unsigned int* ind_rank, unsigned int debug){
+    int sublinear_size=node_size/10;
+    unsigned int* top_nodes= new unsigned int[sublinear_size];
+    Capture_Top_Degree(degree, top_nodes, node_size, sublinear_size);
     int deviceCount=0;
     cudaError_t error_id = cudaGetDeviceCount(&deviceCount);
     if (error_id != cudaSuccess) {
@@ -418,7 +429,8 @@ unsigned int* ind_rank, unsigned int debug){
     unsigned int succ_size = h_ptr[BLOCKS]*sizeof(unsigned int);
     p_s=.8;
     p_t=.15;
-    unsigned int iter = 4;
+    unsigned int iter = 5;
+    Export_Misc(iter,edge_size,BLOCKS,p_s);
     float* d_p_t, *d_p_s;
     unsigned int unq_ctr_max=0;
     unsigned int src_ctr_max=0;
@@ -689,7 +701,8 @@ unsigned int* ind_rank, unsigned int debug){
         unsigned int max_iter = iter;
         float tol = 1e-14;   
         float damp = .15;
-        PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
+        float time=0.0f;
+        PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol, &time);
         /*We need to do accuracy stuff here, for now, we need to verify with python*/
 
         Export_pr_vector(pagerank,indices, node_size);
@@ -784,7 +797,6 @@ unsigned int* ind_rank, unsigned int debug){
             std::cout<<"Error copying memory to d_global_succ"<<endl;
         }
         float* rand_frog;
-        int sublinear_size=node_size/8;
         std::cout<<"Sublinear size "<<sublinear_size<<endl;
         std::cout<<"Node size "<<node_size<<endl;
         if(!HandleCUDAError(cudaMalloc((void**)&rand_frog, sublinear_size*sizeof(float)))){
@@ -846,7 +858,16 @@ unsigned int* ind_rank, unsigned int debug){
         std::cout<<"First init device configuration parameters"<<endl;
         std::cout<<"No. Blocks "<<b_per_grid_int<<endl;
         std::cout<<"No. Threads per block "<<t_per_block<<endl;
-        First_Init<<<b_per_grid_int, t_per_block>>>(rand_frog, d_k, node_size, sublinear_size);
+        // First_Init<<<b_per_grid_int, t_per_block>>>(rand_frog, d_k, node_size, sublinear_size);
+        // if(!HandleCUDAError(cudaDeviceSynchronize())){
+        //     std::cout<<"Error synchronizing device"<<endl;
+        // }
+        //Degree based Initialization
+        unsigned int* d_top_deg_nodes;
+        if(!HandleCUDAError(cudaMalloc((void**)&d_top_deg_nodes, sublinear_size*sizeof(unsigned int)))){
+            std::cout<<"Error allocating memory for d_top_deg_nodes"<<endl;
+        }
+        First_Init_Deg<<<b_per_grid_int, t_per_block>>>(d_top_deg_nodes, d_k, node_size, sublinear_size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             std::cout<<"Error synchronizing device"<<endl;
         }
@@ -957,10 +978,6 @@ unsigned int* ind_rank, unsigned int debug){
             }
 
         }
-        // Reverse_Gather_V1<<<BLOCKS,thrd_blck>>>(d_k, local_K,  d_unq, d_unq_ptr,node_size);
-        // if(!HandleCUDAError(cudaDeviceSynchronize())){
-        //     std::cout<<"Error synchronizing device"<<endl;
-        // }
         Final_Commit<<<b_per_grid,thrd_blck>>>(d_c, d_k, node_size);
         if(!HandleCUDAError(cudaDeviceSynchronize())){
             std::cout<<"Error synchronizing device"<<endl;
@@ -1040,14 +1057,16 @@ unsigned int* ind_rank, unsigned int debug){
         unsigned int max_iter = 2;
         float tol = 1e-14;   
         float damp = p_t;
-        PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol);
+        float cub_time=0.0f;
+        PageRank(pagerank,indices, global_src, global_succ, damp, node_size, edge_size, max_iter, tol, &cub_time);
         /*We need to do accuracy stuff here, for now, we need to verify with python*/
+        Collect_Exec_Times(cub_time, milliseconds,iter,BLOCKS,node_size,p_s);
 
         Export_pr_vector(pagerank,indices, node_size);
         delete[] pagerank;
         delete[] indices;
     }
-
+    delete[] top_nodes;
 }
 
 __global__ void Copy_Init_Vector(unsigned int* k, float* k_init_guess, unsigned int node_size){
@@ -1063,7 +1082,13 @@ __host__ void Export_Tol(float tol){
     myfile.close();
 }
 
+__global__ void First_Init_Deg(unsigned int* top_nodes, unsigned int* K, unsigned int node_size, unsigned int sublinear_size){
+    unsigned int idx=threadIdx.x + blockDim.x*blockIdx.x;
+    if(idx<sublinear_size){
+        atomicAdd(&K[top_nodes[idx]],1);
+    }
 
+}
 
 __global__ void First_Init(float* rand_frog, unsigned int* K, unsigned int node_size, unsigned int sublinear_size){
     unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;

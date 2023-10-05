@@ -240,9 +240,25 @@ __host__ void Sort_Edge_Start(edge* edge_list, unsigned int edge_size){
 
 __host__ void Capture_Node_Degree(edge* edge_list, unsigned int* deg_arr, unsigned int size){
     for(unsigned int i=0; i<size;i++){
-        deg_arr[edge_list[i].start]++;
-        // deg_arr[edge_list[i].end]++;
+        deg_arr[edge_list[i].start]++; //Out degree
+        /*deg_arr[edge_list[i].end]++;*/ //In degree
     }
+}
+
+__host__ void Export_Misc(unsigned int iterations, unsigned int edges, unsigned int blocks, float syn_pr){
+    ofstream myfile;
+    myfile.open(MISC_PATH);
+    myfile<<"iterations,edges,blocks,p_s\n";
+    myfile<<to_string(iterations);
+    myfile<<",";
+    myfile<<to_string(edges);
+    myfile<<",";
+    myfile<<to_string(blocks);
+    myfile<<",";
+    myfile<<to_string(syn_pr);
+    myfile<<"\n";
+    myfile.close();
+
 }
 
 __host__ void Greedy_Vertex_Cuts(edge* edgelist, replica_tracker* rep, unsigned int size){
@@ -250,22 +266,22 @@ __host__ void Greedy_Vertex_Cuts(edge* edgelist, replica_tracker* rep, unsigned 
     unsigned int* cluster_count = new unsigned int[BLOCKS]{0};
     unsigned int count;
     unsigned int min_edges;
+    min_edges=4294967290;
     unsigned int case_1_flag=0;
     unsigned int case_2_flag=0;
     unsigned int case_3_flag=0;
     unsigned int case_4_flag=0;
-    for(int i=0; i<size;i++){
+    unsigned int num_intersect = 0;
+    for(int i=0; i<size;i++){   
         unsigned int start = edgelist[i].start;
         unsigned int end = edgelist[i].end;
         unsigned int start_rep = rep[start].num_replicas;
         unsigned int end_rep = rep[end].num_replicas;
         unsigned int* start_clusters = rep[start].clusters;
         unsigned int* end_clusters = rep[end].clusters;
-        unsigned int num_intersect = 0;
         //Case 1, pick where the nodes intersect and place the edge there
-        count=0;
         for(int j=0;j<BLOCKS;j++){
-            if(start_clusters[j]==end_clusters[j]){
+            if(start_clusters[j]==1 && end_clusters[j]==1){
                 clust_mask[count]=j;
                 count++;
                 num_intersect++;
@@ -281,24 +297,26 @@ __host__ void Greedy_Vertex_Cuts(edge* edgelist, replica_tracker* rep, unsigned 
         else if(start_rep==0 && end_rep==0){
             case_4_flag=1;
         }
-        min_edges=4294967290;
         if(case_1_flag){
             for(int j=0; j<num_intersect;j++){
-                if(cluster_count[clust_mask[j]]<min_edges){
+                if(cluster_count[clust_mask[j]]<=min_edges){
                     min_edges=cluster_count[clust_mask[j]];
                     edgelist[i].cluster=clust_mask[j];
                 }
             }
             rep[start].num_replicas++;
             rep[end].num_replicas++;
+            rep[start].clusters[edgelist[i].cluster]|=1;
+            rep[end].clusters[edgelist[i].cluster]|=1;
             cluster_count[edgelist[i].cluster]++;
+            memset(clust_mask, 0, BLOCKS*sizeof(unsigned int));
         }
         //Need to check cases 2 through 4
         if(case_2_flag){
             for(int j=0; j<BLOCKS;j++){
                 //Find the cluster with the least amount of between start and end
                 if(rep[start].clusters[j]==1 || rep[end].clusters[j]==1){
-                    if(cluster_count[j]<min_edges){
+                    if(cluster_count[j]<=min_edges){
                         min_edges=cluster_count[j];
                         edgelist[i].cluster=j;
                     }
@@ -306,52 +324,89 @@ __host__ void Greedy_Vertex_Cuts(edge* edgelist, replica_tracker* rep, unsigned 
             }
             rep[start].num_replicas++;
             rep[end].num_replicas++;
+            rep[start].clusters[edgelist[i].cluster]|=1;
+            rep[end].clusters[edgelist[i].cluster]|=1;
             cluster_count[edgelist[i].cluster]++;
         }
         if(case_3_flag){
             if(start_rep==0){
                 for(int j=0; j<BLOCKS;j++){
                     if(rep[end].clusters[j]==1){
-                        if(cluster_count[j]<min_edges){
+                        if(cluster_count[j]<=min_edges){
                             min_edges=cluster_count[j];
                             edgelist[i].cluster=j;
                         }
                     }
                 }
-                rep[start].num_replicas++;
-                cluster_count[edgelist[i].cluster]++;
             }
             else{
                 for(int j=0; j<BLOCKS;j++){
                     if(rep[start].clusters[j]==1){
-                        if(cluster_count[j]<min_edges){
+                        if(cluster_count[j]<=min_edges){
                             min_edges=cluster_count[j];
                             edgelist[i].cluster=j;
                         }
                     }
                 }
-                rep[end].num_replicas++;
-                cluster_count[edgelist[i].cluster]++;
             }
+            rep[start].num_replicas++;
+            rep[end].num_replicas++;
+            rep[start].clusters[edgelist[i].cluster]|=1;
+            rep[end].clusters[edgelist[i].cluster]|=1;
+            cluster_count[edgelist[i].cluster]++;
         }
         if(case_4_flag){
             for(int j=0; j<BLOCKS;j++){
-                if(cluster_count[j]<min_edges){
+                if(cluster_count[j]<=min_edges){
                     min_edges=cluster_count[j];
                     edgelist[i].cluster=j;
                 }
             }
             rep[start].num_replicas++;
             rep[end].num_replicas++;
+            rep[start].clusters[edgelist[i].cluster]=1;
+            rep[end].clusters[edgelist[i].cluster]=1;
             cluster_count[edgelist[i].cluster]++;
         }
         case_1_flag=0;
         case_2_flag=0;
         case_3_flag=0;
         case_4_flag=0;
-        memset(clust_mask, 0, BLOCKS*sizeof(unsigned int));
         count=0;
+        num_intersect=0;
+        min_edges=*max_element(cluster_count, cluster_count+BLOCKS);
     }
+    for(int i=0; i<BLOCKS;i++){
+        cout<<cluster_count[i]<<endl;
+    }
+    delete[] clust_mask;
+    delete[] cluster_count;
+}
+
+__host__ void Collect_Exec_Times(float cub_time, float frog_time, unsigned int iterations, unsigned int clusters, unsigned int nodes, float p_s){
+    ofstream myfile;
+    myfile.open(EXEC_TIME_PATH, ios::app);
+    myfile<<"\n";
+    myfile<<to_string(iterations);
+    myfile<< ",";
+    myfile<< to_string(clusters);
+    myfile<< ",";
+    myfile<< to_string(nodes);
+    myfile<< ",";
+    myfile<< to_string(p_s);
+    myfile<< ",";
+    myfile<< to_string(cub_time);
+    myfile<< ",";
+    myfile<< to_string(frog_time);
+    myfile<< ",";
+    //Make room to save accuracy
+    myfile<< to_string(0);
+    myfile<< ",";
+    myfile<< to_string(0);
+    myfile<< ",";
+    myfile<< to_string(0);
+    myfile<< "\n";
+    myfile.close();
 }
 
 __host__ void get_graph_info(string path, unsigned int* nodes, unsigned int* edges){

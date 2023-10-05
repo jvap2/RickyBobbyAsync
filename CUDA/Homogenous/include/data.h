@@ -28,7 +28,7 @@ using namespace std;
 
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 4
+#define BLOCKS 16
 #if BLOCKS>=48
 #define TPB 128
 #else
@@ -68,6 +68,8 @@ using namespace std;
 #define CUBLAS_PR_PATH "../../Data/Homogenous/rand/check/CUBLAS_PR.csv"
 #define GUESS_PATH "../../Data/Homogenous/rand/check/Guess.csv"
 #define TOL_PATH "../../Data/Homogenous/rand/check/Tol.txt"
+#define MISC_PATH "../../Data/Homogenous/rand/check/Misc.csv"
+#define EXEC_TIME_PATH "../../Data/Homogenous/rand/check/Exec_Time_V1.csv"
 
 struct edge{
     unsigned int end, start;
@@ -92,6 +94,8 @@ __host__ void Check_Out_csv_edge(edge* edge_list, int size);
 __host__ void Check_Out_Renum_Edge(edge* edge_list, int size);
 
 __host__ void return_edge_list(string path, edge* arr);
+
+__host__ void Collect_Exec_Times(float cub_time, float frog_time, unsigned int iterations, unsigned int clusters, unsigned int nodes, float p_s);
 
 __host__ void split_list(unsigned int** arr, unsigned int* subarr_1, unsigned int* subarr_2, unsigned int size);
 
@@ -130,6 +134,8 @@ unsigned int edge_size);
 __host__ void Sort_Edge_Start(edge* edge_list, unsigned int edge_size);
 
 __host__ void Generate_Global_Src_Succ(unsigned int* start, unsigned int* end, unsigned int* src, unsigned int* succ, unsigned int node_size, unsigned int edge_size);
+
+__host__ void Export_Misc(unsigned int iterations, unsigned int edges, unsigned int blocks, float syn_pr);
 
 __host__ void Export_Local_Succ(unsigned int* local_succ, unsigned int* h_ptr, unsigned int* h_ctr);
 
@@ -189,6 +195,8 @@ __host__ void Export_Guess(float* init_guess, unsigned int node_size);
 
 __host__ void Export_Tol(float tol);
 
+__host__ void Capture_Top_Degree(unsigned int* degree, unsigned int* top_nodes, unsigned int node_size, unsigned int sublinear_size);
+
 __host__ void Greedy_Vertex_Cuts(edge* edgelist, replica_tracker* rep, unsigned int size);
 /*HELPER FUNCTION AND KERNELS*/
 
@@ -197,7 +205,7 @@ unsigned int* unq_ptr, unsigned int* h_ptr, unsigned int* degree, unsigned int* 
 replica_tracker* h_replica, int node_size, unsigned int edge_size, unsigned int max_unq_ctr, unsigned int version,
 unsigned int* ind_rank, unsigned int debug);
 
-__host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol);
+__host__ void PageRank(float* pr_vector, unsigned int* h_indices, unsigned int* global_src, unsigned int* global_succ, float damp, unsigned int node_size, unsigned int edge_size, unsigned int max_iter, float tol, float* time);
 
 __global__ void bit_exclusive_scan(unsigned int* bits, unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
@@ -230,6 +238,8 @@ __global__ void Hist_Prefix_Sum(unsigned int* fin_bin, unsigned int* fin_bin_2);
 __global__ void final_scan_commit(unsigned int* bits_2, unsigned int* bits_3, unsigned int size);
 
 __global__ void First_Init(float* rand_frog, unsigned int* K, unsigned int node_size, unsigned int sublinear_size);
+
+__global__ void First_Init_Deg(unsigned int* top_nodes, unsigned int* K, unsigned int node_size, unsigned int sublinear_size);
 
 __global__ void fin_acc(unsigned int* table, unsigned int k, float* acc);
 
