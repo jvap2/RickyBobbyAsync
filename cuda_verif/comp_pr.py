@@ -56,7 +56,7 @@ rand_cub_acc=0
 rand_pr_acc=0
 pr_cub_acc=0
 
-k=100
+k=int(no_nodes/10)
 for i in range(k):
     for j in range(k):
         if(frog_vertex[i]==cug_vertex[j]):

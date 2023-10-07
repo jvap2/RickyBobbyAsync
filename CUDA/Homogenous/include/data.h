@@ -28,7 +28,7 @@ using namespace std;
 
 #include "../include/GPUErrors.h"
 //Google
-#define BLOCKS 16
+#define BLOCKS 8
 #if BLOCKS>=48
 #define TPB 128
 #else

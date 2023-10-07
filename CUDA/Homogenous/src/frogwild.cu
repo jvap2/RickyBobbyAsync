@@ -427,7 +427,7 @@ unsigned int* ind_rank, unsigned int debug){
     unsigned int unq_ptr_size = unq_ptr[BLOCKS];
     unsigned int unq_rand_mem_size=unq_ptr[BLOCKS]*sizeof(curandState);
     unsigned int succ_size = h_ptr[BLOCKS]*sizeof(unsigned int);
-    p_s=.8;
+    p_s=.5;
     p_t=.15;
     unsigned int iter = 5;
     Export_Misc(iter,edge_size,BLOCKS,p_s);
@@ -513,7 +513,6 @@ unsigned int* ind_rank, unsigned int debug){
             std::cout<<"Error copying memory to d_global_succ"<<endl;
         }
         float* rand_frog;
-        int sublinear_size=node_size/10+1;
         std::cout<<"Sublinear size "<<sublinear_size<<endl;
         std::cout<<"Node size "<<node_size<<endl;
         if(!HandleCUDAError(cudaMalloc((void**)&rand_frog, sublinear_size*sizeof(float)))){
@@ -1085,7 +1084,8 @@ __host__ void Export_Tol(float tol){
 __global__ void First_Init_Deg(unsigned int* top_nodes, unsigned int* K, unsigned int node_size, unsigned int sublinear_size){
     unsigned int idx=threadIdx.x + blockDim.x*blockIdx.x;
     if(idx<sublinear_size){
-        atomicAdd(&K[top_nodes[idx]],1);
+        if(top_nodes[idx]<node_size && top_nodes[idx]>=0)
+            atomicAdd(&K[top_nodes[idx]],1);
     }
 
 }

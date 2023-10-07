@@ -1,29 +1,35 @@
 make: Nothing to be done for 'frog'.
 Getting graph info
-2000
-150531
+20000
+2372723
 Starting the edge list function
 Getting edge list
 Data is open 1
 Finished the edge list function
 Ending edge list function
 Starting Helper Function
-Num of blocks 589
-Second amount of blocks 5
+Num of blocks 9269
+Second amount of blocks 73
 Allocating d_edge
 Copying edge list
 Done with edge list
   Total amount of constant memory:               65536 bytes
   Total amount of shared memory per block:       49152 bytes
   Total shared memory per multiprocessor:        102400 bytes
-The random number is 0.742547
+The random number is 0.78744
 Starting random edge placement
 Ending Helper Function
-150531
-Copying the edge list
+301483
+296993
+298896
+298205
+296898
+295467
+294216
+290565
 Starting the merge function
 Ending the merge function
-2000
+159962
 Unq Ptr Values
 Done making src, unq and succ
 Starting the generate renum edgelists
@@ -35,134 +41,17 @@ Done with copy
 Local src values
 Done generating local src and succ
 Allocating memory for device variables
-Sublinear size 250
-Node size 2000
+Sublinear size 2000
+Node size 20000
 First init device configuration parameters
-No. Blocks 1
+No. Blocks 6
 No. Threads per block 384
-GPU memory usage before PR: used = 1100.375000, free = 14970.562500 MB, total = 16070.937500 MB
+GPU memory usage before PR: used = 1009.812500, free = 15061.125000 MB, total = 16070.937500 MB
 CUDA Dimensions
-No. Blocks 1
-No. Threads per block 384
-Initial Gather Complete
-Iteration 0
-Iteration 1
-Iteration 2
-make: Nothing to be done for 'frog'.
-Getting graph info
-2000
-150531
-Starting the edge list function
-Getting edge list
-Data is open 1
-Finished the edge list function
-Ending edge list function
-Starting Helper Function
-37632
-37633
-37633
-37633
-Num of blocks 589
-Second amount of blocks 5
-Allocating d_edge
-Copying edge list
-Done with edge list
-  Total amount of constant memory:               65536 bytes
-  Total amount of shared memory per block:       49152 bytes
-  Total shared memory per multiprocessor:        102400 bytes
-The random number is 0.704092
-Starting random edge placement
-Ending Helper Function
-37632
-37633
-37633
-37633
-Starting the merge function
-Ending the merge function
-5796
-Unq Ptr Values
-Done making src, unq and succ
-Starting the generate renum edgelists
-Done generating renum edgelists
-Starting the generate local src and succ
-Done with histogram and succ
-Done with prefix sum
-Done with copy
-Local src values
-Done generating local src and succ
-Allocating memory for device variables
-Sublinear size 200
-Node size 2000
-First init device configuration parameters
-No. Blocks 1
-No. Threads per block 384
-GPU memory usage before PR: used = 714.062500, free = 15356.875000 MB, total = 16070.937500 MB
-CUDA Dimensions
-No. Blocks 4
+No. Blocks 8
 No. Threads per block 384
 Initial Gather Complete
 Iteration 0
 Iteration 1
 Iteration 2
 Iteration 3
-Iteration 4
-Time elapsed FrogWild: 30834.9 ms
-GPU memory usage before PR: used = 1078.062500, free = 14992.875000 MB, total = 16070.937500 MB
-Performing PageRank
-2D grid dim: 125 125
-2D block dim: 16 16
-  Total amount of constant memory:               65536 bytes
-  Total amount of shared memory per block:       49152 bytes
-  Total shared memory per multiprocessor:        102400 bytes
-GPU memory usage: used = 1096.062500, free = 14974.875000 MB, total = 16070.937500 MB
-Performing PageRank
-Time elapsed PageRank: 4.22499 ms
-Converged in 2 iterations
-Tolerance: 0.00515887
-PageRank finished
-Copied pr_vector to host
-Done exporting
-Done
-      vertex  pagerank
-0         80  0.000171
-1         81  0.000170
-2         82  0.000170
-3         83  0.000170
-4         84  0.000170
-...      ...       ...
-1995      75  0.000146
-1996      76  0.000146
-1997      77  0.000146
-1998      78  0.000146
-1999      79  0.000146
-
-[2000 rows x 2 columns]
-      vertex  pagerank
-1091    1980  0.009000
-499     1948  0.007951
-506     1960  0.007442
-1085    1961  0.006506
-523     1996  0.006228
-      vertex  pagerank
-1091    1980  0.009000
-499     1948  0.007951
-506     1960  0.007442
-1085    1961  0.006506
-523     1996  0.006228
-...      ...       ...
-1995      75  0.000146
-1996      76  0.000146
-1997      77  0.000146
-1998      78  0.000146
-1999      79  0.000146
-
-[2000 rows x 2 columns]
-(2000,)
-(2000,)
-(2000,)
-CUBLAS vs FROG:  0.9937472558484793
-CUBLAS vs CUGRAPH:  0.9957505710844919
-FROG vs CUGRAPH:  0.993624598495797
-FROG vs CUBLAS accuracy: 0.6700, RAND vs CUBLAS accuracy: 0.0600
-FROG vs CUGRAPH accuracy: 0.6700, RAND vs CUGRAPH accuracy: 0.0600
-CUGRAPH vs CUBLAS accuracy: 0.9600

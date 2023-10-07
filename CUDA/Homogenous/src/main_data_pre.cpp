@@ -30,7 +30,7 @@ int main()
     h_unq = new unsigned int[edges];
     cout<<"Ending edge list function"<<endl;
     cout<<"Starting Helper Function"<<endl;
-
+    // Greedy_Vertex_Cuts(edge_list,h_replica,edges);
     unsigned int* h_start = new unsigned int[edges]{0}; //Collect all starting node values
     unsigned int* h_end = new unsigned int[edges]{0}; //collect all ending node values 
     unsigned int* h_start_global = new unsigned int[edges]{0}; //Collect all starting node values
@@ -39,7 +39,7 @@ int main()
     unsigned int* h_start_global_2= new unsigned int[edges]{0};
     for(int i=0;i<edges;i++){
         h_start_global[i]=edge_list[i].start;
-        h_end_global[i]=edge_list[i].end;    // Greedy_Vertex_Cuts(edge_list,h_replica,edges);
+        h_end_global[i]=edge_list[i].end;    
         h_cluster[i]=edge_list[i].cluster;
         h_start_global_2[i]=edge_list[i].start;
     }
