@@ -1,4 +1,129 @@
-make: Nothing to be done for 'frog'.
+nvcc -g -G -Xcompiler -Wall -rdc=true -gencode arch=compute_89,code=sm_89 -c src/frogwild.cu -o obj/frog_wild_cuda.o -lcudadevrt -lcurand -lcusparse -lcublas 
+src/frogwild.cu(1087): warning #186-D: pointless comparison of unsigned integer with zero
+          if(top_nodes[idx]<node_size && top_nodes[idx]>=0)
+                                                       ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/frogwild.cu(1431): warning #186-D: pointless comparison of unsigned integer with zero
+          if(K_global[idx]>=0){
+                          ^
+
+src/frogwild.cu(295): warning #550-D: variable "column" was set but never used
+      int column = 0;
+          ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+src/frogwild.cu(323): warning #550-D: variable "column" was set but never used
+      int column = 0;
+          ^
+
+src/frogwild.cu(413): warning #550-D: variable "max_num_threads" was set but never used
+      int max_num_threads=0;
+          ^
+
+src/frogwild.cu(414): warning #177-D: variable "driverVersion" was declared but never referenced
+      int dev, driverVersion = 0, runtimeVersion = 0;
+               ^
+
+src/frogwild.cu(414): warning #177-D: variable "runtimeVersion" was declared but never referenced
+      int dev, driverVersion = 0, runtimeVersion = 0;
+                                  ^
+
+src/frogwild.cu(422): warning #177-D: variable "d_succ" was declared but never referenced
+      unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree, *d_global_src, *d_global_succ;
+                    ^
+
+src/frogwild.cu(422): warning #177-D: variable "d_src" was declared but never referenced
+      unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree, *d_global_src, *d_global_succ;
+                             ^
+
+src/frogwild.cu(422): warning #177-D: variable "d_src_ptr" was declared but never referenced
+      unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree, *d_global_src, *d_global_succ;
+                                                         ^
+
+src/frogwild.cu(422): warning #177-D: variable "d_degree" was declared but never referenced
+      unsigned int *d_succ, *d_src, *d_unq, *d_c, *d_k, *d_src_ptr, *d_unq_ptr, *d_h_ptr, *d_degree, *d_global_src, *d_global_succ;
+                                                                                           ^
+
+src/frogwild.cu(438): warning #177-D: variable "num_local_K" was declared but never referenced
+      unsigned int *num_local_K;
+                    ^
+
+src/frogwild.cu(439): warning #177-D: variable "num_local_C" was declared but never referenced
+      unsigned int *num_local_C;
+                    ^
+
+src/frogwild.cu(453): warning #177-D: variable "local_K_idx" was declared but never referenced
+      unsigned int *local_K_idx;
+                    ^
+
+src/frogwild.cu(454): warning #177-D: variable "local_C_idx" was declared but never referenced
+      unsigned int *local_C_idx;
+                    ^
+
+src/frogwild.cu(1087): warning #186-D: pointless comparison of unsigned integer with zero
+          if(top_nodes[idx]<node_size && top_nodes[idx]>=0)
+                                                       ^
+
+src/frogwild.cu(1095): warning #177-D: variable "tid" was declared but never referenced
+      unsigned int tid = threadIdx.x;
+                   ^
+
+src/frogwild.cu(1239): warning #177-D: variable "tid" was declared but never referenced
+      unsigned int tid = threadIdx.x;
+                   ^
+
+src/frogwild.cu(1263): warning #177-D: variable "idx" was declared but never referenced
+      unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+                   ^
+
+src/frogwild.cu(1277): warning #177-D: variable "idx" was declared but never referenced
+      unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+                   ^
+
+src/frogwild.cu(1319): warning #177-D: variable "idx" was declared but never referenced
+      unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+                   ^
+
+src/frogwild.cu(1365): warning #177-D: variable "idx" was declared but never referenced
+      unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+                   ^
+
+src/frogwild.cu(1403): warning #177-D: variable "src_index" was declared but never referenced
+          unsigned int src_index = i+src_ptr[blockIdx.x];
+                       ^
+
+src/frogwild.cu(1397): warning #177-D: variable "idx" was declared but never referenced
+      unsigned int idx = threadIdx.x + blockDim.x*blockIdx.x;
+                   ^
+
+src/frogwild.cu(1400): warning #177-D: variable "num_node" was declared but never referenced
+      unsigned int num_node=len_nodes_clust/blockDim.x+1;
+                   ^
+
+src/frogwild.cu(1431): warning #186-D: pointless comparison of unsigned integer with zero
+          if(K_global[idx]>=0){
+                          ^
+
+src/frogwild.cu(1429): warning #177-D: variable "tid" was declared but never referenced
+      unsigned int tid = threadIdx.x;
+                   ^
+
+src/frogwild.cu: In function ‘void Import_Global_Src(unsigned int*)’:
+src/frogwild.cu:295:5: warning: variable ‘column’ set but not used [-Wunused-but-set-variable]
+  295 |     int column = 0;
+      |     ^~~~~~
+src/frogwild.cu: In function ‘void Import_Global_Succ(unsigned int*)’:
+src/frogwild.cu:323:5: warning: variable ‘column’ set but not used [-Wunused-but-set-variable]
+  323 |     int column = 0;
+      |     ^~~~~~
+src/frogwild.cu: In function ‘void FrogWild(unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, unsigned int*, replica_tracker*, int, unsigned int, unsigned int, unsigned int, unsigned int*, unsigned int)’:
+src/frogwild.cu:413:5: warning: variable ‘max_num_threads’ set but not used [-Wunused-but-set-variable]
+  413 |     int max_num_threads=0;
+      |     ^~~~~~~~~~~~~~~
+nvcc -arch=sm_89   obj/frog.o obj/frog_func.o obj/frog_wild_cuda.o obj/pagerank.o obj/cuda_error.o -o bin/Frog -lcudadevrt -lcurand -lcusparse -lcublas 
 Getting graph info
 20000
 2372723
@@ -16,20 +141,18 @@ Done with edge list
   Total amount of constant memory:               65536 bytes
   Total amount of shared memory per block:       49152 bytes
   Total shared memory per multiprocessor:        102400 bytes
-The random number is 0.78744
+The random number is 0.3448
 Starting random edge placement
 Ending Helper Function
-301483
-296993
-298896
-298205
-296898
-295467
-294216
-290565
+392474
+390758
+398621
+395185
+403131
+392554
 Starting the merge function
 Ending the merge function
-159962
+119954
 Unq Ptr Values
 Done making src, unq and succ
 Starting the generate renum edgelists
@@ -46,9 +169,9 @@ Node size 20000
 First init device configuration parameters
 No. Blocks 6
 No. Threads per block 384
-GPU memory usage before PR: used = 1009.812500, free = 15061.125000 MB, total = 16070.937500 MB
+GPU memory usage before PR: used = 728.312500, free = 15342.625000 MB, total = 16070.937500 MB
 CUDA Dimensions
-No. Blocks 8
+No. Blocks 6
 No. Threads per block 384
 Initial Gather Complete
 Iteration 0
