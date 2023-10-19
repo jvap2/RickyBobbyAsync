@@ -427,7 +427,7 @@ unsigned int* ind_rank, unsigned int debug){
     unsigned int unq_ptr_size = unq_ptr[BLOCKS];
     unsigned int unq_rand_mem_size=unq_ptr[BLOCKS]*sizeof(curandState);
     unsigned int succ_size = h_ptr[BLOCKS]*sizeof(unsigned int);
-    p_s=.8;
+    p_s=.65;
     p_t=.15;
     unsigned int iter = 4;
     Export_Misc(iter,edge_size,BLOCKS,p_s);
